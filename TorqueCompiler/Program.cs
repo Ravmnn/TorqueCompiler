@@ -1,7 +1,4 @@
-﻿using System;
-
-
-namespace TorqueCompiler;
+﻿namespace TorqueCompiler;
 
 
 
@@ -10,6 +7,6 @@ class Program
 {
     private static void Main(string[] args)
     {
-        Console.WriteLine("Hello, World!");
+        var root = new TorqueRootCommand(args);
     }
 }
