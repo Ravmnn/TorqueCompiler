@@ -2,7 +2,7 @@ using System.IO;
 using System.CommandLine;
 
 
-namespace TorqueCompiler;
+namespace Torque;
 
 
 
@@ -29,10 +29,7 @@ public class TorqueRootCommand : RootCommand
 
 
     private void Callback(ParseResult _)
-    {
-        TorqueOptions.Global = GetTorqueOptions();
-        Torque.Run();
-    }
+        => Torque.Run(GetTorqueOptions());
 
 
 
