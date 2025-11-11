@@ -48,9 +48,12 @@ public static class Torque
 
             var tokens = new TorqueLexer(Source).Tokenize();
 
-            if (!Failed)
-                foreach (var token in tokens)
-                    Console.WriteLine(token);
+            if (Failed)
+                return;
+
+            var statements = new TorqueParser(tokens).Parse();
+
+            Console.WriteLine(new ASTPrinter().Print(statements));
         }
         catch (Exception exception)
         {
