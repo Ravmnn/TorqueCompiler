@@ -317,7 +317,8 @@ public class TorqueParser(IEnumerable<Token> tokens)
         {
             switch (Peek().Type)
             {
-                case TokenType.Type:
+                case TokenType.KwStart:
+                case TokenType.KwEnd:
                 case TokenType.KwReturn:
                     return;
             }
@@ -348,7 +349,7 @@ public class TorqueParser(IEnumerable<Token> tokens)
 
 
     private Token ExpectEndOfStatement()
-        => Expect(TokenType.SemiColon, TorqueErrors.ExpectSemicolonAfterStatement(Peek().Location));
+        => Expect(TokenType.SemiColon, TorqueErrors.ExpectSemicolonAfterStatement(Previous().Location));
 
 
     private Token ExpectIdentifier()

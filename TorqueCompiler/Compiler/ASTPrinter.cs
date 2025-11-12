@@ -8,15 +8,15 @@ namespace Torque.Compiler;
 
 
 
-public class ASTPrinter() : IExpressionProcessor, IStatementProcessor
+public class ASTPrinter : IExpressionProcessor, IStatementProcessor
 {
     private readonly StringBuilder _builder = new StringBuilder();
 
     private uint _indentDegree;
 
 
-    private bool IgnoreBlocks { get; set; }
-    private bool NoNewlines { get; set; }
+    public bool IgnoreBlocks { get; set; }
+    public bool NoNewlines { get; set; }
 
 
 
