@@ -141,7 +141,7 @@ public class TorqueLexer(string source)
 
     private Token Identifier()
     {
-        while (char.IsAsciiLetterOrDigit(Peek()))
+        while (Peek() is { } @char && char.IsAsciiLetterOrDigit(@char))
             Advance();
 
         var currentLexeme = GetCurrentTokenLexeme();
@@ -161,7 +161,7 @@ public class TorqueLexer(string source)
 
     private Token Value()
     {
-        while (char.IsAsciiDigit(Peek()))
+        while (Peek() is { } @char && char.IsAsciiDigit(@char))
             Advance();
 
         return TokenFromType(TokenType.Value);
@@ -190,8 +190,8 @@ public class TorqueLexer(string source)
     }
 
 
-    private char Peek()
-        => Source[(int)_end];
+    private char? Peek()
+        => AtEnd() ? null : Source[(int)_end];
 
 
     private char? PeekNext()

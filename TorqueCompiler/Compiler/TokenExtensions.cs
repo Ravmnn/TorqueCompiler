@@ -1,6 +1,3 @@
-using System.Linq;
-
-
 namespace Torque.Compiler;
 
 
@@ -12,7 +9,7 @@ public static class TokenExtensions
         => Token.Keywords.ContainsKey(token);
 
     public static bool IsType(this string token)
-        => Token.Types.Contains(token);
+        => Token.Primitives.ContainsKey(token);
 
     public static bool IsBoolean(this string token)
         => token is "true" or "false";

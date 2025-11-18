@@ -1,18 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using LLVMSharp.Interop;
+
 
 namespace Torque.Compiler;
-
-
-
-
-public enum BitMode
-{
-    Bits16 = 16,
-    Bits32 = 32,
-    Bits64 = 64
-}
 
 
 
@@ -21,22 +13,20 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 {
     public const string DefaultEntryPoint = "main";
 
+    private const string FunctionEntryBlockName = "entry";
 
 
 
-    private ASTPrinter _printer = new ASTPrinter
-    {
-        IgnoreBlocks = true,
-        NoNewlines = true
-    };
+
+    private LLVMModuleRef _module = LLVMModuleRef.CreateWithName("MainModule");
+    private LLVMBuilderRef _builder = LLVMBuilderRef.Create(LLVMContextRef.Global);
+
+    private Stack<LLVMValueRef> _valueStack = new Stack<LLVMValueRef>();
 
 
 
 
     public Statement[] Statements { get; }
-
-    public BitMode BitMode { get; init; } = BitMode.Bits32;
-    public string EntryPoint { get; init; } = DefaultEntryPoint;
 
 
 
@@ -49,9 +39,22 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
 
+    public void PushValue(LLVMValueRef value)
+        => _valueStack.Push(value);
+
+
+    public LLVMValueRef PopValue()
+        => _valueStack.Pop();
+
+
+
+
     public string Compile()
     {
-        return string.Empty;
+        foreach (var statement in Statements)
+            Process(statement);
+
+        return _module.PrintToString();
     }
 
 
@@ -81,13 +84,28 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
     {
-        throw new System.NotImplementedException();
+        var paramTypes
+            = from parameter in statement.Parameters select parameter.Type.TokenToLLVMType();
+        var functionType = LLVMTypeRef.CreateFunction(statement.ReturnType.TokenToLLVMType(), paramTypes.ToArray());
+        var function = _module.AddFunction(statement.Name.Lexeme, functionType);
+
+        var entry = function.AppendBasicBlock(FunctionEntryBlockName);
+        _builder.PositionAtEnd(entry);
+
+        foreach (var subStatement in statement.Body.Statements)
+            Process(subStatement);
     }
 
 
     public void ProcessReturn(ReturnStatement statement)
     {
-        throw new System.NotImplementedException();
+        if (statement.Expression is not null)
+        {
+            Process(statement.Expression);
+            _builder.BuildRet(PopValue());
+        }
+        else
+            _builder.BuildRetVoid();
     }
 
 
@@ -101,28 +119,57 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void ProcessLiteral(LiteralExpression expression)
     {
-        throw new System.NotImplementedException();
+        var value = LLVMValueRef.CreateConstInt(expression.Type.PrimitiveToLLVMType(), ulong.Parse(expression.Value.Lexeme));
+        PushValue(value);
     }
+
 
     public void ProcessBinary(BinaryExpression expression)
     {
-        throw new System.NotImplementedException();
+        Process(expression.Left);
+        Process(expression.Right);
+
+        var right = PopValue();
+        var left = PopValue();
+
+        switch (expression.Operator.Type)
+        {
+            case TokenType.Plus:
+                PushValue(_builder.BuildAdd(left, right, "sum"));
+                break;
+
+            case TokenType.Minus:
+                PushValue(_builder.BuildSub(left, right, "sub"));
+                break;
+
+            case TokenType.Star:
+                PushValue(_builder.BuildMul(left, right, "mult"));
+                break;
+
+            case TokenType.Slash:
+                PushValue(_builder.BuildSDiv(left, right, "div"));
+                break;
+        }
     }
+
 
     public void ProcessGrouping(GroupingExpression expression)
     {
-        throw new System.NotImplementedException();
+        Process(expression.Expression);
     }
+
 
     public void ProcessIdentifier(IdentifierExpression expression)
     {
         throw new System.NotImplementedException();
     }
 
+
     public void ProcessCall(CallExpression expression)
     {
         throw new System.NotImplementedException();
     }
+
 
     public void ProcessCast(CastExpression expression)
     {

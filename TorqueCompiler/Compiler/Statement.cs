@@ -85,10 +85,10 @@ public class FunctionDeclarationStatement(Token name, Token returnType, IEnumera
 
 
 
-public class ReturnStatement(Token keyword, Expression expression) : Statement
+public class ReturnStatement(Token keyword, Expression? expression = null) : Statement
 {
     public Token Keyword { get; } = keyword;
-    public Expression Expression { get; } = expression;
+    public Expression? Expression { get; } = expression;
 
 
 

@@ -9,6 +9,11 @@ namespace Torque.Compiler;
 
 public class TorqueParser(IEnumerable<Token> tokens)
 {
+    public const PrimitiveType DefaultPrimitiveType = PrimitiveType.Int32;
+
+
+
+
     private readonly List<Statement> _statements = [];
     private uint _current;
 
@@ -154,8 +159,11 @@ public class TorqueParser(IEnumerable<Token> tokens)
     private Statement ReturnStatement()
     {
         var keyword = Advance();
+        Expression? expression = null;
 
-        var expression = Expression();
+        if (!Check(TokenType.SemiColon))
+            expression = Expression();
+
         ExpectEndOfStatement();
 
         return new ReturnStatement(keyword, expression);
@@ -282,7 +290,7 @@ public class TorqueParser(IEnumerable<Token> tokens)
     private Expression Primary()
     {
         if (Match(TokenType.Value))
-            return new LiteralExpression(Previous());
+            return ParseLiteral();
 
         if (Match(TokenType.Identifier))
             return new IdentifierExpression(Previous());
@@ -294,6 +302,14 @@ public class TorqueParser(IEnumerable<Token> tokens)
     }
 
 
+
+
+    private Expression ParseLiteral()
+    {
+        var token = Previous();
+
+        return new LiteralExpression(token, DefaultPrimitiveType);
+    }
 
 
     private Expression ParseGroupExpression()

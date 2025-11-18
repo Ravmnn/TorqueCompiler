@@ -35,12 +35,22 @@ public readonly record struct TokenLocation(uint Start, uint End, uint Line)
 
 public readonly record struct Token(string Lexeme, TokenType Type, TokenLocation Location)
 {
-    public static readonly string[] Types =
-    [
-        "byte", "char", "bool", "uint8", "uint16",
-        "uint32", "uint64", "int8", "int16", "int32",
-        "int64"
-    ];
+    public static readonly Dictionary<string, PrimitiveType> Primitives = new Dictionary<string, PrimitiveType>
+    {
+        {"byte", PrimitiveType.Byte },
+        {"char", PrimitiveType.Char },
+        {"bool", PrimitiveType.Bool },
+        {"uint8", PrimitiveType.UInt8 },
+        {"uint16", PrimitiveType.UInt16 },
+        {"uint32", PrimitiveType.UInt32 },
+        {"uint64", PrimitiveType.UInt64 },
+        {"int8", PrimitiveType.Int8 },
+        {"int16", PrimitiveType.Int16 },
+        {"int32", PrimitiveType.Int32 },
+        {"int64", PrimitiveType.Int64 }
+    };
+
+
 
 
     public static readonly Dictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-
+using System.Linq;
 using Torque.Compiler;
 
 
@@ -51,25 +51,54 @@ public static class Torque
             if (Failed)
                 return;
 
-            var statements = new TorqueParser(tokens).Parse();
+            var statements = new TorqueParser(tokens).Parse().ToArray();
+
+            if (PrintedAST(statements))
+                return;
 
             if (Failed)
                 return;
 
-            var compiler = ConstructCompilerWithTorqueOptions(statements, options);
+            var compiler = ConstructCompilerFromOptions(statements);
             var compiled = compiler.Compile();
+
+            if (PrintedLLVM(compiled))
+                return;
+
+            File.WriteAllText(Options.Output, compiled);
+            // TODO: make this executable
         }
         catch (Exception exception)
         {
-            Console.Error.WriteLine($"Error: {exception}");
+            Console.Error.WriteLine($"Error: {exception}"); // TODO: colorize
         }
     }
 
 
-    private static TorqueCompiler ConstructCompilerWithTorqueOptions(IEnumerable<Statement> statements, TorqueOptions options)
-        => new TorqueCompiler(statements)
+    private static bool PrintedAST(IEnumerable<Statement> statements)
+    {
+        if (Options.PrintAST)
         {
-            BitMode = options.BitMode,
-            EntryPoint = options.EntryPoint
-        };
+            Console.WriteLine(new ASTPrinter().Print(statements));
+            return true;
+        }
+
+        return false;
+    }
+
+
+    private static bool PrintedLLVM(string compiled)
+    {
+        if (Options.PrintLLVM)
+        {
+            Console.WriteLine(compiled);
+            return true;
+        }
+
+        return false;
+    }
+
+
+    private static TorqueCompiler ConstructCompilerFromOptions(IEnumerable<Statement> statements)
+        => new TorqueCompiler(statements);
 }

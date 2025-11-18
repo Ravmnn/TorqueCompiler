@@ -1,8 +1,5 @@
 using System.IO;
 using System.CommandLine;
-using System.CommandLine.Parsing;
-
-using Torque.Compiler;
 
 
 namespace Torque;
@@ -19,8 +16,8 @@ public class TorqueRootCommand : RootCommand
 
     public Option<string> Output { get; }
 
-    public Option<int> BitMode { get; }
-    public Option<string> EntryPoint { get; }
+    public Option<bool> PrintAST { get; }
+    public Option<bool> PrintLLVM { get; }
 
 
 
@@ -34,33 +31,17 @@ public class TorqueRootCommand : RootCommand
 
         Add(Output = new Option<string>("--output", "-o")
         {
-            DefaultValueFactory = _ => "app"
+            DefaultValueFactory = _ => "output"
         });
 
 
-        Add(BitMode = new Option<int>("--bits")
-        {
-            DefaultValueFactory = _ => (int)Compiler.BitMode.Bits32,
-            Validators = { BitsValidator }
-        });
-
-        Add(EntryPoint = new Option<string>("--entry-point")
-        {
-            DefaultValueFactory = _ => TorqueCompiler.DefaultEntryPoint
-        });
+        Add(PrintAST = new Option<bool>("--print-ast"));
+        Add(PrintLLVM = new Option<bool>("--print-llvm"));
 
 
         SetAction(Callback);
 
         Result = Parse(args);
-    }
-
-
-    private static void BitsValidator(OptionResult option)
-    {
-        if (option.GetValueOrDefault<int>() is
-            not ((int)Compiler.BitMode.Bits16 or (int)Compiler.BitMode.Bits32 or (int)Compiler.BitMode.Bits64))
-            option.AddError("Bits must be 16, 32 or 64");
     }
 
 
@@ -78,7 +59,7 @@ public class TorqueRootCommand : RootCommand
 
         Output = Result.GetValue(Output)!,
 
-        BitMode = (BitMode)Result.GetValue(BitMode),
-        EntryPoint = Result.GetValue(EntryPoint)!
+        PrintAST = Result.GetValue(PrintAST),
+        PrintLLVM = Result.GetValue(PrintLLVM)
     };
 }

@@ -212,8 +212,13 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
     {
         BeginStatement();
 
-        _builder.Append("return ");
-        Process(statement.Expression);
+        _builder.Append("return");
+
+        if (statement.Expression is not null)
+        {
+            _builder.Append(' ');
+            Process(statement.Expression);
+        }
 
         EndStatement();
     }

@@ -29,9 +29,10 @@ public abstract class Expression
 
 
 
-public class LiteralExpression(Token value) : Expression
+public class LiteralExpression(Token value, PrimitiveType type) : Expression
 {
     public Token Value { get; } = value;
+    public PrimitiveType Type { get; } = type;
 
 
 

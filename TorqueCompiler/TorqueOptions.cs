@@ -1,7 +1,5 @@
 using System.IO;
 
-using Torque.Compiler;
-
 
 namespace Torque;
 
@@ -14,6 +12,6 @@ public readonly struct TorqueOptions
 
     public required string Output { get; init; }
 
-    public required BitMode BitMode { get; init; }
-    public required string EntryPoint { get; init; }
+    public required bool PrintAST { get; init; }
+    public required bool PrintLLVM { get; init; }
 }
