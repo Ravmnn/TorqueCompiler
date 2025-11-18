@@ -7,6 +7,7 @@ class Program
 {
     private static void Main(string[] args)
     {
-        _ = new TorqueRootCommand(args);
+        var root = new TorqueRootCommand(args);
+        root.Result.Invoke();
     }
 }

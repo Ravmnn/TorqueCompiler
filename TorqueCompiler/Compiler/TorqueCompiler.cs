@@ -19,20 +19,9 @@ public enum BitMode
 
 public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 {
-    private const string DefaultEntryPoint = "main";
-
-    private const string StackPointerRegister = "rsp";
-    private const string StackFrameRegister = "rbp";
+    public const string DefaultEntryPoint = "main";
 
 
-
-
-    private readonly AssemblyGenerator _assembly = new AssemblyGenerator();
-    private readonly AssemblyGenerator _data = new AssemblyGenerator();
-    private readonly AssemblyGenerator _start = new AssemblyGenerator();
-    private readonly AssemblyGenerator _code = new AssemblyGenerator();
-
-    private AssemblyGenerator _generator;
 
 
     private ASTPrinter _printer = new ASTPrinter
@@ -54,9 +43,6 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public TorqueCompiler(IEnumerable<Statement> statements)
     {
-        _generator = _assembly;
-
-
         Statements = statements.ToArray();
     }
 
