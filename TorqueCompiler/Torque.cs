@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
 using Torque.Compiler;
 
 
@@ -12,8 +13,6 @@ namespace Torque;
 
 public static class Torque
 {
-    public static TorqueOptions Options { get; private set; }
-
     public static string? Source { get; private set; }
     public static string[]? SourceLines => Source?.Split('\n');
 
@@ -37,12 +36,10 @@ public static class Torque
 
 
 
-    public static void Run(TorqueOptions options)
+    public static void Compile(TorqueCompileOptions options)
     {
         try
         {
-            Options = options;
-
             Source = File.ReadAllText(options.File.FullName);
 
 
@@ -53,20 +50,19 @@ public static class Torque
 
             var statements = new TorqueParser(tokens).Parse().ToArray();
 
-            if (PrintedAST(statements))
-                return;
-
-            if (Failed)
+            if (Failed || PrintedAST(options, statements))
                 return;
 
             var compiler = ConstructCompilerFromOptions(statements);
             var compiled = compiler.Compile();
 
-            if (PrintedLLVM(compiled))
+            if (Failed || PrintedLLVM(options, compiled))
                 return;
 
-            File.WriteAllText(Options.Output, compiled);
-            // TODO: make this executable
+            var fileName = Path.GetFileNameWithoutExtension(options.File.Name);
+            var outputName = options.Output ?? $"{fileName}.o";
+
+            CommandLine.Execute($"echo \"{compiled}\" | llc -o \"{outputName}\" -filetype=obj");
         }
         catch (Exception exception)
         {
@@ -75,9 +71,9 @@ public static class Torque
     }
 
 
-    private static bool PrintedAST(IEnumerable<Statement> statements)
+    private static bool PrintedAST(TorqueCompileOptions options, IEnumerable<Statement> statements)
     {
-        if (Options.PrintAST)
+        if (options.PrintAST)
         {
             Console.WriteLine(new ASTPrinter().Print(statements));
             return true;
@@ -87,9 +83,9 @@ public static class Torque
     }
 
 
-    private static bool PrintedLLVM(string compiled)
+    private static bool PrintedLLVM(TorqueCompileOptions options, string compiled)
     {
-        if (Options.PrintLLVM)
+        if (options.PrintLLVM)
         {
             Console.WriteLine(compiled);
             return true;
@@ -101,4 +97,12 @@ public static class Torque
 
     private static TorqueCompiler ConstructCompilerFromOptions(IEnumerable<Statement> statements)
         => new TorqueCompiler(statements);
+
+
+
+
+    public static void Link(TorqueLinkOptions options)
+    {
+
+    }
 }

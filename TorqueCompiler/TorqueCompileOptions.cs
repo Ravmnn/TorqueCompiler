@@ -6,11 +6,11 @@ namespace Torque;
 
 
 
-public readonly struct TorqueOptions
+public readonly struct TorqueCompileOptions
 {
     public required FileInfo File { get; init; }
 
-    public required string Output { get; init; }
+    public required string? Output { get; init; }
 
     public required bool PrintAST { get; init; }
     public required bool PrintLLVM { get; init; }
