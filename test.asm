@@ -1,15 +1,15 @@
 	.file	"MainModule"
 	.text
-	.globl	abc                             # -- Begin function abc
+	.globl	main                            # -- Begin function main
 	.p2align	4
-	.type	abc,@function
-abc:                                    # @abc
+	.type	main,@function
+main:                                   # @main
 	.cfi_startproc
 # %bb.0:                                # %entry
 	movl	$20, %eax
 	retq
 .Lfunc_end0:
-	.size	abc, .Lfunc_end0-abc
+	.size	main, .Lfunc_end0-main
 	.cfi_endproc
                                         # -- End function
 	.section	".note.GNU-stack","",@progbits

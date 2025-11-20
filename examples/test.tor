@@ -1,3 +1,3 @@
-int32 abc() start
+int32 main() start
     return 20;
 end

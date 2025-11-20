@@ -19,12 +19,17 @@ public class LinkCommand : Command
 
     public LinkCommand() : base("link", "Links object files into a binary executable/library.")
     {
+        // TODO: make this accept only existent files
+
         Add(Files = new Argument<IEnumerable<FileInfo>>("files")
         {
             Arity = ArgumentArity.OneOrMore
         });
 
-        Add(Output = new Option<string>("--output", "-o"));
+        Add(Output = new Option<string>("--output", "-o")
+        {
+            DefaultValueFactory = _ => "app"
+        });
 
         SetAction(Callback);
     }
@@ -40,6 +45,6 @@ public class LinkCommand : Command
     {
         Files = result.GetRequiredValue(Files),
 
-        Output = result.GetValue(Output)
+        Output = result.GetRequiredValue(Output)
     };
 }

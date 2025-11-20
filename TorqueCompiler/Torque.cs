@@ -53,21 +53,28 @@ public static class Torque
             if (Failed || PrintedAST(options, statements))
                 return;
 
-            var compiler = ConstructCompilerFromOptions(statements);
-            var compiled = compiler.Compile();
+            var bitCode = new TorqueCompiler(statements).Compile();
 
-            if (Failed || PrintedLLVM(options, compiled))
+            if (Failed || PrintedLLVM(options, bitCode))
                 return;
 
-            var fileName = Path.GetFileNameWithoutExtension(options.File.Name);
-            var outputName = options.Output ?? $"{fileName}.o";
-
-            CommandLine.Execute($"echo \"{compiled}\" | llc -o \"{outputName}\" -filetype=obj");
+            CommandLine.LLVMBitCodeToFile(GetOutputFileName(options), bitCode, options.OutputType);
         }
         catch (Exception exception)
         {
             Console.Error.WriteLine($"Error: {exception}"); // TODO: colorize
         }
+    }
+
+
+    private static string GetOutputFileName(TorqueCompileOptions options)
+    {
+        var fileName = Path.GetFileNameWithoutExtension(options.File.Name);
+
+        var outputExtension = options.OutputType.OutputTypeToFileExtension();
+        var outputName = options.Output ?? $"{fileName}.{outputExtension}";
+
+        return outputName;
     }
 
 
@@ -95,14 +102,11 @@ public static class Torque
     }
 
 
-    private static TorqueCompiler ConstructCompilerFromOptions(IEnumerable<Statement> statements)
-        => new TorqueCompiler(statements);
-
-
 
 
     public static void Link(TorqueLinkOptions options)
     {
-
+        var fileNames = from file in options.Files select file.FullName;
+        CommandLine.Link(fileNames, options.Output);
     }
 }

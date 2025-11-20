@@ -13,8 +13,11 @@ public class CompileCommand : Command
 
     public Option<string> Output { get; }
 
+    public Option<OutputType> OutputType { get; }
+
     public Option<bool> PrintAST { get; }
     public Option<bool> PrintLLVM { get; }
+
 
 
 
@@ -27,8 +30,11 @@ public class CompileCommand : Command
 
         Add(Output = new Option<string>("--output", "-o"));
 
+        Add(OutputType = new Option<OutputType>("--output-type", "-O"));
+
         Add(PrintAST = new Option<bool>("--print-ast"));
         Add(PrintLLVM = new Option<bool>("--print-llvm"));
+
 
         SetAction(Callback);
     }
@@ -45,6 +51,8 @@ public class CompileCommand : Command
         File = result.GetRequiredValue(File),
 
         Output = result.GetValue(Output),
+
+        OutputType = result.GetValue(OutputType),
 
         PrintAST = result.GetValue(PrintAST),
         PrintLLVM = result.GetValue(PrintLLVM)
