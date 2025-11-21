@@ -52,4 +52,12 @@ public static class PrimitiveTypeExtensions
 
         _ => throw new ArgumentException("Invalid primitive type.")
     };
+
+
+
+
+    // public static int SizeOfThis(this LLVMTypeRef type, LLVMModuleRef module)
+    // {
+    //     LLVMTargetDataRef.FromStringRepresentation(module.DataLayout);
+    // }
 }

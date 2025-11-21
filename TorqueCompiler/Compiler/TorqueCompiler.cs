@@ -21,7 +21,11 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     private LLVMModuleRef _module = LLVMModuleRef.CreateWithName("MainModule");
     private LLVMBuilderRef _builder = LLVMBuilderRef.Create(LLVMContextRef.Global);
 
-    private Stack<LLVMValueRef> _valueStack = new Stack<LLVMValueRef>();
+    private readonly Stack<LLVMValueRef> _valueStack = new Stack<LLVMValueRef>();
+
+
+    private readonly Scope _globalScope = new Scope();
+    private Scope _scope;
 
 
 
@@ -33,6 +37,9 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public TorqueCompiler(IEnumerable<Statement> statements)
     {
+        _scope = _globalScope;
+
+
         Statements = statements.ToArray();
     }
 
@@ -70,30 +77,50 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
 
+    private LLVMValueRef Consume(Expression expression)
+    {
+        Process(expression);
+        return PopValue();
+    }
+
+
+
+
     public void ProcessExpression(ExpressionStatement statement)
     {
-        throw new System.NotImplementedException();
+        Process(statement.Expression);
     }
 
 
     public void ProcessDeclaration(DeclarationStatement statement)
     {
-        throw new System.NotImplementedException();
+        var name = statement.Name.Lexeme;
+        var type = statement.Type.TokenToLLVMType();
+
+        var identifier = _builder.BuildAlloca(type, name);
+        var value = Consume(statement.Value);
+
+        _builder.BuildStore(value, identifier);
+
+        _scope.Add(new Identifier(identifier, type));
     }
 
 
     public void ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
     {
-        var paramTypes
+        var parameterTypes
             = from parameter in statement.Parameters select parameter.Type.TokenToLLVMType();
-        var functionType = LLVMTypeRef.CreateFunction(statement.ReturnType.TokenToLLVMType(), paramTypes.ToArray());
-        var function = _module.AddFunction(statement.Name.Lexeme, functionType);
+
+        var functionName = statement.Name.Lexeme;
+        var functionType = LLVMTypeRef.CreateFunction(statement.ReturnType.TokenToLLVMType(), parameterTypes.ToArray());
+        var function = _module.AddFunction(functionName, functionType);
+
+        _scope.Add(new Identifier(function, functionType));
 
         var entry = function.AppendBasicBlock(FunctionEntryBlockName);
         _builder.PositionAtEnd(entry);
 
-        foreach (var subStatement in statement.Body.Statements)
-            Process(subStatement);
+        ProcessBlock(statement.Body);
     }
 
 
@@ -111,7 +138,13 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void ProcessBlock(BlockStatement statement)
     {
-        throw new System.NotImplementedException();
+        var oldScope = _scope;
+        _scope = new Scope(_scope);
+
+        foreach (var subStatement in statement.Statements)
+            Process(subStatement);
+
+        _scope = oldScope;
     }
 
 
@@ -161,18 +194,27 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void ProcessIdentifier(IdentifierExpression expression)
     {
-        throw new System.NotImplementedException();
+        var identifier = _scope.GetIdentifier(expression.Identifier.Lexeme);
+        var value = _builder.BuildLoad2(identifier.Type, identifier.Reference, "value");
+
+        PushValue(value);
     }
 
 
     public void ProcessCall(CallExpression expression)
     {
-        throw new System.NotImplementedException();
+        var function = Consume(expression.Callee);
+
+        var arguments
+            = from argument in expression.Arguments select Consume(argument);
+
+        _builder.BuildCall2(function.TypeOf.ElementType, function, arguments.ToArray(), "retval");
     }
 
 
     public void ProcessCast(CastExpression expression)
     {
-        throw new System.NotImplementedException();
+        // TODO: create TargetMachine
+        // TODO: finish this
     }
 }

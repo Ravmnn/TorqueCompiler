@@ -1,3 +1,6 @@
 int32 main() start
-    return 20;
+    int32 number1 = 25;
+    int32 number2 = 50;
+
+    return number1 + number2;
 end
