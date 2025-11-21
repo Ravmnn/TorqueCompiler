@@ -30,7 +30,10 @@ public class CompileCommand : Command
 
         Add(Output = new Option<string>("--output", "-o"));
 
-        Add(OutputType = new Option<OutputType>("--output-type", "-O"));
+        Add(OutputType = new Option<OutputType>("--output-type", "-O")
+        {
+            DefaultValueFactory = _ => global::Torque.OutputType.Object
+        });
 
         Add(PrintAST = new Option<bool>("--print-ast"));
         Add(PrintLLVM = new Option<bool>("--print-llvm"));

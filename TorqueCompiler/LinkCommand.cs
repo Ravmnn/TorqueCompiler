@@ -21,10 +21,12 @@ public class LinkCommand : Command
     {
         // TODO: make this accept only existent files
 
-        Add(Files = new Argument<IEnumerable<FileInfo>>("files")
+        Files = new Argument<IEnumerable<FileInfo>>("files")
         {
             Arity = ArgumentArity.OneOrMore
-        });
+        };
+        Files.AcceptExistingOnly();
+        Add(Files);
 
         Add(Output = new Option<string>("--output", "-o")
         {
