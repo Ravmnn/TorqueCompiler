@@ -1,6 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Runtime.InteropServices;
 using LLVMSharp.Interop;
 
 
@@ -11,8 +12,6 @@ namespace Torque.Compiler;
 
 public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 {
-    public const string DefaultEntryPoint = "main";
-
     private const string FunctionEntryBlockName = "entry";
 
 
@@ -21,10 +20,13 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     private LLVMModuleRef _module = LLVMModuleRef.CreateWithName("MainModule");
     private LLVMBuilderRef _builder = LLVMBuilderRef.Create(LLVMContextRef.Global);
 
+    private LLVMTargetMachineRef _targetMachine;
+    private LLVMTargetDataRef _targetData;
+
     private readonly Stack<LLVMValueRef> _valueStack = new Stack<LLVMValueRef>();
 
 
-    private readonly Scope _globalScope = new Scope();
+    private readonly Scope _globalScope = [];
     private Scope _scope;
 
 
@@ -37,6 +39,12 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public TorqueCompiler(IEnumerable<Statement> statements)
     {
+        // TODO: make this user's choice
+        const string Triple = "x86_64-pc-linux-gnu";
+
+        InitializeTargetMachine(Triple);
+        SetupModuleTargetProperties(Triple);
+
         _scope = _globalScope;
 
 
@@ -44,16 +52,34 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     }
 
 
+    private void InitializeTargetMachine(string triple)
+    {
+        LLVM.InitializeNativeTarget();
+        LLVM.InitializeNativeAsmPrinter();
+
+        if (!LLVMTargetRef.TryGetTargetFromTriple(triple, out var target, out _))
+            throw new InvalidOperationException("LLVM doesn't support this target.");
+
+        _targetMachine = target.CreateTargetMachine(
+            triple, "generic", "",
+            LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault, LLVMRelocMode.LLVMRelocPIC,
+            LLVMCodeModel.LLVMCodeModelDefault
+        );
+    }
 
 
-    public void PushValue(LLVMValueRef value)
-        => _valueStack.Push(value);
+    private void SetupModuleTargetProperties(string triple)
+    {
+        _targetData = _targetMachine.CreateTargetDataLayout();
 
+        _module.Target = triple;
 
-    public LLVMValueRef PopValue()
-        => _valueStack.Pop();
-
-
+        unsafe
+        {
+            var ptr = LLVM.CopyStringRepOfTargetData(_targetData);
+            _module.DataLayout = Marshal.PtrToStringAnsi((IntPtr)ptr) ?? throw new InvalidOperationException("Couldn't create data layout.");
+        }
+    }
 
 
     public string Compile()
@@ -73,15 +99,6 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void Process(Statement statement)
         => statement.Process(this);
-
-
-
-
-    private LLVMValueRef Consume(Expression expression)
-    {
-        Process(expression);
-        return PopValue();
-    }
 
 
 
@@ -214,7 +231,42 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void ProcessCast(CastExpression expression)
     {
-        // TODO: create TargetMachine
-        // TODO: finish this
+        var value = Consume(expression.Expression);
+        var toType = expression.Type.TokenToLLVMType();
+
+        var sourceTypeSize = SizeOf(value.TypeOf);
+        var targetTypeSize = SizeOf(toType);
+
+        if (sourceTypeSize < targetTypeSize)
+            PushValue(_builder.BuildIntCast(value, toType, "incrcast"));
+
+        else if (sourceTypeSize > targetTypeSize)
+            PushValue(_builder.BuildTrunc(value, toType, "decrcast"));
+
+        else
+            PushValue(value);
     }
+
+
+
+
+    private void PushValue(LLVMValueRef value)
+        => _valueStack.Push(value);
+
+
+    private LLVMValueRef PopValue()
+        => _valueStack.Pop();
+
+
+    private LLVMValueRef Consume(Expression expression)
+    {
+        Process(expression);
+        return PopValue();
+    }
+
+
+
+
+    private int SizeOf(LLVMTypeRef type)
+        => type.SizeOfThis(_targetData);
 }

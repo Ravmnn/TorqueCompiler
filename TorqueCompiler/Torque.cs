@@ -60,9 +60,13 @@ public static class Torque
 
             CommandLine.LLVMBitCodeToFile(GetOutputFileName(options), bitCode, options.OutputType);
         }
-        catch (Exception exception)
+        catch (LanguageException exception)
         {
             Console.Error.WriteLine($"Error: {exception}"); // TODO: colorize
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine($"Internal Error: {exception.Message}"); // TODO: colorize
         }
     }
 

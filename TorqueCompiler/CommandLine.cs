@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -11,37 +12,29 @@ namespace Torque;
 
 public static class CommandLine
 {
-    public static Process CreateProcess(string command, bool redirectOutput = true, bool redirectInput = true)
+    public static Process CreateProcess(string path, string arguments, bool redirectOutput = true, bool redirectInput = true)
     {
         var processInfo = new ProcessStartInfo
         {
-            FileName = "/bin/zsh",
-            Arguments = $"-c \"{command}\"",
+            FileName = path,
+            Arguments = arguments,
             UseShellExecute = false,
             RedirectStandardOutput = redirectOutput,
             RedirectStandardError = redirectOutput,
-            RedirectStandardInput = redirectInput
+            RedirectStandardInput = redirectInput,
+            CreateNoWindow = true
         };
 
-        return new Process { StartInfo = processInfo};
+        return new Process { StartInfo = processInfo };
     }
 
 
-
-
-    public static Process Execute(string command)
+    public static void ExecuteAndWait(string path, string arguments, bool redirectOutput = false, bool redirectInput = false)
     {
-        var process = CreateProcess(command);
+        var process = CreateProcess(path, arguments, redirectOutput, redirectInput);
         process.Start();
-
-        return process;
+        process.WaitForExit();
     }
-
-
-    public static void ExecuteAndWait(string command)
-        => Execute(command).WaitForExit();
-
-
 
 
     public static void LLVMBitCodeToFile(string outputFileName, string bitCode, OutputType outputType = OutputType.Object)
@@ -54,12 +47,12 @@ public static class CommandLine
 
         var fileType = outputType == OutputType.Object ? "obj" : "asm";
 
-        var process = CreateProcess($"llc -o \"{outputFileName}\" -filetype={fileType}");
-        process.Start();
-        process.StandardInput.Write(bitCode);
-        process.StandardInput.Flush();
-        process.StandardInput.Close();
-        process.WaitForExit();
+        var tempFile = Path.GetTempFileName();
+        File.WriteAllText(tempFile, bitCode);
+
+        ExecuteAndWait("/bin/llc", $"{tempFile} -o \"{outputFileName}\" -filetype={fileType}");
+
+        File.Delete(tempFile);
     }
 
 
@@ -67,6 +60,6 @@ public static class CommandLine
     {
         var filesString = string.Join(' ', files);
 
-        ExecuteAndWait($"clang {filesString} -o {outputFileName}");
+        ExecuteAndWait("/bin/clang", $"{filesString} -o \"{outputFileName}\"");
     }
 }

@@ -56,8 +56,6 @@ public static class PrimitiveTypeExtensions
 
 
 
-    // public static int SizeOfThis(this LLVMTypeRef type, LLVMModuleRef module)
-    // {
-    //     LLVMTargetDataRef.FromStringRepresentation(module.DataLayout);
-    // }
+    public static int SizeOfThis(this LLVMTypeRef type, LLVMTargetDataRef targetData)
+        => (int)targetData.ABISizeOfType(type);
 }

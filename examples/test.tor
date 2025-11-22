@@ -1,6 +1,5 @@
-int32 main() start
-    int32 number1 = 25;
-    int32 number2 = 50;
-
-    return number1 + number2;
+int main() start
+    int64 returnValue = 123;
+    
+    return returnValue as int as int as int;
 end
