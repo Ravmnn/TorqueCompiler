@@ -1,5 +1,5 @@
 int main() start
     int64 returnValue = 123;
     
-    return returnValue as int as int as int;
+    return returnValue as int8 as int16 as int32;
 end

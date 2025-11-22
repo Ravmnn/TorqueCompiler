@@ -17,6 +17,7 @@ public class CompileCommand : Command
 
     public Option<bool> PrintAST { get; }
     public Option<bool> PrintLLVM { get; }
+    public Option<bool> PrintASM { get; }
 
 
 
@@ -37,6 +38,7 @@ public class CompileCommand : Command
 
         Add(PrintAST = new Option<bool>("--print-ast"));
         Add(PrintLLVM = new Option<bool>("--print-llvm"));
+        Add(PrintASM = new Option<bool>("--print-asm"));
 
 
         SetAction(Callback);
@@ -58,6 +60,7 @@ public class CompileCommand : Command
         OutputType = result.GetValue(OutputType),
 
         PrintAST = result.GetValue(PrintAST),
-        PrintLLVM = result.GetValue(PrintLLVM)
+        PrintLLVM = result.GetValue(PrintLLVM),
+        PrintASM = result.GetValue(PrintASM)
     };
 }

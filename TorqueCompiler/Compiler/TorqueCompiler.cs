@@ -39,7 +39,10 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public TorqueCompiler(IEnumerable<Statement> statements)
     {
-        // TODO: make this user's choice
+        // TODO: add optimization command line options
+        // TODO: add debugging
+
+        // TODO: make this user's choice (command line options)
         const string Triple = "x86_64-pc-linux-gnu";
 
         InitializeTargetMachine(Triple);

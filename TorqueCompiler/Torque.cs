@@ -55,7 +55,7 @@ public static class Torque
 
             var bitCode = new TorqueCompiler(statements).Compile();
 
-            if (Failed || PrintedLLVM(options, bitCode))
+            if (Failed || PrintedLLVM(options, bitCode) || PrintedASM(options, bitCode))
                 return;
 
             CommandLine.LLVMBitCodeToFile(GetOutputFileName(options), bitCode, options.OutputType);
@@ -94,11 +94,30 @@ public static class Torque
     }
 
 
-    private static bool PrintedLLVM(TorqueCompileOptions options, string compiled)
+    private static bool PrintedLLVM(TorqueCompileOptions options, string bitCode)
     {
         if (options.PrintLLVM)
         {
-            Console.WriteLine(compiled);
+            Console.WriteLine(bitCode);
+            return true;
+        }
+
+        return false;
+    }
+
+
+    private static bool PrintedASM(TorqueCompileOptions options, string bitCode)
+    {
+        // TODO: finish this
+        if (options.PrintASM)
+        {
+            var tempFile = Path.GetTempFileName();
+            CommandLine.LLVMBitCodeToFile(tempFile, bitCode, OutputType.Assembly);
+
+            var assembly = File.ReadAllText(tempFile);
+            File.Delete(tempFile);
+
+            Console.WriteLine(assembly);
             return true;
         }
 
