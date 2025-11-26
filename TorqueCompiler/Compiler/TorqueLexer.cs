@@ -9,12 +9,12 @@ namespace Torque.Compiler;
 
 public class TorqueLexer(string source)
 {
-    private uint _startInLine;
-    private uint _endInLine;
-    private uint _line;
+    private int _startInLine;
+    private int _endInLine;
+    private int _line;
 
-    private uint _start;
-    private uint _end;
+    private int _start;
+    private int _end;
 
 
     public string Source { get; set; } = source;
@@ -110,7 +110,7 @@ public class TorqueLexer(string source)
 
 
     private string GetCurrentTokenLexeme()
-        => Source[(int)_start .. (int)_end];
+        => Source[_start .. _end];
 
 
 
@@ -180,7 +180,7 @@ public class TorqueLexer(string source)
         if (Peek() == '\n')
             NextLine();
 
-        return Source[(int)_end++];
+        return Source[_end++];
     }
 
     private void NextLine()
@@ -191,11 +191,11 @@ public class TorqueLexer(string source)
 
 
     private char? Peek()
-        => AtEnd() ? null : Source[(int)_end];
+        => AtEnd() ? null : Source[_end];
 
 
     private char? PeekNext()
-        => AtEnd() ? null : Source[(int)_end];
+        => AtEnd() ? null : Source[_end];
 
 
     private bool Match(char character)

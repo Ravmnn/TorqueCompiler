@@ -13,6 +13,8 @@ namespace Torque;
 
 public static class Torque
 {
+    public static TorqueCompileOptions Options { get; private set; }
+
     public static string? Source { get; private set; }
     public static string[]? SourceLines => Source?.Split('\n');
 
@@ -21,7 +23,7 @@ public static class Torque
 
 
 
-    public static string GetSourceLine(uint line)
+    public static string GetSourceLine(int line)
         => SourceLines![line - 1];
 
 
@@ -40,7 +42,8 @@ public static class Torque
     {
         try
         {
-            Source = File.ReadAllText(options.File.FullName);
+            Options = options;
+            Source = File.ReadAllText(Options.File.FullName);
 
 
             var tokens = new TorqueLexer(Source).Tokenize();
@@ -50,19 +53,15 @@ public static class Torque
 
             var statements = new TorqueParser(tokens).Parse().ToArray();
 
-            if (Failed || PrintedAST(options, statements))
+            if (Failed || PrintedAST(statements))
                 return;
 
-            var bitCode = new TorqueCompiler(statements).Compile();
+            var bitCode = new TorqueCompiler(statements, Options.Debug).Compile();
 
-            if (Failed || PrintedLLVM(options, bitCode) || PrintedASM(options, bitCode))
+            if (Failed || PrintedLLVM(bitCode) || PrintedASM(bitCode))
                 return;
 
-            CommandLine.LLVMBitCodeToFile(GetOutputFileName(options), bitCode, options.OutputType);
-        }
-        catch (LanguageException exception)
-        {
-            Console.Error.WriteLine($"Error: {exception}"); // TODO: colorize
+            CommandLine.LLVMBitCodeToFile(GetOutputFileName(), bitCode, Options.OutputType);
         }
         catch (Exception exception)
         {
@@ -71,20 +70,20 @@ public static class Torque
     }
 
 
-    private static string GetOutputFileName(TorqueCompileOptions options)
+    private static string GetOutputFileName()
     {
-        var fileName = Path.GetFileNameWithoutExtension(options.File.Name);
+        var fileName = Path.GetFileNameWithoutExtension(Options.File.Name);
 
-        var outputExtension = options.OutputType.OutputTypeToFileExtension();
-        var outputName = options.Output ?? $"{fileName}.{outputExtension}";
+        var outputExtension = Options.OutputType.OutputTypeToFileExtension();
+        var outputName = Options.Output ?? $"{fileName}.{outputExtension}";
 
         return outputName;
     }
 
 
-    private static bool PrintedAST(TorqueCompileOptions options, IEnumerable<Statement> statements)
+    private static bool PrintedAST(IEnumerable<Statement> statements)
     {
-        if (options.PrintAST)
+        if (Options.PrintAST)
         {
             Console.WriteLine(new ASTPrinter().Print(statements));
             return true;
@@ -94,9 +93,9 @@ public static class Torque
     }
 
 
-    private static bool PrintedLLVM(TorqueCompileOptions options, string bitCode)
+    private static bool PrintedLLVM(string bitCode)
     {
-        if (options.PrintLLVM)
+        if (Options.PrintLLVM)
         {
             Console.WriteLine(bitCode);
             return true;
@@ -106,10 +105,9 @@ public static class Torque
     }
 
 
-    private static bool PrintedASM(TorqueCompileOptions options, string bitCode)
+    private static bool PrintedASM(string bitCode)
     {
-        // TODO: finish this
-        if (options.PrintASM)
+        if (Options.PrintASM)
         {
             var tempFile = Path.GetTempFileName();
             CommandLine.LLVMBitCodeToFile(tempFile, bitCode, OutputType.Assembly);

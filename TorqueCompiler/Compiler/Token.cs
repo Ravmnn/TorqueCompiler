@@ -24,7 +24,7 @@ public enum TokenType
 
 
 
-public readonly record struct TokenLocation(uint Start, uint End, uint Line)
+public readonly record struct TokenLocation(int Start, int End, int Line)
 {
     public override string ToString()
         => $"line {Line}:{Start}-{End}";
@@ -68,4 +68,9 @@ public readonly record struct Token(string Lexeme, TokenType Type, TokenLocation
 
     public override string ToString()
         => $"\"{Lexeme}\" of type {Type}, at {Location}";
+
+
+
+
+    public static implicit operator TokenLocation(Token token) => token.Location;
 }

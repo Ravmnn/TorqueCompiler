@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+
 using LLVMSharp.Interop;
 
 
@@ -23,6 +24,11 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     private LLVMTargetMachineRef _targetMachine;
     private LLVMTargetDataRef _targetData;
 
+    private readonly DebugMetadataGenerator? _debug;
+    private bool _setDebugLocation;
+    private bool _ignoreSetDebugLocation;
+
+
     private readonly Stack<LLVMValueRef> _valueStack = new Stack<LLVMValueRef>();
 
 
@@ -37,16 +43,25 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
 
-    public TorqueCompiler(IEnumerable<Statement> statements)
+    public TorqueCompiler(IEnumerable<Statement> statements, bool generateDebugMetadata = false)
     {
-        // TODO: add optimization command line options
+        // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add debugging
+        // TODO: add floats
+        // TODO: add unsigned ints
+        // TODO: add assignment expression
+
+        // TODO: make the Parser handle things like identifier checking, type checking, etc...
 
         // TODO: make this user's choice (command line options)
         const string Triple = "x86_64-pc-linux-gnu";
 
         InitializeTargetMachine(Triple);
         SetupModuleTargetProperties(Triple);
+
+        if (generateDebugMetadata)
+            _debug = new DebugMetadataGenerator(_module, _targetData);
+
 
         _scope = _globalScope;
 
@@ -71,18 +86,17 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     }
 
 
-    private void SetupModuleTargetProperties(string triple)
+    private unsafe void SetupModuleTargetProperties(string triple)
     {
         _targetData = _targetMachine.CreateTargetDataLayout();
 
         _module.Target = triple;
 
-        unsafe
-        {
-            var ptr = LLVM.CopyStringRepOfTargetData(_targetData);
-            _module.DataLayout = Marshal.PtrToStringAnsi((IntPtr)ptr) ?? throw new InvalidOperationException("Couldn't create data layout.");
-        }
+        var ptr = LLVM.CopyStringRepOfTargetData(_targetData);
+        _module.DataLayout = Marshal.PtrToStringAnsi((IntPtr)ptr) ?? throw new InvalidOperationException("Couldn't create data layout.");
     }
+
+
 
 
     public string Compile()
@@ -90,7 +104,21 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         foreach (var statement in Statements)
             Process(statement);
 
+        _debug?.FinalizeGenerator();
+
         return _module.PrintToString();
+    }
+
+
+
+
+    private void SetDebugLocationTo(LLVMValueRef instruction, TokenLocation location)
+    {
+        if (!_setDebugLocation || _ignoreSetDebugLocation)
+            return;
+
+        _debug?.SetLocation(instruction, location.Line, location.Start);
+        _setDebugLocation = false;
     }
 
 
@@ -101,7 +129,12 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
     public void Process(Statement statement)
-        => statement.Process(this);
+    {
+        _setDebugLocation = true;
+        statement.Process(this);
+
+        _valueStack.Clear();
+    }
 
 
 
@@ -112,12 +145,16 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     }
 
 
+
+
     public void ProcessDeclaration(DeclarationStatement statement)
     {
         var name = statement.Name.Lexeme;
         var type = statement.Type.TokenToLLVMType();
 
         var identifier = _builder.BuildAlloca(type, name);
+        SetDebugLocationTo(identifier, statement.Source());
+
         var value = Consume(statement.Value);
 
         _builder.BuildStore(value, identifier);
@@ -126,16 +163,25 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     }
 
 
+
+
     public void ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
     {
         var parameterTypes
+            = from parameter in statement.Parameters select parameter.Type.TokenToPrimitive();
+
+        var llvmParameterTypes
             = from parameter in statement.Parameters select parameter.Type.TokenToLLVMType();
 
         var functionName = statement.Name.Lexeme;
-        var functionType = LLVMTypeRef.CreateFunction(statement.ReturnType.TokenToLLVMType(), parameterTypes.ToArray());
-        var function = _module.AddFunction(functionName, functionType);
+        var functionReturnType = statement.ReturnType.TokenToPrimitive();
+        var functionType = LLVMTypeRef.CreateFunction(functionReturnType.PrimitiveToLLVMType(), llvmParameterTypes.ToArray());
+        var functionLocation = statement.Name.Location;
 
+        var function = _module.AddFunction(functionName, functionType);
         _scope.Add(new Identifier(function, functionType));
+
+        _debug?.GenerateFunction(function, functionName, functionLocation.Line, functionReturnType, parameterTypes.ToArray());
 
         var entry = function.AppendBasicBlock(FunctionEntryBlockName);
         _builder.PositionAtEnd(entry);
@@ -144,16 +190,25 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     }
 
 
+
+
     public void ProcessReturn(ReturnStatement statement)
     {
         if (statement.Expression is not null)
         {
+            _ignoreSetDebugLocation = true;
             Process(statement.Expression);
-            _builder.BuildRet(PopValue());
+            _ignoreSetDebugLocation = false;
+
+            var instruction = _builder.BuildRet(PopValue());
+
+            SetDebugLocationTo( instruction, statement.Source());
         }
         else
             _builder.BuildRetVoid();
     }
+
+
 
 
     public void ProcessBlock(BlockStatement statement)
@@ -175,6 +230,8 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var value = LLVMValueRef.CreateConstInt(expression.Type.PrimitiveToLLVMType(), ulong.Parse(expression.Value.Lexeme));
         PushValue(value);
     }
+
+
 
 
     public void ProcessBinary(BinaryExpression expression)
@@ -206,10 +263,14 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     }
 
 
+
+
     public void ProcessGrouping(GroupingExpression expression)
     {
         Process(expression.Expression);
     }
+
+
 
 
     public void ProcessIdentifier(IdentifierExpression expression)
@@ -217,8 +278,12 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var identifier = _scope.GetIdentifier(expression.Identifier.Lexeme);
         var value = _builder.BuildLoad2(identifier.Type, identifier.Reference, "value");
 
+        SetDebugLocationTo(value, expression.Source());
+
         PushValue(value);
     }
+
+
 
 
     public void ProcessCall(CallExpression expression)
@@ -228,8 +293,11 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var arguments
             = from argument in expression.Arguments select Consume(argument);
 
-        _builder.BuildCall2(function.TypeOf.ElementType, function, arguments.ToArray(), "retval");
+        var call = _builder.BuildCall2(function.TypeOf.ElementType, function, arguments.ToArray(), "retval");
+        SetDebugLocationTo(call, expression.Source());
     }
+
+
 
 
     public void ProcessCast(CastExpression expression)

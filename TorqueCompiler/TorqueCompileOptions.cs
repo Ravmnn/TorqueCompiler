@@ -25,6 +25,8 @@ public readonly struct TorqueCompileOptions
 
     public required OutputType OutputType { get; init; }
 
+    public required bool Debug { get; init; }
+
     public required bool PrintAST { get; init; }
     public required bool PrintLLVM { get; init; }
     public required bool PrintASM { get; init; }

@@ -15,6 +15,8 @@ public class CompileCommand : Command
 
     public Option<OutputType> OutputType { get; }
 
+    public Option<bool> Debug { get; }
+
     public Option<bool> PrintAST { get; }
     public Option<bool> PrintLLVM { get; }
     public Option<bool> PrintASM { get; }
@@ -35,6 +37,8 @@ public class CompileCommand : Command
         {
             DefaultValueFactory = _ => global::Torque.OutputType.Object
         });
+
+        Add(Debug = new Option<bool>("--debug"));
 
         Add(PrintAST = new Option<bool>("--print-ast"));
         Add(PrintLLVM = new Option<bool>("--print-llvm"));
@@ -58,6 +62,8 @@ public class CompileCommand : Command
         Output = result.GetValue(Output),
 
         OutputType = result.GetValue(OutputType),
+
+        Debug = result.GetValue(Debug),
 
         PrintAST = result.GetValue(PrintAST),
         PrintLLVM = result.GetValue(PrintLLVM),

@@ -32,6 +32,12 @@ public static class PrimitiveTypeExtensions
         => Token.Primitives[source];
 
 
+    public static PrimitiveType TokenToPrimitive(this Token token)
+        => Token.Primitives[token.Lexeme];
+
+
+
+
     public static LLVMTypeRef TokenToLLVMType(this Token token)
         => token.Lexeme.StringToLLVMType();
 
@@ -58,4 +64,8 @@ public static class PrimitiveTypeExtensions
 
     public static int SizeOfThis(this LLVMTypeRef type, LLVMTargetDataRef targetData)
         => (int)targetData.ABISizeOfType(type);
+
+
+    public static int SizeOfThis(this PrimitiveType type, LLVMTargetDataRef targetData)
+        => (int)targetData.ABISizeOfType(type.PrimitiveToLLVMType());
 }
