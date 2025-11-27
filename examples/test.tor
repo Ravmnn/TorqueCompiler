@@ -12,5 +12,5 @@ int main()
 
     int result = (number1 + number2 - small as int) * value;
     
-    return small as int;
+    return result;
 }
