@@ -25,8 +25,8 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     private LLVMTargetDataRef _targetData;
 
     private readonly DebugMetadataGenerator? _debug;
-    private bool _setDebugLocation;
-    private bool _ignoreSetDebugLocation;
+    // private bool _setDebugLocation;
+    // private bool _ignoreSetDebugLocation;
 
 
     private readonly Stack<LLVMValueRef> _valueStack = new Stack<LLVMValueRef>();
@@ -60,7 +60,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         SetupModuleTargetProperties(Triple);
 
         if (generateDebugMetadata)
-            _debug = new DebugMetadataGenerator(_module, _targetData);
+            _debug = new DebugMetadataGenerator(_module, _builder, _targetData);
 
 
         _scope = _globalScope;
@@ -112,16 +112,8 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
 
-    private void SetDebugLocationTo(LLVMValueRef instruction, TokenLocation location)
-    {
-        if (!_setDebugLocation || _ignoreSetDebugLocation)
-            return;
-
-        _debug?.SetLocation(instruction, location.Line, location.Start);
-        _setDebugLocation = false;
-    }
-
-
+    private void SetDebugLocationTo(TokenLocation location)
+        => _debug?.SetLocation(location.Line, location.Start);
 
 
     public void Process(Expression expression)
@@ -130,7 +122,6 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void Process(Statement statement)
     {
-        _setDebugLocation = true;
         statement.Process(this);
 
         _valueStack.Clear();
@@ -141,6 +132,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void ProcessExpression(ExpressionStatement statement)
     {
+        SetDebugLocationTo(statement.Source());
         Process(statement.Expression);
     }
 
@@ -152,9 +144,8 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var name = statement.Name.Lexeme;
         var type = statement.Type.TokenToLLVMType();
 
+        SetDebugLocationTo(statement.Source());
         var identifier = _builder.BuildAlloca(type, name);
-        SetDebugLocationTo(identifier, statement.Source());
-
         var value = Consume(statement.Value);
 
         _builder.BuildStore(value, identifier);
@@ -196,13 +187,10 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     {
         if (statement.Expression is not null)
         {
-            _ignoreSetDebugLocation = true;
             Process(statement.Expression);
-            _ignoreSetDebugLocation = false;
 
-            var instruction = _builder.BuildRet(PopValue());
-
-            SetDebugLocationTo( instruction, statement.Source());
+            SetDebugLocationTo(statement.Source());
+            _builder.BuildRet(PopValue());
         }
         else
             _builder.BuildRetVoid();
@@ -278,8 +266,6 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var identifier = _scope.GetIdentifier(expression.Identifier.Lexeme);
         var value = _builder.BuildLoad2(identifier.Type, identifier.Reference, "value");
 
-        SetDebugLocationTo(value, expression.Source());
-
         PushValue(value);
     }
 
@@ -293,8 +279,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var arguments
             = from argument in expression.Arguments select Consume(argument);
 
-        var call = _builder.BuildCall2(function.TypeOf.ElementType, function, arguments.ToArray(), "retval");
-        SetDebugLocationTo(call, expression.Source());
+        _builder.BuildCall2(function.TypeOf.ElementType, function, arguments.ToArray(), "retval");
     }
 
 

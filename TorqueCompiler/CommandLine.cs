@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Net;
 
 
 namespace Torque;
@@ -56,10 +54,11 @@ public static class CommandLine
     }
 
 
-    public static void Link(IEnumerable<string> files, string outputFileName)
+    public static void Link(IEnumerable<string> files, string outputFileName, bool debug = false)
     {
         var filesString = string.Join(' ', files);
+        var debugString = debug ? "-g" : string.Empty;
 
-        ExecuteAndWait("/bin/clang", $"{filesString} -o \"{outputFileName}\"");
+        ExecuteAndWait("/bin/clang", $"{filesString} -o \"{outputFileName}\" {debugString}");
     }
 }

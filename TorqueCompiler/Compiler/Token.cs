@@ -12,13 +12,13 @@ public enum TokenType
     Comma,
 
     Plus, Minus, Star, Slash, Equal,
-    ParenLeft, ParenRight,
+    ParenLeft, ParenRight, CurlyBraceLeft, CurlyBraceRight,
 
     Identifier,
     Value,
     Type,
 
-    KwStart, KwEnd, KwReturn, KwAs
+    KwReturn, KwAs
 }
 
 
@@ -57,8 +57,6 @@ public readonly record struct Token(string Lexeme, TokenType Type, TokenLocation
 
     public static readonly Dictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>
     {
-        {"start", TokenType.KwStart},
-        {"end", TokenType.KwEnd},
         {"return", TokenType.KwReturn},
         {"as", TokenType.KwAs}
     };

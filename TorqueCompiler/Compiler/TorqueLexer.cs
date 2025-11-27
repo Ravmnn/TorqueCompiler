@@ -81,6 +81,8 @@ public class TorqueLexer(string source)
             case '=': return TokenFromType(TokenType.Equal);
             case '(': return TokenFromType(TokenType.ParenLeft);
             case ')': return TokenFromType(TokenType.ParenRight);
+            case '{': return TokenFromType(TokenType.CurlyBraceLeft);
+            case '}': return TokenFromType(TokenType.CurlyBraceRight);
 
             case '#':
                 if (Match('>'))

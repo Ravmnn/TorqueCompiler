@@ -120,7 +120,7 @@ public class TorqueParser(IEnumerable<Token> tokens)
     {
         switch (Peek().Type)
         {
-        case TokenType.KwStart: return Block();
+        case TokenType.CurlyBraceLeft: return Block();
         case TokenType.KwReturn: return ReturnStatement();
 
         // some tokens only make sense when together with another,
@@ -128,7 +128,7 @@ public class TorqueParser(IEnumerable<Token> tokens)
         // tokens without any processing. To avoid unnecessary error messages,
         // some tokens should be ignored:
 
-        case TokenType.KwEnd:
+        case TokenType.CurlyBraceRight:
             Advance();
 
             if (Torque.Failed) // something already went wrong, ignore
@@ -176,13 +176,13 @@ public class TorqueParser(IEnumerable<Token> tokens)
     {
         var block = new List<Statement>();
 
-        var start = Expect(TokenType.KwStart, TorqueErrors.ExpectBlockStatement(Peek().Location));
+        var start = Expect(TokenType.CurlyBraceLeft, TorqueErrors.ExpectBlockStatement(Peek().Location));
 
-        while (!AtEnd() && !Check(TokenType.KwEnd))
+        while (!AtEnd() && !Check(TokenType.CurlyBraceRight))
             if (Declaration() is { } declaration)
                 block.Add(declaration);
 
-        var end = Expect(TokenType.KwEnd, TorqueErrors.UnclosedBlockStatement(Peek().Location));
+        var end = Expect(TokenType.CurlyBraceRight, TorqueErrors.UnclosedBlockStatement(Peek().Location));
 
         return new BlockStatement(start, end, block);
     }
@@ -333,8 +333,8 @@ public class TorqueParser(IEnumerable<Token> tokens)
         {
             switch (Peek().Type)
             {
-                case TokenType.KwStart:
-                case TokenType.KwEnd:
+                case TokenType.CurlyBraceLeft:
+                case TokenType.CurlyBraceRight:
                 case TokenType.KwReturn:
                     return;
             }

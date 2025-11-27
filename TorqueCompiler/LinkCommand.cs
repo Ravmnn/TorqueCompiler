@@ -14,6 +14,8 @@ public class LinkCommand : Command
 
     public Option<string> Output { get; }
 
+    public Option<bool> Debug { get; }
+
 
 
 
@@ -33,6 +35,8 @@ public class LinkCommand : Command
             DefaultValueFactory = _ => "app"
         });
 
+        Add(Debug = new Option<bool>("--debug"));
+
         SetAction(Callback);
     }
 
@@ -47,6 +51,8 @@ public class LinkCommand : Command
     {
         Files = result.GetRequiredValue(Files),
 
-        Output = result.GetRequiredValue(Output)
+        Output = result.GetRequiredValue(Output),
+
+        Debug = result.GetValue(Debug)
     };
 }

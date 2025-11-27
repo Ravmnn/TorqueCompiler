@@ -128,6 +128,6 @@ public static class Torque
     public static void Link(TorqueLinkOptions options)
     {
         var fileNames = from file in options.Files select file.FullName;
-        CommandLine.Link(fileNames, options.Output);
+        CommandLine.Link(fileNames, options.Output, options.Debug);
     }
 }

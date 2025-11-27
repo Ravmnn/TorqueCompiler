@@ -1,5 +1,11 @@
-int main() start
+int main()
+{
     int value = 10 + 35;
+    int number1 = 50;
+    int number2 = 90;
+    byte small = 32;
 
-    return value;
-end
+    int result = (number1 + number2 - small as int) * value;
+    
+    return result;
+}

@@ -11,22 +11,24 @@ namespace Torque.Compiler;
 
 public class DebugMetadataGenerator
 {
-    private LLVMDIBuilderRef _debugBuilder;
-    private LLVMMetadataRef _file;
-    private LLVMMetadataRef _compileUnit;
-
     private LLVMMetadataRef? _currentFunctionMetadata;
+
+    public LLVMDIBuilderRef DebugBuilder;
+    public LLVMMetadataRef File;
+    public LLVMMetadataRef CompileUnit;
 
 
     public LLVMModuleRef Module { get; }
+    public LLVMBuilderRef Builder { get; }
     public LLVMTargetDataRef TargetData { get; }
 
 
 
 
-    public DebugMetadataGenerator(LLVMModuleRef module, LLVMTargetDataRef targetData)
+    public DebugMetadataGenerator(LLVMModuleRef module, LLVMBuilderRef builder, LLVMTargetDataRef targetData)
     {
         Module = module;
+        Builder = builder;
         TargetData = targetData;
 
         Module.AddModuleFlag("Debug Info Version", LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorWarning, LLVM.DebugMetadataVersion());
@@ -40,11 +42,11 @@ public class DebugMetadataGenerator
         var file = Torque.Options.File.Name;
         var directoryPath = Torque.Options.File.Directory?.FullName ?? "/";
 
-        _debugBuilder = LLVM.CreateDIBuilder(Module);
-        _file = _debugBuilder.CreateFile(file, directoryPath);
-        _compileUnit = _debugBuilder.CreateCompileUnit(
+        DebugBuilder = LLVM.CreateDIBuilder(Module);
+        File = DebugBuilder.CreateFile(file, directoryPath);
+        CompileUnit = DebugBuilder.CreateCompileUnit(
             LLVMDWARFSourceLanguage.LLVMDWARFSourceLanguageC,
-            _file,
+            File,
             "Torque Compiler dev",
             0,
             null!,
@@ -62,21 +64,18 @@ public class DebugMetadataGenerator
 
 
 
-    public void FinalizeGenerator() => _debugBuilder.DIBuilderFinalize();
+    public void FinalizeGenerator() => DebugBuilder.DIBuilderFinalize();
 
 
 
 
-    public unsafe void SetLocation(LLVMValueRef instruction, int line, int column)
+    public unsafe void SetLocation(int line, int column)
     {
         if (_currentFunctionMetadata is null)
             return;
 
         var location = LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, _currentFunctionMetadata, null);
-        var valueLocation = LLVM.MetadataAsValue(Module.Context, location);
-
-        var kind = LLVM.GetMDKindID((sbyte*)Marshal.StringToHGlobalAnsi("dbg"), 3);
-        instruction.SetMetadata(kind, valueLocation);
+        LLVM.SetCurrentDebugLocation2(Builder, location);
     }
 
 
@@ -85,19 +84,11 @@ public class DebugMetadataGenerator
     public unsafe void GenerateFunction(LLVMValueRef function, string name, int lineNumber, PrimitiveType? returnType, PrimitiveType[] parametersType)
     {
         var typeArray = CreateFunctionPrimitiveTypeArray(returnType, parametersType);
+        var metadataTypeArray = PrimitiveTypesToMetadataArray(typeArray);
 
-        var metadataTypeArray = MetadataArrayToTypeArray(typeArray);
+        var debugFunctionType = DebugBuilder.CreateSubroutineType(File, metadataTypeArray, LLVMDIFlags.LLVMDIFlagZero);
 
-        var temp = new LLVMMetadataRef[typeArray.Length];
-
-        for (var i = 0; i < typeArray.Length; i++)
-            temp[i] = metadataTypeArray + i;
-
-        // BUG: subroutine type is invalid, although it's being created
-
-        var debugFunctionType = _debugBuilder.CreateSubroutineType(_file, temp, LLVMDIFlags.LLVMDIFlagZero);
-
-        var functionMetadata = _debugBuilder.CreateFunction(_file, name, name, _file, (uint)lineNumber, debugFunctionType, 0, 1, (uint)lineNumber, LLVMDIFlags.LLVMDIFlagZero, 0);
+        var functionMetadata = DebugBuilder.CreateFunction(File, name, name, File, (uint)lineNumber, debugFunctionType, 0, 1, (uint)lineNumber, LLVMDIFlags.LLVMDIFlagZero, 0);
 
         _currentFunctionMetadata = functionMetadata;
 
@@ -117,34 +108,25 @@ public class DebugMetadataGenerator
     }
 
 
-    private unsafe LLVMOpaqueMetadata* MetadataArrayToTypeArray(PrimitiveType[] types)
+
+
+    public LLVMMetadataRef[] PrimitiveTypesToMetadataArray(PrimitiveType[] types)
     {
-        var metadataArray = PrimitiveTypesToMetadataArray(types);
-
-        return LLVM.DIBuilderGetOrCreateTypeArray(_debugBuilder, metadataArray, (uint)types.Length);
-    }
-
-
-
-
-    public unsafe LLVMOpaqueMetadata** PrimitiveTypesToMetadataArray(PrimitiveType[] types)
-    {
-        var opaqueMetadataArray = new LLVMOpaqueMetadata*[types.Length];
+        var metadataArray = new LLVMMetadataRef[types.Length];
 
         for (var i = 0; i < types.Length; i++)
-            opaqueMetadataArray[i] = PrimitiveTypeToMetadata(types[i]);
+            metadataArray[i] = PrimitiveTypeToMetadata(types[i]);
 
-        fixed (LLVMOpaqueMetadata** ptr = opaqueMetadataArray)
-            return ptr;
+        return metadataArray;
     }
 
 
-    public unsafe LLVMOpaqueMetadata* PrimitiveTypeToMetadata(PrimitiveType type)
+    public unsafe LLVMMetadataRef PrimitiveTypeToMetadata(PrimitiveType type)
     {
         var name = Token.Primitives.First(primitive => primitive.Value == type).Key;
         var sbyteName = (sbyte*)Marshal.StringToHGlobalAnsi(name);
         var sizeInBits = type.SizeOfThis(TargetData) * 8;
 
-        return LLVM.DIBuilderCreateBasicType(_debugBuilder, sbyteName, (uint)name.Length, (ulong)sizeInBits, 0, LLVMDIFlags.LLVMDIFlagZero);
+        return LLVM.DIBuilderCreateBasicType(DebugBuilder, sbyteName, (uint)name.Length, (ulong)sizeInBits, 0, LLVMDIFlags.LLVMDIFlagZero);
     }
 }
