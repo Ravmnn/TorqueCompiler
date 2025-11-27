@@ -128,7 +128,7 @@ public class TorqueLexer(string source)
     {
         var startLocation = GetCurrentLocation();
 
-        while ((Peek() != '<' || PeekNext() != '#') && !AtEnd())
+        while (Peek() != '<' && PeekNext() != '#' && !AtEnd())
             Advance();
 
         if (AtEnd())

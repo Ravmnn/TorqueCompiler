@@ -112,8 +112,38 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
 
-    private void SetDebugLocationTo(TokenLocation location)
+    private LLVMMetadataRef? SetDebugLocationTo(TokenLocation location)
         => _debug?.SetLocation(location.Line, location.Start);
+
+
+    private void DebugScopeEnter(TokenLocation location, LLVMMetadataRef? function = null)
+    {
+        if (function is not null)
+            _debug?.ScopeEnterFunction(function.Value);
+        else
+            _debug?.ScopeEnter(location.Line, location.Start);
+    }
+
+
+    private void DebugScopeExit()
+        => _debug?.ScopeExit();
+
+
+
+
+    private LLVMMetadataRef? DebugGenerateFunction(LLVMValueRef function, string functionName, TokenLocation functionLocation, PrimitiveType functionReturnType, IEnumerable<PrimitiveType> parameterTypes)
+        => _debug?.GenerateFunction(function, functionName, functionLocation.Line, functionReturnType, parameterTypes.ToArray());
+
+
+    private LLVMMetadataRef? DebugGenerateLocalVariable(LLVMMetadataRef? llvmLocation, string name, PrimitiveType type, Token statementSource, LLVMValueRef alloca)
+    {
+        if (llvmLocation is not null)
+            return _debug?.GenerateLocalVariable(name, type, statementSource.Location.Line, alloca, llvmLocation.Value);
+
+        return null;
+    }
+
+
 
 
     public void Process(Expression expression)
@@ -142,15 +172,21 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     public void ProcessDeclaration(DeclarationStatement statement)
     {
         var name = statement.Name.Lexeme;
-        var type = statement.Type.TokenToLLVMType();
+        var type = statement.Type.TokenToPrimitive();
+        var llvmType = type.PrimitiveToLLVMType();
 
-        SetDebugLocationTo(statement.Source());
-        var identifier = _builder.BuildAlloca(type, name);
+        var statementSource = statement.Source();
+
+        var llvmLocation = SetDebugLocationTo(statementSource);
+        var alloca = _builder.BuildAlloca(llvmType, name);
+
+        DebugGenerateLocalVariable(llvmLocation, name, type, statementSource, alloca);
+
         var value = Consume(statement.Value);
 
-        _builder.BuildStore(value, identifier);
+        _builder.BuildStore(value, alloca);
 
-        _scope.Add(new Identifier(identifier, type));
+        _scope.Add(new Identifier(alloca, llvmType));
     }
 
 
@@ -172,12 +208,11 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var function = _module.AddFunction(functionName, functionType);
         _scope.Add(new Identifier(function, functionType));
 
-        _debug?.GenerateFunction(function, functionName, functionLocation.Line, functionReturnType, parameterTypes.ToArray());
-
         var entry = function.AppendBasicBlock(FunctionEntryBlockName);
         _builder.PositionAtEnd(entry);
 
-        ProcessBlock(statement.Body);
+        var functionMetadata = DebugGenerateFunction(function, functionName, functionLocation, functionReturnType, parameterTypes);
+        ProcessScopeBlock(statement.Body, functionMetadata);
     }
 
 
@@ -200,12 +235,20 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
     public void ProcessBlock(BlockStatement statement)
+        => ProcessScopeBlock(statement);
+
+
+    private void ProcessScopeBlock(BlockStatement statement, LLVMMetadataRef? function = null)
     {
         var oldScope = _scope;
         _scope = new Scope(_scope);
 
+        DebugScopeEnter(statement.Source(), function);
+
         foreach (var subStatement in statement.Statements)
             Process(subStatement);
+
+        DebugScopeExit();
 
         _scope = oldScope;
     }

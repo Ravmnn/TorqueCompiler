@@ -5,7 +5,12 @@ int main()
     int number2 = 90;
     byte small = 32;
 
+    {
+        int16 smallNumber = 123;
+        int64 hugeNumber = 321000;
+    }
+
     int result = (number1 + number2 - small as int) * value;
     
-    return result;
+    return small as int;
 }

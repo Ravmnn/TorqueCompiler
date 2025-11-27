@@ -28,7 +28,7 @@ public readonly record struct TokenLocation(int Start, int End, int Line)
 {
     public override string ToString()
         => $"line {Line}:{Start}-{End}";
-};
+}
 
 
 
@@ -37,19 +37,20 @@ public readonly record struct Token(string Lexeme, TokenType Type, TokenLocation
 {
     public static readonly Dictionary<string, PrimitiveType> Primitives = new Dictionary<string, PrimitiveType>
     {
-        {"byte", PrimitiveType.Byte },
-        {"char", PrimitiveType.Char },
         {"bool", PrimitiveType.Bool },
-        {"uint", PrimitiveType.UInt32 },
+        {"char", PrimitiveType.Char },
         {"uint8", PrimitiveType.UInt8 },
         {"uint16", PrimitiveType.UInt16 },
         {"uint32", PrimitiveType.UInt32 },
         {"uint64", PrimitiveType.UInt64 },
-        {"int", PrimitiveType.Int32 },
         {"int8", PrimitiveType.Int8 },
         {"int16", PrimitiveType.Int16 },
         {"int32", PrimitiveType.Int32 },
-        {"int64", PrimitiveType.Int64 }
+        {"int64", PrimitiveType.Int64 },
+
+        {"byte", PrimitiveType.UInt8 },
+        {"uint", PrimitiveType.UInt32 },
+        {"int", PrimitiveType.Int32 }
     };
 
 
