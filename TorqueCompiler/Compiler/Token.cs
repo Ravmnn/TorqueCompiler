@@ -24,6 +24,7 @@ public enum TokenType
 
 
 
+// TODO: add support for TokenRange when logging exceptions and stuff like that
 public readonly record struct TokenLocation(int Start, int End, int Line)
 {
     public override string ToString()

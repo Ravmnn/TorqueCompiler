@@ -46,10 +46,14 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
 
         // TODO: add floats
-        // TODO: add unsigned ints
-        // TODO: add assignment expression
 
-        // TODO: make the Parser handle things like identifier checking, type checking, etc...
+        // TODO: only pointers type (T*) should be able to modify the memory itself:
+        // normal types that acquires the memory of something (&value) should treat the address returned as a normal integer
+
+        // TODO: make the Parser handle things like identifier checking, type checking, etc:
+        // - add type checking
+        // - identifier/scope checking
+        // The compiler should only compile things and not be responsible for that
 
         // TODO: make this user's choice (command line options)
         const string Triple = "x86_64-pc-linux-gnu";

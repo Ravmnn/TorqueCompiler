@@ -1,33 +1,18 @@
 int main()
 {
-    #>int value = 10 + 35;
-    int number1 = 50;
-    int number2 = 90;
-    byte small = 32;
-
-    {
-        int16 smallNumber = 123;
-        int64 hugeNumber = 321000;
-    }
-
-    int result = (number1 + number2 - small as int) * value;
-
-    int test1 = 50;
-    int test2 = 60;
-
-    test1 = 30;
-    test2 = 10;
-    test1 = test2 = 12345;<#
-
     int a = 25;
     int b = 30;
     int c = a + b;
 
-    int result = 10;
-    &result = 5;
+    {
+        int scopeA = 93;
+        int scopeB = scopeA + 7;
+    }
 
-    uint64 ptr = &result; # "address of" is working
-    &ptr = 123 as uint64; # not casting to the right type results in an interesting error (see in debug)
-    
+    int result = 10;
+
+    int negative = 10 - 50;
+    uint unsignedNegative = 10 - 50;
+
     return 0;
 }

@@ -60,7 +60,8 @@ public class DebugMetadataScope(DebugMetadataScope? parent, LLVMMetadataRef scop
 
 public class DebugMetadataGenerator
 {
-    private readonly Stack<DebugMetadataScope> _scopes;
+    private readonly DebugMetadataScope _globalScope;
+    private DebugMetadataScope _scope;
 
 
     public LLVMDIBuilderRef DebugBuilder;
@@ -77,9 +78,8 @@ public class DebugMetadataGenerator
 
     public DebugMetadataGenerator(LLVMModuleRef module, LLVMBuilderRef builder, LLVMTargetDataRef targetData)
     {
-        _scopes = [];
-        _scopes.Push(new DebugMetadataScope(null, File));
-
+        _globalScope = new DebugMetadataScope(null, File);
+        _scope = _globalScope;
 
         Module = module;
         Builder = builder;
@@ -141,36 +141,28 @@ public class DebugMetadataGenerator
 
 
     public unsafe LLVMMetadataRef CreateDebugLocation(int line, int column)
-        => LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, CurrentScope(), null);
+        => LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, _scope, null);
 
 
 
 
     public void ScopeEnter(int line, int column)
-        => _scopes.Push(CreateScope(line, column));
+        => _scope = new DebugMetadataScope(_scope, CreateScope(line, column));
 
 
     public void ScopeEnterFunction(LLVMMetadataRef function)
-        => _scopes.Push(new DebugMetadataScope(CurrentScope(), function));
+        => _scope = new DebugMetadataScope(_scope, function);
 
 
     public void ScopeExit()
-    {
-        if (_scopes.Count <= 1)
-            throw new InvalidOperationException("Internal debug scope stack must have at least one item");
-
-        _scopes.Pop();
-    }
+        => _scope = _scope.Parent ?? throw new InvalidOperationException("Internal debug scope stack must have at least one item");
 
 
     private unsafe DebugMetadataScope CreateScope(int line, int column)
     {
-        var scopeReference = LLVM.DIBuilderCreateLexicalBlock(DebugBuilder, CurrentScope(), File, (uint)line, (uint)column);
-        return new DebugMetadataScope(CurrentScope(), scopeReference);
+        var scopeReference = LLVM.DIBuilderCreateLexicalBlock(DebugBuilder, _scope, File, (uint)line, (uint)column);
+        return new DebugMetadataScope(_scope, scopeReference);
     }
-
-
-    private DebugMetadataScope CurrentScope() => _scopes.Peek();
 
 
 
@@ -195,7 +187,7 @@ public class DebugMetadataGenerator
 
     private LLVMMetadataRef CreateFunction(string name, int lineNumber, LLVMMetadataRef debugFunctionType)
         => DebugBuilder.CreateFunction(
-            CurrentScope(), name, name, File, (uint)lineNumber, debugFunctionType, 0, 1,
+            _scope, name, name, File, (uint)lineNumber, debugFunctionType, 0, 1,
             (uint)lineNumber, LLVMDIFlags.LLVMDIFlagZero, 0
         );
 
@@ -223,7 +215,7 @@ public class DebugMetadataGenerator
         var variable = CreateAutoVariable(name, lineNumber, sbyteName, typeMetadata, sizeInBits);
         var metadataVariable = new DebugMetadataVariable(name, alloca, variable);
 
-        CurrentScope().Variables.Add(metadataVariable);
+        _scope.Variables.Add(metadataVariable);
 
         DeclareLocalVariable(alloca, variable, location);
 
@@ -233,14 +225,14 @@ public class DebugMetadataGenerator
 
     private unsafe LLVMOpaqueMetadata* CreateAutoVariable(string name, int lineNumber, sbyte* sbyteName, LLVMMetadataRef typeMetadata, uint sizeInBits)
         => LLVM.DIBuilderCreateAutoVariable(
-            DebugBuilder, CurrentScope(), sbyteName, (uint)name.Length, File,
+            DebugBuilder, _scope, sbyteName, (uint)name.Length, File,
             (uint)lineNumber, typeMetadata, 0, LLVMDIFlags.LLVMDIFlagZero, sizeInBits
         );
 
 
     public LLVMDbgRecordRef UpdateLocalVariableValue(string name, LLVMMetadataRef location)
     {
-        if (CurrentScope().GetVariableByName(name) is not { } variable)
+        if (_scope.GetVariableByName(name) is not { } variable)
             throw new InvalidOperationException($"Current debug scope does not contain variable \"{name}\"");
 
         return UpdateLocalVariableValue(variable.Alloca, variable.MetadataReference, location);
