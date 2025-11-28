@@ -11,6 +11,7 @@ public interface IExpressionProcessor
     void ProcessBinary(BinaryExpression expression);
     void ProcessGrouping(GroupingExpression expression);
     void ProcessIdentifier(IdentifierExpression expression);
+    void ProcessAssignment(AssignmentExpression expression);
     void ProcessCall(CallExpression expression);
     void ProcessCast(CastExpression expression);
 }
@@ -50,8 +51,8 @@ public class LiteralExpression(Token value, PrimitiveType type) : Expression
 public class BinaryExpression(Expression left, Token @operator, Expression right) : Expression
 {
     public Expression Left { get; } = left;
-    public Expression Right { get; } = right;
     public Token Operator { get; } = @operator;
+    public Expression Right { get; } = right;
 
 
 
@@ -83,9 +84,10 @@ public class GroupingExpression(Expression expression) : Expression
 
 
 
-public class IdentifierExpression(Token identifier) : Expression
+public class IdentifierExpression(Token identifier, bool getAddress = false) : Expression
 {
     public Token Identifier { get; } = identifier;
+    public bool GetAddress { get; } = getAddress;
 
 
 
@@ -95,6 +97,25 @@ public class IdentifierExpression(Token identifier) : Expression
 
 
     public override Token Source() => Identifier;
+}
+
+
+
+
+public class AssignmentExpression(IdentifierExpression identifier, Token @operator, Expression value) : Expression
+{
+    public IdentifierExpression Identifier { get; } = identifier;
+    public Token Operator { get; } = @operator;
+    public Expression Value { get; } = value;
+
+
+
+
+    public override void Process(IExpressionProcessor processor)
+        => processor.ProcessAssignment(this);
+
+
+    public override Token Source() => Operator;
 }
 
 

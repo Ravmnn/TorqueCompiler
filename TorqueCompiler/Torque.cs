@@ -61,11 +61,11 @@ public static class Torque
             if (Failed || PrintedLLVM(bitCode) || PrintedASM(bitCode))
                 return;
 
-            CommandLine.LLVMBitCodeToFile(GetOutputFileName(), bitCode, Options.OutputType);
+            CommandLine.LLVMBitCodeToFile(GetOutputFileName(), bitCode, Options.OutputType, Options.Debug);
         }
         catch (Exception exception)
         {
-            Console.Error.WriteLine($"Internal Error: {exception.Message}"); // TODO: colorize
+            Console.Error.WriteLine($"Internal Error: {exception}"); // TODO: colorize
         }
     }
 

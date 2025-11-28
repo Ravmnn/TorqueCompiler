@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 
 
 namespace Torque.Compiler;
@@ -192,7 +193,28 @@ public class TorqueParser(IEnumerable<Token> tokens)
 
     private Expression Expression()
     {
-        return Term();
+        return Assignment();
+    }
+
+
+
+
+    private Expression Assignment()
+    {
+        var expression = Term();
+
+        if (Match(TokenType.Equal))
+        {
+            var @operator = Previous();
+            var value = Assignment();
+
+            if (expression is not IdentifierExpression identifier)
+                throw TorqueErrors.ExpectIdentifier(@operator);
+
+            expression = new AssignmentExpression(identifier, @operator, value);
+        }
+
+        return expression;
     }
 
 
@@ -270,8 +292,6 @@ public class TorqueParser(IEnumerable<Token> tokens)
     }
 
 
-
-
     private IEnumerable<Expression> Arguments()
     {
         var expressions = new List<Expression>();
@@ -292,6 +312,9 @@ public class TorqueParser(IEnumerable<Token> tokens)
         if (Match(TokenType.Value))
             return ParseLiteral();
 
+        if (Match(TokenType.Ampersand))
+            return new IdentifierExpression(ExpectIdentifier(), true);
+
         if (Match(TokenType.Identifier))
             return new IdentifierExpression(Previous());
 
@@ -300,8 +323,6 @@ public class TorqueParser(IEnumerable<Token> tokens)
 
         throw TorqueErrors.ExpectExpression(Peek().Location);
     }
-
-
 
 
     private Expression ParseLiteral()
@@ -415,12 +436,12 @@ public class TorqueParser(IEnumerable<Token> tokens)
         => !AtEnd() ? Tokens[_current] : Previous();
 
 
-    private Token Previous()
+    private Token Previous(int amount = 1)
     {
-        if (_current <= 0)
+        if (_current <= amount - 1)
             return Peek();
 
-        return Tokens[_current - 1];
+        return Tokens[_current - amount];
     }
 
 

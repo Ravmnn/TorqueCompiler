@@ -9,9 +9,9 @@ namespace Torque.Compiler;
 
 
 
-public readonly struct Identifier(LLVMValueRef reference, LLVMTypeRef type)
+public readonly struct Identifier(LLVMValueRef address, LLVMTypeRef type)
 {
-    public LLVMValueRef Reference { get; } = reference;
+    public LLVMValueRef Address { get; } = address;
     public LLVMTypeRef Type { get; } = type;
 }
 
@@ -29,7 +29,7 @@ public class Scope(Scope? parent = null) : List<Identifier>
     public Identifier GetIdentifier(string name)
     {
         foreach (var identifier in this)
-            if (identifier.Reference.Name == name)
+            if (identifier.Address.Name == name)
                 return identifier;
 
         return Parent?.GetIdentifier(name) ?? throw new InvalidOperationException("Invalid identifier.");

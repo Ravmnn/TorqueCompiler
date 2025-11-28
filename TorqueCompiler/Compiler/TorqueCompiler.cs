@@ -25,8 +25,6 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     private LLVMTargetDataRef _targetData;
 
     private readonly DebugMetadataGenerator? _debug;
-    // private bool _setDebugLocation;
-    // private bool _ignoreSetDebugLocation;
 
 
     private readonly Stack<LLVMValueRef> _valueStack = new Stack<LLVMValueRef>();
@@ -46,7 +44,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     public TorqueCompiler(IEnumerable<Statement> statements, bool generateDebugMetadata = false)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
-        // TODO: add debugging
+
         // TODO: add floats
         // TODO: add unsigned ints
         // TODO: add assignment expression
@@ -112,8 +110,50 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
 
-    private LLVMMetadataRef? SetDebugLocationTo(TokenLocation location)
-        => _debug?.SetLocation(location.Line, location.Start);
+    private void PushValue(LLVMValueRef value)
+        => _valueStack.Push(value);
+
+
+    private LLVMValueRef PopValue()
+    {
+        if (_valueStack.Count == 0)
+            throw new InvalidOperationException("Value stack is empty.");
+
+        return _valueStack.Pop();
+    }
+
+
+    private LLVMValueRef Consume(Expression expression)
+    {
+        Process(expression);
+        return PopValue();
+    }
+
+
+
+
+    private int SizeOf(LLVMTypeRef type)
+        => type.SizeOfThis(_targetData);
+
+
+
+
+    private LLVMMetadataRef? SetDebugLocationTo(TokenLocation? location)
+    {
+        if (location is null)
+        {
+            _debug?.SetLocation();
+            return null;
+        }
+
+        return _debug?.SetLocation(location.Value.Line, location.Value.Start);
+    }
+
+
+    private LLVMMetadataRef? CreateDebugLocation(TokenLocation location)
+        => _debug?.CreateDebugLocation(location.Line, location.Start);
+
+
 
 
     private void DebugScopeEnter(TokenLocation location, LLVMMetadataRef? function = null)
@@ -135,12 +175,23 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         => _debug?.GenerateFunction(function, functionName, functionLocation.Line, functionReturnType, parameterTypes.ToArray());
 
 
-    private LLVMMetadataRef? DebugGenerateLocalVariable(LLVMMetadataRef? llvmLocation, string name, PrimitiveType type, Token statementSource, LLVMValueRef alloca)
+    private LLVMMetadataRef? DebugGenerateLocalVariable(string name, PrimitiveType type, Token statementSource, LLVMValueRef alloca)
     {
+        var location = statementSource.Location;
+        var llvmLocation = _debug?.CreateDebugLocation(location.Line, location.Start);
+
         if (llvmLocation is not null)
-            return _debug?.GenerateLocalVariable(name, type, statementSource.Location.Line, alloca, llvmLocation.Value);
+            return _debug?.GenerateLocalVariable(name, type, location.Line, alloca, llvmLocation.Value);
 
         return null;
+    }
+
+
+    private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(string name, TokenLocation location)
+    {
+        var llvmLocation = _debug?.CreateDebugLocation(location.Line, location.Start);
+
+        return _debug?.UpdateLocalVariableValue(name, llvmLocation!.Value);
     }
 
 
@@ -177,16 +228,19 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
         var statementSource = statement.Source();
 
-        var llvmLocation = SetDebugLocationTo(statementSource);
-        var alloca = _builder.BuildAlloca(llvmType, name);
 
-        DebugGenerateLocalVariable(llvmLocation, name, type, statementSource, alloca);
+        SetDebugLocationTo(statementSource);
 
-        var value = Consume(statement.Value);
+        var reference = _builder.BuildAlloca(llvmType, name);
 
-        _builder.BuildStore(value, alloca);
+        DebugGenerateLocalVariable(name, type, statementSource, reference);
+        _builder.BuildStore(Consume(statement.Value), reference);
+        DebugUpdateLocalVariableValue(name, statementSource);
 
-        _scope.Add(new Identifier(alloca, llvmType));
+        SetDebugLocationTo(null);
+
+
+        _scope.Add(new Identifier(reference, llvmType));
     }
 
 
@@ -222,10 +276,9 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     {
         if (statement.Expression is not null)
         {
-            Process(statement.Expression);
-
             SetDebugLocationTo(statement.Source());
-            _builder.BuildRet(PopValue());
+            _builder.BuildRet(Consume(statement.Expression));
+            SetDebugLocationTo(null);
         }
         else
             _builder.BuildRetVoid();
@@ -307,9 +360,23 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     public void ProcessIdentifier(IdentifierExpression expression)
     {
         var identifier = _scope.GetIdentifier(expression.Identifier.Lexeme);
-        var value = _builder.BuildLoad2(identifier.Type, identifier.Reference, "value");
+        var value = expression.GetAddress ? identifier.Address : _builder.BuildLoad2(identifier.Type, identifier.Address, "value");
 
         PushValue(value);
+    }
+
+
+
+
+    public void ProcessAssignment(AssignmentExpression expression)
+    {
+        var identifier = Consume(expression.Identifier);
+        var value = Consume(expression.Value);
+
+        PushValue(_builder.BuildStore(value, identifier));
+
+        var identifierName = expression.Identifier.Identifier.Lexeme;
+        DebugUpdateLocalVariableValue(identifierName, expression.Source());
     }
 
 
@@ -345,27 +412,4 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         else
             PushValue(value);
     }
-
-
-
-
-    private void PushValue(LLVMValueRef value)
-        => _valueStack.Push(value);
-
-
-    private LLVMValueRef PopValue()
-        => _valueStack.Pop();
-
-
-    private LLVMValueRef Consume(Expression expression)
-    {
-        Process(expression);
-        return PopValue();
-    }
-
-
-
-
-    private int SizeOf(LLVMTypeRef type)
-        => type.SizeOfThis(_targetData);
 }

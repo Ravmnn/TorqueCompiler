@@ -163,6 +163,7 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
 
 
 
+
     public void ProcessExpression(ExpressionStatement statement)
     {
         BeginStatement();
@@ -171,6 +172,8 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
 
         EndStatement();
     }
+
+
 
 
     public void ProcessDeclaration(DeclarationStatement statement)
@@ -182,6 +185,8 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
 
         EndStatement();
     }
+
+
 
 
     public void ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
@@ -208,6 +213,8 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
     }
 
 
+
+
     public void ProcessReturn(ReturnStatement statement)
     {
         BeginStatement();
@@ -224,6 +231,8 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
     }
 
 
+
+
     public void ProcessBlock(BlockStatement blockStatement)
     {
         if (IgnoreBlocks)
@@ -233,7 +242,7 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
         }
 
         BeginStatement();
-        _builder.Append($"start{NewlineChar()}");
+        _builder.Append($"{{{NewlineChar()}");
 
         IncreaseIndent();
 
@@ -242,7 +251,7 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
 
         DecreaseIndent();
 
-        _builder.Append($"{Indent()}end");
+        _builder.Append($"{Indent()}}}");
         EndStatement();
     }
 
@@ -264,6 +273,8 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
     }
 
 
+
+
     public void ProcessBinary(BinaryExpression expression)
     {
         Stringify(expression.Operator.Lexeme, [expression.Left, expression.Right]);
@@ -276,10 +287,20 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
     }
 
 
+
+
     public void ProcessIdentifier(IdentifierExpression expression)
     {
-        _builder.Append($"${expression.Identifier.Lexeme}");
+        _builder.Append($"{(expression.GetAddress ? "&" : "$")}{expression.Identifier.Lexeme}");
     }
+
+
+    public void ProcessAssignment(AssignmentExpression expression)
+    {
+        BinaryStringify("=", expression.Identifier, expression.Value);
+    }
+
+
 
 
     public void ProcessCall(CallExpression expression)
@@ -300,6 +321,8 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
 
         _builder.Append(')');
     }
+
+
 
 
     public void ProcessCast(CastExpression expression)
