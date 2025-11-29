@@ -14,5 +14,7 @@ int main()
     int negative = 10 - 50;
     uint unsignedNegative = 10 - 50;
 
+    #abc - def;
+
     return 0;
 }

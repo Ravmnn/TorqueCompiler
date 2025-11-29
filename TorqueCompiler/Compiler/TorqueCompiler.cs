@@ -18,22 +18,22 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
 
-    private LLVMModuleRef _module = LLVMModuleRef.CreateWithName("MainModule");
-    private LLVMBuilderRef _builder = LLVMBuilderRef.Create(LLVMContextRef.Global);
-
-    private LLVMTargetMachineRef _targetMachine;
-    private LLVMTargetDataRef _targetData;
-
-    private readonly DebugMetadataGenerator? _debug;
-
-
     private readonly Stack<LLVMValueRef> _valueStack = new Stack<LLVMValueRef>();
 
 
-    private readonly Scope _globalScope = [];
-    private Scope _scope;
+    private readonly LLVMModuleRef _module = LLVMModuleRef.CreateWithName("MainModule");
+    public LLVMModuleRef Module => _module;
+
+    public LLVMBuilderRef Builder { get; } = LLVMBuilderRef.Create(LLVMContextRef.Global);
+
+    public LLVMTargetMachineRef TargetMachine { get; private set; }
+    public LLVMTargetDataRef TargetData { get; private set; }
+
+    public DebugMetadataGenerator? Debug { get; }
 
 
+    public Scope GlobalScope { get; } = [];
+    public Scope Scope { get; private set; }
 
 
     public Statement[] Statements { get; }
@@ -61,11 +61,10 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         InitializeTargetMachine(Triple);
         SetupModuleTargetProperties(Triple);
 
+        Scope = GlobalScope;
+
         if (generateDebugMetadata)
-            _debug = new DebugMetadataGenerator(_module, _builder, _targetData);
-
-
-        _scope = _globalScope;
+            Debug = new DebugMetadataGenerator(this);
 
 
         Statements = statements.ToArray();
@@ -80,7 +79,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         if (!LLVMTargetRef.TryGetTargetFromTriple(triple, out var target, out _))
             throw new InvalidOperationException("LLVM doesn't support this target.");
 
-        _targetMachine = target.CreateTargetMachine(
+        TargetMachine = target.CreateTargetMachine(
             triple, "generic", "",
             LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault, LLVMRelocMode.LLVMRelocPIC,
             LLVMCodeModel.LLVMCodeModelDefault
@@ -90,11 +89,11 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     private unsafe void SetupModuleTargetProperties(string triple)
     {
-        _targetData = _targetMachine.CreateTargetDataLayout();
+        TargetData = TargetMachine.CreateTargetDataLayout();
 
         _module.Target = triple;
 
-        var ptr = LLVM.CopyStringRepOfTargetData(_targetData);
+        var ptr = LLVM.CopyStringRepOfTargetData(TargetData);
         _module.DataLayout = Marshal.PtrToStringAnsi((IntPtr)ptr) ?? throw new InvalidOperationException("Couldn't create data layout.");
     }
 
@@ -106,9 +105,9 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         foreach (var statement in Statements)
             Process(statement);
 
-        _debug?.FinalizeGenerator();
+        Debug?.FinalizeGenerator();
 
-        return _module.PrintToString();
+        return Module.PrintToString();
     }
 
 
@@ -136,56 +135,62 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
 
+    private void ScopeEnter(TokenLocation location, LLVMMetadataRef? debugFunctionReference = null)
+    {
+        var debugScope = DebugCreateLexicalScope(location);
+        debugScope = debugFunctionReference ?? debugScope;
+
+        Scope = new Scope(Scope, debugScope);
+    }
+
+
+    private void ScopeExit()
+        => Scope = Scope.Parent ?? throw new InvalidOperationException("Cannot exit the global scope.");
+
+
+
+
     private int SizeOf(LLVMTypeRef type)
-        => type.SizeOfThis(_targetData);
+        => type.SizeOfThis(TargetData);
 
 
 
 
-    private LLVMMetadataRef? SetDebugLocationTo(TokenLocation? location)
+    private LLVMMetadataRef? DebugSetLocationTo(TokenLocation? location)
     {
         if (location is null)
         {
-            _debug?.SetLocation();
+            Debug?.SetLocation();
             return null;
         }
 
-        return _debug?.SetLocation(location.Value.Line, location.Value.Start);
+        return Debug?.SetLocation(location.Value.Line, location.Value.Start);
     }
 
 
-    private LLVMMetadataRef? CreateDebugLocation(TokenLocation location)
-        => _debug?.CreateDebugLocation(location.Line, location.Start);
+    private LLVMMetadataRef? DebugCreateLocation(TokenLocation location)
+        => Debug?.CreateDebugLocation(location.Line, location.Start);
 
 
-
-
-    private void DebugScopeEnter(TokenLocation location, LLVMMetadataRef? function = null)
-    {
-        if (function is not null)
-            _debug?.ScopeEnterFunction(function.Value);
-        else
-            _debug?.ScopeEnter(location.Line, location.Start);
-    }
-
-
-    private void DebugScopeExit()
-        => _debug?.ScopeExit();
+    private LLVMMetadataRef? DebugCreateLexicalScope(TokenLocation location)
+        => Debug?.CreateLexicalScope(location.Line, location.Start);
 
 
 
 
     private LLVMMetadataRef? DebugGenerateFunction(LLVMValueRef function, string functionName, TokenLocation functionLocation, PrimitiveType functionReturnType, IEnumerable<PrimitiveType> parameterTypes)
-        => _debug?.GenerateFunction(function, functionName, functionLocation.Line, functionReturnType, parameterTypes.ToArray());
+        => Debug?.GenerateFunction(function, functionName, functionLocation.Line, functionReturnType, parameterTypes.ToArray());
+
+
 
 
     private LLVMMetadataRef? DebugGenerateLocalVariable(string name, PrimitiveType type, Token statementSource, LLVMValueRef alloca)
     {
         var location = statementSource.Location;
-        var llvmLocation = _debug?.CreateDebugLocation(location.Line, location.Start);
+        var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
 
         if (llvmLocation is not null)
-            return _debug?.GenerateLocalVariable(name, type, location.Line, alloca, llvmLocation.Value);
+            return Debug?.GenerateLocalVariable(name, type, location.Line, alloca, llvmLocation.Value);
 
         return null;
     }
@@ -193,9 +198,9 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(string name, TokenLocation location)
     {
-        var llvmLocation = _debug?.CreateDebugLocation(location.Line, location.Start);
+        var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
 
-        return _debug?.UpdateLocalVariableValue(name, llvmLocation!.Value);
+        return Debug?.UpdateLocalVariableValue(name, llvmLocation!.Value);
     }
 
 
@@ -217,7 +222,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void ProcessExpression(ExpressionStatement statement)
     {
-        SetDebugLocationTo(statement.Source());
+        DebugSetLocationTo(statement.Source());
         Process(statement.Expression);
     }
 
@@ -233,18 +238,17 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var statementSource = statement.Source();
 
 
-        SetDebugLocationTo(statementSource);
+        DebugSetLocationTo(statementSource);
 
-        var reference = _builder.BuildAlloca(llvmType, name);
+        var reference = Builder.BuildAlloca(llvmType, name);
+        var debugReference = DebugGenerateLocalVariable(name, type, statementSource, reference);
 
-        DebugGenerateLocalVariable(name, type, statementSource, reference);
-        _builder.BuildStore(Consume(statement.Value), reference);
+        Scope.Add(new Identifier(reference, llvmType, debugReference));
+
+        Builder.BuildStore(Consume(statement.Value), reference);
         DebugUpdateLocalVariableValue(name, statementSource);
 
-        SetDebugLocationTo(null);
-
-
-        _scope.Add(new Identifier(reference, llvmType));
+        DebugSetLocationTo(null);
     }
 
 
@@ -263,14 +267,15 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var functionType = LLVMTypeRef.CreateFunction(functionReturnType.PrimitiveToLLVMType(), llvmParameterTypes.ToArray());
         var functionLocation = statement.Name.Location;
 
-        var function = _module.AddFunction(functionName, functionType);
-        _scope.Add(new Identifier(function, functionType));
+        var function = Module.AddFunction(functionName, functionType);
+        var functionDebugReference = DebugGenerateFunction(function, functionName, functionLocation, functionReturnType, parameterTypes);
+
+        Scope.Add(new Identifier(function, functionType, functionDebugReference));
 
         var entry = function.AppendBasicBlock(FunctionEntryBlockName);
-        _builder.PositionAtEnd(entry);
+        Builder.PositionAtEnd(entry);
 
-        var functionMetadata = DebugGenerateFunction(function, functionName, functionLocation, functionReturnType, parameterTypes);
-        ProcessScopeBlock(statement.Body, functionMetadata);
+        ProcessScopeBlock(statement.Body, functionDebugReference);
     }
 
 
@@ -280,12 +285,12 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     {
         if (statement.Expression is not null)
         {
-            SetDebugLocationTo(statement.Source());
-            _builder.BuildRet(Consume(statement.Expression));
-            SetDebugLocationTo(null);
+            DebugSetLocationTo(statement.Source());
+            Builder.BuildRet(Consume(statement.Expression));
+            DebugSetLocationTo(null);
         }
         else
-            _builder.BuildRetVoid();
+            Builder.BuildRetVoid();
     }
 
 
@@ -297,17 +302,12 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     private void ProcessScopeBlock(BlockStatement statement, LLVMMetadataRef? function = null)
     {
-        var oldScope = _scope;
-        _scope = new Scope(_scope);
-
-        DebugScopeEnter(statement.Source(), function);
+        ScopeEnter(statement.Source(), function);
 
         foreach (var subStatement in statement.Statements)
             Process(subStatement);
 
-        DebugScopeExit();
-
-        _scope = oldScope;
+        ScopeExit();
     }
 
 
@@ -333,19 +333,19 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         switch (expression.Operator.Type)
         {
             case TokenType.Plus:
-                PushValue(_builder.BuildAdd(left, right, "sum"));
+                PushValue(Builder.BuildAdd(left, right, "sum"));
                 break;
 
             case TokenType.Minus:
-                PushValue(_builder.BuildSub(left, right, "sub"));
+                PushValue(Builder.BuildSub(left, right, "sub"));
                 break;
 
             case TokenType.Star:
-                PushValue(_builder.BuildMul(left, right, "mult"));
+                PushValue(Builder.BuildMul(left, right, "mult"));
                 break;
 
             case TokenType.Slash:
-                PushValue(_builder.BuildSDiv(left, right, "div"));
+                PushValue(Builder.BuildSDiv(left, right, "div"));
                 break;
         }
     }
@@ -363,8 +363,8 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void ProcessIdentifier(IdentifierExpression expression)
     {
-        var identifier = _scope.GetIdentifier(expression.Identifier.Lexeme);
-        var value = expression.GetAddress ? identifier.Address : _builder.BuildLoad2(identifier.Type, identifier.Address, "value");
+        var identifier = Scope.GetIdentifier(expression.Identifier.Lexeme);
+        var value = expression.GetAddress ? identifier.Address : Builder.BuildLoad2(identifier.Type, identifier.Address, "value");
 
         PushValue(value);
     }
@@ -377,7 +377,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var identifier = Consume(expression.Identifier);
         var value = Consume(expression.Value);
 
-        PushValue(_builder.BuildStore(value, identifier));
+        PushValue(Builder.BuildStore(value, identifier));
 
         var identifierName = expression.Identifier.Identifier.Lexeme;
         DebugUpdateLocalVariableValue(identifierName, expression.Source());
@@ -393,7 +393,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var arguments
             = from argument in expression.Arguments select Consume(argument);
 
-        _builder.BuildCall2(function.TypeOf.ElementType, function, arguments.ToArray(), "retval");
+        Builder.BuildCall2(function.TypeOf.ElementType, function, arguments.ToArray(), "retval");
     }
 
 
@@ -408,10 +408,10 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var targetTypeSize = SizeOf(toType);
 
         if (sourceTypeSize < targetTypeSize)
-            PushValue(_builder.BuildIntCast(value, toType, "incrcast"));
+            PushValue(Builder.BuildIntCast(value, toType, "incrcast"));
 
         else if (sourceTypeSize > targetTypeSize)
-            PushValue(_builder.BuildTrunc(value, toType, "decrcast"));
+            PushValue(Builder.BuildTrunc(value, toType, "decrcast"));
 
         else
             PushValue(value);

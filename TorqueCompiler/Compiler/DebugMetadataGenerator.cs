@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -25,69 +24,38 @@ public static class DebugMetadataTypeEncodings
 
 
 
-public readonly record struct DebugMetadataVariable(string Name, LLVMValueRef Alloca, LLVMMetadataRef MetadataReference);
-
-
-public class DebugMetadataScope(DebugMetadataScope? parent, LLVMMetadataRef scopeReference)
-{
-    public DebugMetadataScope? Parent { get; } = parent;
-    public LLVMMetadataRef ScopeReference { get; } = scopeReference;
-    public List<DebugMetadataVariable> Variables { get; } = [];
-
-
-
-
-    public DebugMetadataVariable? GetVariableByName(string name)
-    {
-        var variable = Variables.FirstOrDefault(variable => variable.Name == name);
-
-        if (variable == default)
-            return Parent?.GetVariableByName(name);
-
-        return variable;
-    }
-
-
-    public static implicit operator LLVMMetadataRef(DebugMetadataScope scope)
-        => scope.ScopeReference;
-
-    public static unsafe implicit operator LLVMOpaqueMetadata*(DebugMetadataScope scope)
-        => scope.ScopeReference;
-}
-
-
-
-
 public class DebugMetadataGenerator
 {
-    private readonly DebugMetadataScope _globalScope;
-    private DebugMetadataScope _scope;
-
-
     public LLVMDIBuilderRef DebugBuilder;
     public LLVMMetadataRef File;
     public LLVMMetadataRef CompileUnit;
 
 
-    public LLVMModuleRef Module { get; }
-    public LLVMBuilderRef Builder { get; }
-    public LLVMTargetDataRef TargetData { get; }
+   public TorqueCompiler Compiler { get; }
+
+   public LLVMModuleRef Module => Compiler.Module;
+   public LLVMBuilderRef Builder => Compiler.Builder;
+   public LLVMTargetDataRef TargetData => Compiler.TargetData;
+
+   public Scope Scope => Compiler.Scope;
 
 
 
 
-    public DebugMetadataGenerator(LLVMModuleRef module, LLVMBuilderRef builder, LLVMTargetDataRef targetData)
+    public DebugMetadataGenerator(TorqueCompiler compiler)
     {
-        _globalScope = new DebugMetadataScope(null, File);
-        _scope = _globalScope;
+        Compiler = compiler;
 
-        Module = module;
-        Builder = builder;
-        TargetData = targetData;
 
-        Module.AddModuleFlag("Debug Info Version", LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorWarning, LLVM.DebugMetadataVersion());
+        Compiler.Module.AddModuleFlag("Debug Info Version", LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorWarning, LLVM.DebugMetadataVersion());
 
         InitializeDebugBuilder();
+
+
+        if (!Scope.IsGlobal)
+            throw new InvalidOperationException("Debug must be initialized at the global scope.");
+
+        Scope.DebugReference = File;
     }
 
 
@@ -135,33 +103,17 @@ public class DebugMetadataGenerator
 
 
     public unsafe void SetLocation()
-    {
-        LLVM.SetCurrentDebugLocation2(Builder, null);
-    }
+        => LLVM.SetCurrentDebugLocation2(Builder, null);
 
 
     public unsafe LLVMMetadataRef CreateDebugLocation(int line, int column)
-        => LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, _scope, null);
+        => LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, Scope.DebugReference!, null);
 
 
-
-
-    public void ScopeEnter(int line, int column)
-        => _scope = new DebugMetadataScope(_scope, CreateScope(line, column));
-
-
-    public void ScopeEnterFunction(LLVMMetadataRef function)
-        => _scope = new DebugMetadataScope(_scope, function);
-
-
-    public void ScopeExit()
-        => _scope = _scope.Parent ?? throw new InvalidOperationException("Internal debug scope stack must have at least one item");
-
-
-    private unsafe DebugMetadataScope CreateScope(int line, int column)
+    public unsafe LLVMMetadataRef CreateLexicalScope(int line, int column)
     {
-        var scopeReference = LLVM.DIBuilderCreateLexicalBlock(DebugBuilder, _scope, File, (uint)line, (uint)column);
-        return new DebugMetadataScope(_scope, scopeReference);
+        var scopeReference = LLVM.DIBuilderCreateLexicalBlock(DebugBuilder, Scope.DebugReference!, File, (uint)line, (uint)column);
+        return scopeReference;
     }
 
 
@@ -187,7 +139,7 @@ public class DebugMetadataGenerator
 
     private LLVMMetadataRef CreateFunction(string name, int lineNumber, LLVMMetadataRef debugFunctionType)
         => DebugBuilder.CreateFunction(
-            _scope, name, name, File, (uint)lineNumber, debugFunctionType, 0, 1,
+            Scope.DebugReference!.Value, name, name, File, (uint)lineNumber, debugFunctionType, 0, 1,
             (uint)lineNumber, LLVMDIFlags.LLVMDIFlagZero, 0
         );
 
@@ -210,33 +162,20 @@ public class DebugMetadataGenerator
     {
         var typeMetadata = PrimitiveTypeToMetadata(type);
         var sizeInBits = (uint)type.SizeOfThis(TargetData) * 8;
-        var sbyteName = StringToSBytePtr(name);
 
-        var variable = CreateAutoVariable(name, lineNumber, sbyteName, typeMetadata, sizeInBits);
-        var metadataVariable = new DebugMetadataVariable(name, alloca, variable);
+        var debugReference = CreateAutoVariable(name, lineNumber, typeMetadata, sizeInBits);
 
-        _scope.Variables.Add(metadataVariable);
+        DeclareLocalVariable(alloca, debugReference, location);
 
-        DeclareLocalVariable(alloca, variable, location);
-
-        return variable;
+        return debugReference;
     }
 
 
-    private unsafe LLVMOpaqueMetadata* CreateAutoVariable(string name, int lineNumber, sbyte* sbyteName, LLVMMetadataRef typeMetadata, uint sizeInBits)
+    private unsafe LLVMOpaqueMetadata* CreateAutoVariable(string name, int lineNumber, LLVMMetadataRef typeMetadata, uint sizeInBits)
         => LLVM.DIBuilderCreateAutoVariable(
-            DebugBuilder, _scope, sbyteName, (uint)name.Length, File,
+            DebugBuilder, Scope.DebugReference!, StringToSBytePtr(name), (uint)name.Length, File,
             (uint)lineNumber, typeMetadata, 0, LLVMDIFlags.LLVMDIFlagZero, sizeInBits
         );
-
-
-    public LLVMDbgRecordRef UpdateLocalVariableValue(string name, LLVMMetadataRef location)
-    {
-        if (_scope.GetVariableByName(name) is not { } variable)
-            throw new InvalidOperationException($"Current debug scope does not contain variable \"{name}\"");
-
-        return UpdateLocalVariableValue(variable.Alloca, variable.MetadataReference, location);
-    }
 
 
     private unsafe LLVMDbgRecordRef DeclareLocalVariable(LLVMValueRef alloca, LLVMMetadataRef variable, LLVMMetadataRef location)
@@ -249,6 +188,15 @@ public class DebugMetadataGenerator
 
     private unsafe LLVMMetadataRef EmptyExpression()
         => LLVM.DIBuilderCreateExpression(DebugBuilder, null, 0);
+
+
+
+
+    public LLVMDbgRecordRef UpdateLocalVariableValue(string name, LLVMMetadataRef location)
+    {
+        var variable = Scope.GetIdentifier(name);
+        return UpdateLocalVariableValue(variable.Address, variable.DebugReference!.Value, location);
+    }
 
 
 
