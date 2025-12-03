@@ -18,7 +18,6 @@ namespace Torque;
 [SuppressMessage("ReSharper", "UnassignedGetOnlyAutoProperty")]
 public class LinkCommandSettings : CommandSettings
 {
-    // TODO: make this accept only existent files
     [CommandArgument(0, "<files>")]
     public FileInfo[] Files { get; init; }
 

@@ -53,7 +53,7 @@ public class DebugMetadataGenerator
 
 
         if (!Scope.IsGlobal)
-            throw new InvalidOperationException("Debug must be initialized at the global scope.");
+            throw new InvalidOperationException("Debug metadata generator must be initialized at the global scope.");
 
         Scope.DebugReference = File;
     }
@@ -61,8 +61,11 @@ public class DebugMetadataGenerator
 
     private unsafe void InitializeDebugBuilder()
     {
-        var file = Torque.Settings.File.Name;
-        var directoryPath = Torque.Settings.File.Directory?.FullName ?? "/";
+        if (Compiler.FileInfo is null)
+            throw new InvalidOperationException("Debug metadata generator requires a compiler file info");
+
+        var file = Compiler.FileInfo.Name;
+        var directoryPath = Compiler.FileInfo.Directory?.FullName ?? "/";
 
         DebugBuilder = LLVM.CreateDIBuilder(Module);
         File = DebugBuilder.CreateFile(file, directoryPath);

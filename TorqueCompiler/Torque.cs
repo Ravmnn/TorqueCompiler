@@ -13,8 +13,7 @@ namespace Torque;
 
 public static class Torque
 {
-    // TODO: don't use global settings... backend should be independent from frontend
-    public static CompileCommandSettings Settings { get; private set; } = null!;
+    private static CompileCommandSettings _settings = null!;
 
     public static string? Source { get; private set; }
     public static string[]? SourceLines => Source?.Split('\n');
@@ -43,8 +42,9 @@ public static class Torque
     {
         try
         {
-            Settings = settings;
-            Source = File.ReadAllText(Settings.File.FullName);
+            _settings = settings;
+
+            Source = File.ReadAllText(_settings.File.FullName);
 
 
             var tokens = new TorqueLexer(Source).Tokenize();
@@ -57,12 +57,13 @@ public static class Torque
             if (Failed || PrintedAST(statements))
                 return;
 
-            var bitCode = new TorqueCompiler(statements, Settings.Debug).Compile();
+            var compiler = new TorqueCompiler(statements, _settings.Debug) { FileInfo = _settings.File };
+            var bitCode = compiler.Compile();
 
             if (Failed || PrintedLLVM(bitCode) || PrintedASM(bitCode))
                 return;
 
-            Toolchain.Compile(GetOutputFileName(), bitCode, Settings.OutputType, Settings.Debug);
+            Toolchain.Compile(GetOutputFileName(), bitCode, _settings.OutputType, _settings.Debug);
         }
         catch (Exception exception)
         {
@@ -73,10 +74,10 @@ public static class Torque
 
     private static string GetOutputFileName()
     {
-        var fileName = Path.GetFileNameWithoutExtension(Settings.File.Name);
+        var fileName = Path.GetFileNameWithoutExtension(_settings.File.Name);
 
-        var outputExtension = Settings.OutputType.OutputTypeToFileExtension();
-        var outputName = Settings.Output ?? $"{fileName}.{outputExtension}";
+        var outputExtension = _settings.OutputType.OutputTypeToFileExtension();
+        var outputName = _settings.Output ?? $"{fileName}.{outputExtension}";
 
         return outputName;
     }
@@ -86,7 +87,7 @@ public static class Torque
 
     private static bool PrintedAST(IEnumerable<Statement> statements)
     {
-        if (Settings.PrintAST)
+        if (_settings.PrintAST)
         {
             Console.WriteLine(new ASTPrinter().Print(statements));
             return true;
@@ -98,7 +99,7 @@ public static class Torque
 
     private static bool PrintedLLVM(string bitCode)
     {
-        if (Settings.PrintLLVM)
+        if (_settings.PrintLLVM)
         {
             Console.WriteLine(bitCode);
             return true;
@@ -110,7 +111,7 @@ public static class Torque
 
     private static bool PrintedASM(string bitCode)
     {
-        if (Settings.PrintASM)
+        if (_settings.PrintASM)
         {
             var tempFile = Path.GetTempFileName();
             Toolchain.Compile(tempFile, bitCode, OutputType.Assembly);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -19,6 +20,9 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
     private readonly Stack<LLVMValueRef> _valueStack = new Stack<LLVMValueRef>();
+
+
+    public FileInfo? FileInfo { get; init; }
 
 
     private readonly LLVMModuleRef _module = LLVMModuleRef.CreateWithName("MainModule");
