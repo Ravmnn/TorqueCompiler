@@ -37,7 +37,7 @@ public class DebugMetadataGenerator
    public LLVMBuilderRef Builder => Compiler.Builder;
    public LLVMTargetDataRef TargetData => Compiler.TargetData;
 
-   public Scope Scope => Compiler.Scope;
+   public Scope<CompilerIdentifier> Scope => Compiler.Scope;
 
 
 

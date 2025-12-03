@@ -32,8 +32,8 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     public DebugMetadataGenerator? Debug { get; }
 
 
-    public Scope GlobalScope { get; } = [];
-    public Scope Scope { get; private set; }
+    public Scope<CompilerIdentifier> GlobalScope { get; } = [];
+    public Scope<CompilerIdentifier> Scope { get; private set; }
 
 
     public Statement[] Statements { get; }
@@ -46,14 +46,16 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
 
         // TODO: add floats
+        // TODO: add function calling
 
         // TODO: only pointers type (T*) should be able to modify the memory itself:
         // normal types that acquires the memory of something (&value) should treat the address returned as a normal integer
 
-        // TODO: make the Parser handle things like identifier checking, type checking, etc:
-        // - add type checking
-        // - identifier/scope checking
-        // The compiler should only compile things and not be responsible for that
+        // TODO: create semantic analysis:
+        // - identifier resolver
+        // - type checker
+
+        // TODO: change way errors are expressed, don't use exceptions anymore
 
         // TODO: make this user's choice (command line options)
         const string Triple = "x86_64-pc-linux-gnu";
@@ -140,7 +142,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var debugScope = DebugCreateLexicalScope(location);
         debugScope = debugFunctionReference ?? debugScope;
 
-        Scope = new Scope(Scope, debugScope);
+        Scope = new Scope<CompilerIdentifier>(Scope, debugScope);
     }
 
 
@@ -243,7 +245,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var reference = Builder.BuildAlloca(llvmType, name);
         var debugReference = DebugGenerateLocalVariable(name, type, statementSource, reference);
 
-        Scope.Add(new Identifier(reference, llvmType, debugReference));
+        Scope.Add(new CompilerIdentifier(reference, llvmType, debugReference));
 
         Builder.BuildStore(Consume(statement.Value), reference);
         DebugUpdateLocalVariableValue(name, statementSource);
@@ -270,7 +272,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var function = Module.AddFunction(functionName, functionType);
         var functionDebugReference = DebugGenerateFunction(function, functionName, functionLocation, functionReturnType, parameterTypes);
 
-        Scope.Add(new Identifier(function, functionType, functionDebugReference));
+        Scope.Add(new CompilerIdentifier(function, functionType, functionDebugReference));
 
         var entry = function.AppendBasicBlock(FunctionEntryBlockName);
         Builder.PositionAtEnd(entry);

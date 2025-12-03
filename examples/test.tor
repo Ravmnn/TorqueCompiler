@@ -1,20 +1,6 @@
 int main()
 {
-    int a = 25;
-    int b = 30;
-    int c = a + b;
-
-    {
-        int scopeA = 93;
-        int scopeB = scopeA + 7;
-    }
-
-    int result = 10;
-
-    int negative = 10 - 50;
-    uint unsignedNegative = 10 - 50;
-
-    #abc - def;
+    int value = 10;
 
     return 0;
 }

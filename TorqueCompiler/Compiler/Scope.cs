@@ -9,18 +9,10 @@ namespace Torque.Compiler;
 
 
 
-public readonly struct Identifier(LLVMValueRef address, LLVMTypeRef type, LLVMMetadataRef? debugReference = null)
+public class Scope<T>(Scope<T>? parent = null, LLVMMetadataRef? debugReference = null)
+    : List<T> where T : IIdentifier
 {
-    public LLVMValueRef Address { get; init; } = address;
-    public LLVMTypeRef Type { get; init; } = type;
-
-    public LLVMMetadataRef? DebugReference { get; init; } = debugReference;
-}
-
-
-public class Scope(Scope? parent = null, LLVMMetadataRef? debugReference = null) : List<Identifier>
-{
-    public Scope? Parent { get; } = parent;
+    public Scope<T>? Parent { get; } = parent;
 
     public LLVMMetadataRef? DebugReference { get; set; } = debugReference;
 
@@ -30,17 +22,20 @@ public class Scope(Scope? parent = null, LLVMMetadataRef? debugReference = null)
 
 
 
-    public Identifier GetIdentifier(string name)
+    public T GetIdentifier(string name)
     {
         foreach (var identifier in this)
-            if (identifier.Address.Name == name)
+            if (identifier.Name == name)
                 return identifier;
 
-        return Parent?.GetIdentifier(name) ?? throw new InvalidOperationException($"Invalid identifier \"{name}\".");
+        if (Parent is null)
+            throw new InvalidOperationException($"Invalid identifier \"{name}\".");
+
+        return Parent.GetIdentifier(name);
     }
 
 
-    public Identifier? TryGetIdentifier(string name)
+    public T? TryGetIdentifier(string name)
     {
         try
         {
@@ -48,7 +43,7 @@ public class Scope(Scope? parent = null, LLVMMetadataRef? debugReference = null)
         }
         catch
         {
-            return null;
+            return default;
         }
     }
 
