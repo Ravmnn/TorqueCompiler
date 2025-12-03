@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 
 
 namespace Torque;
@@ -12,24 +11,6 @@ public enum OutputType
     Object,
     Assembly,
     BitCode
-}
-
-
-
-
-public readonly struct TorqueCompileOptions
-{
-    public required FileInfo File { get; init; }
-
-    public required string? Output { get; init; }
-
-    public required OutputType OutputType { get; init; }
-
-    public required bool Debug { get; init; }
-
-    public required bool PrintAST { get; init; }
-    public required bool PrintLLVM { get; init; }
-    public required bool PrintASM { get; init; }
 }
 
 

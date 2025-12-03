@@ -1,5 +1,14 @@
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+
+
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.CommandLine;
+using System.Threading;
+
+using Spectre.Console;
+using Spectre.Console.Cli;
+
 
 
 namespace Torque;
@@ -7,66 +16,68 @@ namespace Torque;
 
 
 
-public class CompileCommand : Command
+[SuppressMessage("ReSharper", "UnassignedGetOnlyAutoProperty")]
+public class CompileCommandSettings : CommandSettings
 {
-    public Argument<FileInfo> File { get; }
-
-    public Option<string> Output { get; }
-
-    public Option<OutputType> OutputType { get; }
-
-    public Option<bool> Debug { get; }
-
-    public Option<bool> PrintAST { get; }
-    public Option<bool> PrintLLVM { get; }
-    public Option<bool> PrintASM { get; }
+    [CommandArgument(0, "<file>")]
+    public FileInfo File { get; init; }
 
 
 
 
+    [CommandOption("-o|--output")]
+    [Description("The output file to store the compiling result")]
+    public string? Output { get; init; }
 
-    public CompileCommand() : base("compile", "Compiles a source file into LLVM, Assembly or Object format.")
+
+    [CommandOption("-O|--output-type")]
+    [Description("The kind of output the compiler should generate")]
+    public OutputType OutputType { get; init; }
+
+
+
+
+    [CommandOption("--debug")]
+    [Description("Generate debug information")]
+    public bool Debug { get; init; }
+
+
+
+
+    [CommandOption("--print-ast")]
+    [Description("Print Abstract Syntactic Tree and quit")]
+    public bool PrintAST { get; init; }
+
+
+    [CommandOption("--print-llvm")]
+    [Description("Print LLVM bit code and quit")]
+    public bool PrintLLVM { get; init; }
+
+
+    [CommandOption("--print-asm")]
+    [Description("Print Assembly and quit")]
+    public bool PrintASM { get; init; }
+
+
+
+
+    public override ValidationResult Validate()
     {
-        File = new Argument<FileInfo>("file");
-        File.AcceptExistingOnly();
-        Add(File);
+        if (!File.Exists)
+            return ValidationResult.Error($"Could not open source file \"{File.Name}\"");
 
-        Add(Output = new Option<string>("--output", "-o"));
-
-        Add(OutputType = new Option<OutputType>("--output-type", "-O")
-        {
-            DefaultValueFactory = _ => global::Torque.OutputType.Object
-        });
-
-        Add(Debug = new Option<bool>("--debug"));
-
-        Add(PrintAST = new Option<bool>("--print-ast"));
-        Add(PrintLLVM = new Option<bool>("--print-llvm"));
-        Add(PrintASM = new Option<bool>("--print-asm"));
-
-
-        SetAction(Callback);
+        return ValidationResult.Success();
     }
-
-
-    private void Callback(ParseResult result)
-        => Torque.Compile(GetOptions(result));
+}
 
 
 
 
-    public TorqueCompileOptions GetOptions(ParseResult result) => new TorqueCompileOptions
+public class CompileCommand : Command<CompileCommandSettings>
+{
+    protected override int Execute(CommandContext context, CompileCommandSettings settings, CancellationToken cancellationToken)
     {
-        File = result.GetRequiredValue(File),
-
-        Output = result.GetValue(Output),
-
-        OutputType = result.GetValue(OutputType),
-
-        Debug = result.GetValue(Debug),
-
-        PrintAST = result.GetValue(PrintAST),
-        PrintLLVM = result.GetValue(PrintLLVM),
-        PrintASM = result.GetValue(PrintASM)
-    };
+        Torque.Compile(settings);
+        return 0;
+    }
 }

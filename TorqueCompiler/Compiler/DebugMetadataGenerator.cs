@@ -61,8 +61,8 @@ public class DebugMetadataGenerator
 
     private unsafe void InitializeDebugBuilder()
     {
-        var file = Torque.Options.File.Name;
-        var directoryPath = Torque.Options.File.Directory?.FullName ?? "/";
+        var file = Torque.Settings.File.Name;
+        var directoryPath = Torque.Settings.File.Directory?.FullName ?? "/";
 
         DebugBuilder = LLVM.CreateDIBuilder(Module);
         File = DebugBuilder.CreateFile(file, directoryPath);

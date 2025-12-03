@@ -1,6 +1,13 @@
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+
+
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Collections.Generic;
-using System.CommandLine;
+using System.Threading;
+
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 
 namespace Torque;
@@ -8,51 +15,47 @@ namespace Torque;
 
 
 
-public class LinkCommand : Command
+[SuppressMessage("ReSharper", "UnassignedGetOnlyAutoProperty")]
+public class LinkCommandSettings : CommandSettings
 {
-    public Argument<IEnumerable<FileInfo>> Files { get; }
-
-    public Option<string> Output { get; }
-
-    public Option<bool> Debug { get; }
+    // TODO: make this accept only existent files
+    [CommandArgument(0, "<files>")]
+    public FileInfo[] Files { get; init; }
 
 
 
+    [CommandOption("-o|--output")]
+    [Description("The output file to store the final binary")]
+    [DefaultValue("app")]
+    public string Output { get; init; }
 
-    public LinkCommand() : base("link", "Links object files into a binary executable/library.")
+
+
+    [CommandOption("--debug")]
+    [Description("Generate debug information")]
+    public bool Debug { get; init; }
+
+
+
+
+    public override ValidationResult Validate()
     {
-        // TODO: make this accept only existent files
+        foreach (var file in Files)
+            if (!file.Exists)
+                return ValidationResult.Error($"Could not open source file \"{file.Name}\"");
 
-        Files = new Argument<IEnumerable<FileInfo>>("files")
-        {
-            Arity = ArgumentArity.OneOrMore
-        };
-        Files.AcceptExistingOnly();
-        Add(Files);
-
-        Add(Output = new Option<string>("--output", "-o")
-        {
-            DefaultValueFactory = _ => "app"
-        });
-
-        Add(Debug = new Option<bool>("--debug"));
-
-        SetAction(Callback);
+        return ValidationResult.Success();
     }
-
-
-    private void Callback(ParseResult result)
-        => Torque.Link(GetOptions(result));
+}
 
 
 
 
-    public TorqueLinkOptions GetOptions(ParseResult result) => new TorqueLinkOptions
+public class LinkCommand : Command<LinkCommandSettings>
+{
+    protected override int Execute(CommandContext context, LinkCommandSettings settings, CancellationToken cancellationToken)
     {
-        Files = result.GetRequiredValue(Files),
-
-        Output = result.GetRequiredValue(Output),
-
-        Debug = result.GetValue(Debug)
-    };
+        Torque.Link(settings);
+        return 0;
+    }
 }
