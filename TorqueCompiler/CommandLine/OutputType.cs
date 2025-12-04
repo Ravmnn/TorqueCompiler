@@ -1,7 +1,7 @@
 using System;
 
 
-namespace Torque;
+namespace Torque.CommandLine;
 
 
 

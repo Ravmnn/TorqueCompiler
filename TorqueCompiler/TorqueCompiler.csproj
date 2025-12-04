@@ -14,4 +14,28 @@
       <PackageReference Include="Spectre.Console.Cli" Version="1.0.0-alpha.0.11" />
     </ItemGroup>
 
+    <ItemGroup>
+      <EmbeddedResource Update="Compiler\Diagnostics\LexerDiagnostics.resx">
+        <Generator>ResXFileCodeGenerator</Generator>
+        <LastGenOutput>LexerDiagnostics.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Compiler\Diagnostics\ParserDiagnostics.resx">
+        <Generator>ResXFileCodeGenerator</Generator>
+        <LastGenOutput>ParserDiagnostics.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Compiler\Diagnostics\LexerDiagnostics.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>LexerDiagnostics.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Compiler\Diagnostics\ParserDiagnostics.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>ParserDiagnostics.resx</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
 </Project>

@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 
+using Torque.Compiler.Diagnostics;
+
 
 namespace Torque.Compiler;
 
 
 
 
-public class TorqueLexer(string source)
+public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCatalog>
 {
     private int _startInLine;
     private int _endInLine;
@@ -22,6 +24,12 @@ public class TorqueLexer(string source)
 
 
 
+    public override Diagnostic Report(Diagnostic.LexerCatalog item, string[]? arguments = null, TokenLocation? location = null)
+        => base.Report(item, arguments, location ?? GetCurrentLocation());
+
+
+
+
     public IEnumerable<Token> Tokenize()
     {
         var tokens = new List<Token>();
@@ -30,18 +38,11 @@ public class TorqueLexer(string source)
 
         while (!AtEnd())
         {
-            try
-            {
-                _start = _end;
-                _startInLine = _endInLine;
+            _start = _end;
+            _startInLine = _endInLine;
 
-                if (TokenizeNext() is { } token)
-                    tokens.Add(token);
-            }
-            catch (LanguageException exception)
-            {
-                Torque.LogError(exception);
-            }
+            if (TokenizeNext() is { } token)
+                tokens.Add(token);
         }
 
         return tokens;
@@ -53,6 +54,8 @@ public class TorqueLexer(string source)
         _start = _end = 0;
         _startInLine = _endInLine = 0;
         _line = 1;
+
+        Diagnostics.Clear();
     }
 
 
@@ -100,7 +103,8 @@ public class TorqueLexer(string source)
         if (char.IsAsciiDigit(character))
             return Value();
 
-        throw TorqueErrors.InvalidToken(GetCurrentLocation());
+        Report(Diagnostic.LexerCatalog.UnexpectedToken);
+        return null;
     }
 
 
@@ -133,7 +137,10 @@ public class TorqueLexer(string source)
             Advance();
 
         if (AtEnd())
-            throw TorqueErrors.UnclosedMultilineComment(startLocation);
+        {
+            Report(Diagnostic.LexerCatalog.UnclosedMultilineComment, location: startLocation);
+            return;
+        }
 
         Advance(); // advance '<'
         Advance(); // advance '#'

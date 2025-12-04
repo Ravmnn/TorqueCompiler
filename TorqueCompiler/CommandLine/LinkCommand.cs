@@ -10,7 +10,7 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 
 
-namespace Torque;
+namespace Torque.CommandLine;
 
 
 

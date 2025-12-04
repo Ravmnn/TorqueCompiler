@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 
 
-namespace Torque;
+namespace Torque.CommandLine;
 
 
 
