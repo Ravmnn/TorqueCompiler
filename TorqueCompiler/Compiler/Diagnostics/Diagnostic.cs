@@ -18,7 +18,7 @@ public enum DiagnosticScope
 {
     Lexer,
     Parser,
-    SymbolResolver,
+    Binder,
     Compiler
 }
 
@@ -35,13 +35,13 @@ public readonly partial struct Diagnostic()
 
 
 
-    public string[] Arguments { get; init; } = [];
+    public object[] Arguments { get; init; } = [];
     public TokenLocation? Location { get; init; }
 
 
 
 
-    public static Diagnostic FromCatalog<T>(int code, string[]? arguments = null, TokenLocation? location = null)
+    public static Diagnostic FromCatalog<T>(int code, object[]? arguments = null, TokenLocation? location = null)
         where T : Enum
     {
         var (item, scope, severity) = GetFromCatalog<T>(code);
@@ -64,7 +64,7 @@ public readonly partial struct Diagnostic()
     {
         DiagnosticScope.Lexer => LexerDiagnostics.ResourceManager.GetString(MessageId)!,
         DiagnosticScope.Parser => ParserDiagnostics.ResourceManager.GetString(MessageId)!,
-        DiagnosticScope.SymbolResolver => SymbolResolverDiagnostics.ResourceManager.GetString(MessageId)!,
+        DiagnosticScope.Binder => SymbolResolverDiagnostics.ResourceManager.GetString(MessageId)!,
 
         _ => throw new InvalidOperationException("Invalid diagnostic scope")
     };

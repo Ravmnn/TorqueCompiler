@@ -1,6 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Torque.Compiler.Diagnostics;
 
 
@@ -9,33 +9,29 @@ namespace Torque.Compiler;
 
 
 
-public class SymbolResolver : DiagnosticReporter<Diagnostic.SymbolResolverCatalog>,
+public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporter<Diagnostic.SymbolResolverCatalog>,
     IExpressionProcessor<BoundExpression>, IStatementProcessor<BoundStatement>
 {
-    private readonly List<BoundStatement> _statements = [];
     private Scope _scope = new Scope();
 
 
+    public IEnumerable<Statement> Statements { get; } = statements;
 
 
-    public IEnumerable<BoundStatement> Resolve(IEnumerable<Statement> statements)
+
+
+    public IEnumerable<BoundStatement> Bind()
     {
         Diagnostics.Clear();
-        _statements.Clear();
 
-        foreach (var statement in statements)
-            _statements.Add(Process(statement));
-
-        return _statements;
+        return Statements.Select(Process).ToArray();
     }
 
 
 
 
-    public BoundStatement Process(Statement statement)
+    private BoundStatement Process(Statement statement)
         => statement.Process(this);
-
-
 
 
     public BoundStatement ProcessExpression(ExpressionStatement statement)
@@ -49,12 +45,14 @@ public class SymbolResolver : DiagnosticReporter<Diagnostic.SymbolResolverCatalo
     public BoundStatement ProcessDeclaration(DeclarationStatement statement)
     {
         if (_scope.SymbolExists(statement.Name.Lexeme))
-            Report(Diagnostic.SymbolResolverCatalog.MultipleIdentifierDeclaration);
+            ReportToken(Diagnostic.SymbolResolverCatalog.MultipleSymbolDeclaration, statement.Source());
 
-        var identifier = new IdentifierSymbol(statement.Name.Lexeme, null, statement.Name.Location, _scope);
+        var identifier = new ValueSymbol(statement.Name.Lexeme, null, statement.Name.Location, _scope);
+        var value = Process(statement.Value);
+
         _scope.Symbols.Add(identifier);
 
-        return new BoundDeclarationStatement(statement, identifier);
+        return new BoundDeclarationStatement(statement, identifier, value);
     }
 
 
@@ -63,11 +61,14 @@ public class SymbolResolver : DiagnosticReporter<Diagnostic.SymbolResolverCatalo
     public BoundStatement ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
     {
         if (_scope.SymbolExists(statement.Name.Lexeme))
-            ReportAndThrow(Diagnostic.SymbolResolverCatalog.MultipleIdentifierDeclaration);
+            ReportToken(Diagnostic.SymbolResolverCatalog.MultipleSymbolDeclaration, statement.Source());
 
-        _scope.Symbols.Add(new FunctionSymbol(statement.Name.Lexeme, null, null, statement.Name.Location, _scope));
+        var symbol = new FunctionSymbol(statement.Name.Lexeme, null, null, statement.Name.Location, _scope);
+        _scope.Symbols.Add(symbol);
 
-        return new BoundFunctionDeclarationStatement(statement);
+        var body = (Process(statement.Body) as BoundBlockStatement)!;
+
+        return new BoundFunctionDeclarationStatement(statement, body, symbol);
     }
 
 
@@ -86,12 +87,11 @@ public class SymbolResolver : DiagnosticReporter<Diagnostic.SymbolResolverCatalo
     {
         _scope = new Scope(_scope);
 
-        foreach (var blockStatement in statement.Statements)
-            Process(blockStatement);
+        var boundStatements = statement.Statements.Select(Process).ToArray();
 
         _scope = _scope.Parent!;
 
-        return new BoundBlockStatement(statement);
+        return new BoundBlockStatement(statement, boundStatements);
     }
 
 
@@ -101,7 +101,7 @@ public class SymbolResolver : DiagnosticReporter<Diagnostic.SymbolResolverCatalo
 
 
 
-    public BoundExpression Process(Expression expression)
+    private BoundExpression Process(Expression expression)
         => expression.Process(this);
 
 
@@ -138,13 +138,15 @@ public class SymbolResolver : DiagnosticReporter<Diagnostic.SymbolResolverCatalo
 
     public BoundExpression ProcessIdentifier(IdentifierExpression expression)
     {
-        if (!_scope.SymbolExists(expression.Identifier.Lexeme))
-            Report(Diagnostic.SymbolResolverCatalog.UndeclaredIdentifier);
+        var symbol = _scope.TryGetSymbol(expression.Identifier.Lexeme);
 
-        if (_scope.GetSymbol(expression.Identifier.Lexeme) is not IdentifierSymbol identifier)
-            throw new InvalidOperationException("Is not identifier symbol");
+        if (symbol is null)
+            ReportToken(Diagnostic.SymbolResolverCatalog.UndeclaredSymbol, expression.Source());
 
-        return new BoundIdentifierExpression(expression, identifier);
+        else if (symbol is not ValueSymbol)
+            ReportToken(Diagnostic.SymbolResolverCatalog.SymbolIsNotAValue, expression.Source());
+
+        return new BoundIdentifierExpression(expression, (symbol as ValueSymbol)!);
     }
 
 
@@ -153,8 +155,9 @@ public class SymbolResolver : DiagnosticReporter<Diagnostic.SymbolResolverCatalo
     public BoundExpression ProcessAssignment(AssignmentExpression expression)
     {
         var identifier = (Process(expression.Identifier) as BoundIdentifierExpression)!;
+        var value = Process(expression.Value);
 
-        return new BoundAssignmentExpression(expression, identifier);
+        return new BoundAssignmentExpression(expression, identifier, value);
     }
 
 
@@ -163,8 +166,9 @@ public class SymbolResolver : DiagnosticReporter<Diagnostic.SymbolResolverCatalo
     public BoundExpression ProcessCall(CallExpression expression)
     {
         var callee = Process(expression.Callee);
+        var arguments = expression.Arguments.Select(Process).ToArray();
 
-        return new BoundCallExpression(expression, callee);
+        return new BoundCallExpression(expression, callee, arguments);
     }
 
 
@@ -172,6 +176,7 @@ public class SymbolResolver : DiagnosticReporter<Diagnostic.SymbolResolverCatalo
 
     public BoundExpression ProcessCast(CastExpression expression)
     {
-        return new BoundCastExpression(expression);
+        var value = Process(expression.Expression);
+        return new BoundCastExpression(expression, value);
     }
 }

@@ -45,15 +45,21 @@ namespace Torque.Compiler.Diagnostics {
             }
         }
         
-        internal static string MultipleIdentifierDeclaration {
+        internal static string MultipleSymbolDeclaration {
             get {
-                return ResourceManager.GetString("MultipleIdentifierDeclaration", resourceCulture);
+                return ResourceManager.GetString("MultipleSymbolDeclaration", resourceCulture);
             }
         }
         
-        internal static string UndeclaredIdentifier {
+        internal static string UndeclaredSymbol {
             get {
-                return ResourceManager.GetString("UndeclaredIdentifier", resourceCulture);
+                return ResourceManager.GetString("UndeclaredSymbol", resourceCulture);
+            }
+        }
+        
+        internal static string SymbolIsNotAValue {
+            get {
+                return ResourceManager.GetString("SymbolIsNotAValue", resourceCulture);
             }
         }
     }

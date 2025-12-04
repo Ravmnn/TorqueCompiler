@@ -31,9 +31,9 @@ public class Scope(Scope? parent = null)
     // TODO: TryGet__ should be the main implementation, since it's faster
     public Symbol GetSymbol(string name)
     {
-        foreach (var identifier in Symbols)
-            if (identifier.Name == name)
-                return identifier;
+        foreach (var symbol in Symbols)
+            if (symbol.Name == name)
+                return symbol;
 
         if (Parent is null)
             throw new InvalidOperationException($"Invalid identifier \"{name}\".");

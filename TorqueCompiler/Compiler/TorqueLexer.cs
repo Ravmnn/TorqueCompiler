@@ -24,7 +24,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
 
 
-    public override Diagnostic Report(Diagnostic.LexerCatalog item, string[]? arguments = null, TokenLocation? location = null)
+    public override Diagnostic Report(Diagnostic.LexerCatalog item, object[]? arguments = null, TokenLocation? location = null)
         => base.Report(item, arguments, location ?? GetCurrentLocation());
 
 

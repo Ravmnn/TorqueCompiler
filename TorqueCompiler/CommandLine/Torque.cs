@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
 
@@ -62,6 +63,7 @@ public static class Torque
 
     private static string? CompileToBitCode()
     {
+        // tokenize
         var lexer = new TorqueLexer(SourceCode.Source!);
         var tokens = lexer.Tokenize();
         LogDiagnostics(lexer.Diagnostics);
@@ -69,11 +71,20 @@ public static class Torque
         if (Failed)
             return null;
 
+        // parse
         var parser = new TorqueParser(tokens);
         var statements = parser.Parse();
         LogDiagnostics(parser.Diagnostics);
 
         if (Failed || PrintedAST(statements))
+            return null;
+
+        // binding
+        var binder = new TorqueBinder(statements);
+        var boundStatements = binder.Bind();
+        LogDiagnostics(binder.Diagnostics);
+
+        if (true)
             return null;
 
         var compiler = new TorqueCompiler(statements, s_settings.Debug) { FileInfo = s_settings.File };

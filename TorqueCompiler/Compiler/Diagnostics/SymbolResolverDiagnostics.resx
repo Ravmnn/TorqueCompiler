@@ -22,10 +22,13 @@
 
 
 
-    <data name="MultipleIdentifierDeclaration" xml:space="preserve">
-        <value>Identifier "{0}" has multiple declarations</value>
+    <data name="MultipleSymbolDeclaration" xml:space="preserve">
+        <value>Symbol "{0}" has multiple declarations</value>
     </data>
-    <data name="UndeclaredIdentifier" xml:space="preserve">
-        <value>Identifier "{0}" has not been declared</value>
+    <data name="UndeclaredSymbol" xml:space="preserve">
+        <value>Symbol "{0}" has not been declared</value>
+    </data>
+    <data name="SymbolIsNotAValue" xml:space="preserve">
+        <value>Symbol "{0}" is not an expression value</value>
     </data>
 </root>

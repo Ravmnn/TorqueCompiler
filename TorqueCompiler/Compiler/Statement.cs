@@ -77,7 +77,7 @@ public class DeclarationStatement(Token name, Token type, Expression value) : St
         => processor.ProcessDeclaration(this);
 
 
-    public override Token Source() => Type;
+    public override Token Source() => Name;
 }
 
 
@@ -104,7 +104,7 @@ public class FunctionDeclarationStatement(Token name, Token returnType, IEnumera
         => processor.ProcessFunctionDeclaration(this);
 
 
-    public override Token Source() => ReturnType;
+    public override Token Source() => Name;
 }
 
 

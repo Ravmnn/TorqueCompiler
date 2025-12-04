@@ -19,10 +19,12 @@ public static class DiagnosticFormatter
         var locationSpan = diagnostic.Location is { } location ? $", {location}" : null;
 
         var message = diagnostic.GetMessage();
+        var formattedMessage = string.Format(message, diagnostic.Arguments);
+
         var codePeek = diagnostic.Location is not null ? GenerateCodePeek(diagnostic.Location.Value) : null;
         codePeek = $"{(codePeek is not null ? "\n" : "")}{codePeek}";
 
-        return $"(T{scopeSpan}{diagnostic.Code:D3}:{severitySpan}{locationSpan}) {message}{codePeek}";
+        return $"(T{scopeSpan}{diagnostic.Code:D3}:{severitySpan}{locationSpan}) {formattedMessage}{codePeek}";
     }
 
 

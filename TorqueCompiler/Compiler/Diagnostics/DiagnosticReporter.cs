@@ -20,13 +20,17 @@ public abstract class DiagnosticReporter<T> where T : Enum
 
 
 
-    public virtual Diagnostic Report(T item, string[]? arguments = null, TokenLocation? location = null)
+    public virtual Diagnostic Report(T item, object[]? arguments = null, TokenLocation? location = null)
     {
         var diagnostic = Diagnostic.FromCatalog<T>(Convert.ToInt32(item), arguments, location);
         Diagnostics.Add(diagnostic);
 
         return diagnostic;
     }
+
+
+    public virtual Diagnostic ReportToken(T item, Token? token = null)
+        => Report(item, token is not null ? [token.Value.Lexeme] : null, token?.Location);
 
 
     public virtual Diagnostic Report(Diagnostic diagnostic)
@@ -39,9 +43,17 @@ public abstract class DiagnosticReporter<T> where T : Enum
 
 
     [DoesNotReturn]
-    public virtual void ReportAndThrow(T item, string[]? arguments = null, TokenLocation? location = null)
+    public virtual void ReportAndThrow(T item, object[]? arguments = null, TokenLocation? location = null)
     {
         var diagnostic = Report(item, arguments, location);
+        throw new DiagnosticException(diagnostic);
+    }
+
+
+    [DoesNotReturn]
+    public virtual void ReportTokenAndThrow(T item, Token? token = null)
+    {
+        var diagnostic = ReportToken(item, token);
         throw new DiagnosticException(diagnostic);
     }
 

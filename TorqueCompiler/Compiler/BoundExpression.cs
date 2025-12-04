@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+
+
 namespace Torque.Compiler;
 
 
@@ -63,9 +66,9 @@ public class BoundGroupingExpression(GroupingExpression syntax, BoundExpression 
 
 
 
-public class BoundIdentifierExpression(IdentifierExpression syntax, IdentifierSymbol identifier) : BoundExpression(syntax)
+public class BoundIdentifierExpression(IdentifierExpression syntax, ValueSymbol value) : BoundExpression(syntax)
 {
-    public IdentifierSymbol Identifier { get; } = identifier;
+    public ValueSymbol Value { get; } = value;
 
 
     public override void Process(IBoundExpressionProcessor processor)
@@ -75,9 +78,11 @@ public class BoundIdentifierExpression(IdentifierExpression syntax, IdentifierSy
 
 
 
-public class BoundAssignmentExpression(AssignmentExpression syntax, BoundIdentifierExpression identifier) : BoundExpression(syntax)
+public class BoundAssignmentExpression(AssignmentExpression syntax, BoundIdentifierExpression identifier, BoundExpression value)
+    : BoundExpression(syntax)
 {
     public BoundIdentifierExpression Identifier { get; } = identifier;
+    public BoundExpression Value { get; } = value;
 
 
     public override void Process(IBoundExpressionProcessor processor)
@@ -87,9 +92,11 @@ public class BoundAssignmentExpression(AssignmentExpression syntax, BoundIdentif
 
 
 
-public class BoundCallExpression(CallExpression syntax, BoundExpression callee) : BoundExpression(syntax)
+public class BoundCallExpression(CallExpression syntax, BoundExpression callee, IEnumerable<BoundExpression> arguments)
+    : BoundExpression(syntax)
 {
     public BoundExpression Callee { get; } = callee;
+    public IEnumerable<BoundExpression> Arguments { get; } = arguments;
 
 
     public override void Process(IBoundExpressionProcessor processor)
@@ -99,8 +106,11 @@ public class BoundCallExpression(CallExpression syntax, BoundExpression callee) 
 
 
 
-public class BoundCastExpression(CastExpression syntax) : BoundExpression(syntax)
+public class BoundCastExpression(CastExpression syntax, BoundExpression value) : BoundExpression(syntax)
 {
+    public BoundExpression Value { get; } = value;
+
+
     public override void Process(IBoundExpressionProcessor processor)
         => processor.ProcessCast(this);
 }

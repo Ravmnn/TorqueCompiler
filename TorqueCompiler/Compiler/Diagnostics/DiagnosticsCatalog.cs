@@ -47,8 +47,9 @@ public readonly partial struct Diagnostic
 
     public enum SymbolResolverCatalog
     {
-        [Item(DiagnosticScope.SymbolResolver)] MultipleIdentifierDeclaration,
-        [Item(DiagnosticScope.SymbolResolver)] UndeclaredIdentifier
+        [Item(DiagnosticScope.Binder)] MultipleSymbolDeclaration,
+        [Item(DiagnosticScope.Binder)] UndeclaredSymbol,
+        [Item(DiagnosticScope.Binder)] SymbolIsNotAValue
     }
 
 
