@@ -6,7 +6,6 @@ namespace Torque.Compiler;
 
 
 
-// TODO: add another variant IExpressionProcessor<T> and implement in the classes that uses it. do this for Statement too
 public interface IExpressionProcessor
 {
     void ProcessLiteral(LiteralExpression expression);

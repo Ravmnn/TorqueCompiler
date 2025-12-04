@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using LLVMSharp.Interop;
 
 
 namespace Torque.Compiler;
@@ -8,10 +9,8 @@ namespace Torque.Compiler;
 
 
 
-public class ASTPrinter : IExpressionProcessor, IStatementProcessor
+public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<string>
 {
-    private readonly StringBuilder _builder = new StringBuilder();
-
     private uint _indentDegree;
 
 
@@ -23,92 +22,65 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
 
     public string Print(IEnumerable<Statement> statements)
     {
-        _builder.Clear();
+        var builder = new StringBuilder();
 
         foreach (var statement in statements)
-            Process(statement);
+            builder.Append(Process(statement));
 
-        return _builder.ToString();
+        return builder.ToString();
     }
 
 
     public string Print(Statement statement)
-    {
-        _builder.Clear();
+        => Print([statement]);
 
-        Process(statement);
-
-        return _builder.ToString();
-    }
 
 
     public string Print(Expression expression)
-    {
-        _builder.Clear();
-
-        Process(expression);
-
-        return _builder.ToString();
-    }
+        => Process(expression);
 
 
 
-    private void Parenthesize(Expression expression)
-    {
-        _builder.Append('(');
 
-        Process(expression);
-
-        _builder.Append(')');
-    }
+    private string Parenthesize(Expression expression)
+        => $"({Process(expression)})";
 
 
-    private void Stringify(string name, Expression[] expressions)
+    private string Stringify(string name, Expression[] expressions)
     {
         if (expressions.Length == 1)
-            UnaryStringify(name, expressions[0]);
+            return UnaryStringify(name, expressions[0]);
 
-        else if (expressions.Length == 2)
-            BinaryStringify(name, expressions[0], expressions[1]);
+        if (expressions.Length == 2)
+            return BinaryStringify(name, expressions[0], expressions[1]);
 
-        else if (expressions.Length >= 2)
-            MultiOperandStringify(name, expressions);
+        return MultiOperandStringify(name, expressions);
     }
 
 
-    private void UnaryStringify(string name, Expression operand)
+    private string UnaryStringify(string name, Expression operand)
+        => $"({name} {Process(operand)})";
+
+
+    private string BinaryStringify(string name, Expression left, Expression right)
+        => $"({Process(left)} {name} {Process(right)})";
+
+
+    private string MultiOperandStringify(string name, IEnumerable<Expression> expressions)
     {
-        _builder.Append($"({name} ");
+        var builder = new StringBuilder();
 
-        Process(operand);
-
-        _builder.Append(')');
-    }
-
-
-    private void BinaryStringify(string name, Expression left, Expression right)
-    {
-        _builder.Append('(');
-        Process(left);
-
-        _builder.Append($" {name} ");
-
-        Process(right);
-        _builder.Append(')');
-    }
-
-
-    private void MultiOperandStringify(string name, IEnumerable<Expression> expressions)
-    {
-        _builder.Append($"({name}");
+        builder.Append($"({name}");
 
         foreach (var expression in expressions)
         {
-            _builder.Append(' ');
+            builder.Append(' ');
             Process(expression);
         }
 
-        _builder.Append(')');
+        builder.Append(')');
+
+        return builder.ToString();
     }
 
 
@@ -142,58 +114,38 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
 
 
 
-    private void BeginStatement()
+    private string BeginStatement()
+        => Indent();
+
+    private string EndStatement()
+        => NewlineChar();
+
+
+
+
+
+    private string Process(Statement statement)
+        => statement.Process(this);
+
+
+    public string ProcessExpression(ExpressionStatement statement)
+        => $"{BeginStatement()}{Process(statement.Expression)}{EndStatement()}";
+
+
+
+
+    public string ProcessDeclaration(DeclarationStatement statement)
+        => $"{BeginStatement()}{statement.Type.Lexeme} {statement.Name.Lexeme} = {Process(statement.Value)} {EndStatement()}";
+
+
+
+
+    public string ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
     {
-        _builder.Append(Indent());
-    }
+        var builder = new StringBuilder();
 
-    private void EndStatement()
-    {
-        _builder.Append(NewlineChar());
-    }
-
-
-
-
-
-    private void Process(Statement statement)
-    {
-        statement.Process(this);
-    }
-
-
-
-
-    public void ProcessExpression(ExpressionStatement statement)
-    {
-        BeginStatement();
-
-        Process(statement.Expression);
-
-        EndStatement();
-    }
-
-
-
-
-    public void ProcessDeclaration(DeclarationStatement statement)
-    {
-        BeginStatement();
-
-        _builder.Append($"{statement.Type.Lexeme} {statement.Name.Lexeme} = ");
-        Process(statement.Value);
-
-        EndStatement();
-    }
-
-
-
-
-    public void ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
-    {
-        BeginStatement();
-
-        _builder.Append($"{statement.ReturnType.Lexeme} {statement.Name.Lexeme}(");
+        builder.Append(BeginStatement());
+        builder.Append($"{statement.ReturnType.Lexeme} {statement.Name.Lexeme}(");
 
         var parameters = statement.Parameters.ToArray();
 
@@ -202,111 +154,87 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
             var parameter = parameters[i];
             var atEnd = i + 1 >= parameters.Length;
 
-            _builder.Append($"{parameter.Type.Lexeme} {parameter.Name.Lexeme}{(!atEnd ? ", " : "")}");
+            builder.Append($"{parameter.Type.Lexeme} {parameter.Name.Lexeme}{(!atEnd ? ", " : "")}");
         }
 
-        _builder.Append($") {NewlineChar()}");
+        builder.Append($") {NewlineChar()}");
+        builder.Append(Process(statement.Body));
+        builder.Append(EndStatement());
 
-        Process(statement.Body);
-
-        EndStatement();
+        return builder.ToString();
     }
 
 
 
 
-    public void ProcessReturn(ReturnStatement statement)
+    public string ProcessReturn(ReturnStatement statement)
+        => $"{BeginStatement()}return{(statement.Expression is null ? "" : $" {Process(statement.Expression)}")}{EndStatement()}";
+
+
+
+
+    public string ProcessBlock(BlockStatement blockStatement)
     {
-        BeginStatement();
+        var builder = new StringBuilder();
 
-        _builder.Append("return");
-
-        if (statement.Expression is not null)
-        {
-            _builder.Append(' ');
-            Process(statement.Expression);
-        }
-
-        EndStatement();
-    }
-
-
-
-
-    public void ProcessBlock(BlockStatement blockStatement)
-    {
         if (IgnoreBlocks)
         {
-            _builder.Append("block...");
-            return;
+            builder.Append("block...");
+            return builder.ToString();
         }
 
-        BeginStatement();
-        _builder.Append($"{{{NewlineChar()}");
+        builder.Append(BeginStatement());
+        builder.Append($"{{{NewlineChar()}");
 
         IncreaseIndent();
 
         foreach (var statement in blockStatement.Statements)
-            Process(statement);
+            builder.Append(Process(statement));
 
         DecreaseIndent();
 
-        _builder.Append($"{Indent()}}}");
-        EndStatement();
+        builder.Append($"{Indent()}}}");
+        builder.Append(EndStatement());
+
+        return builder.ToString();
     }
 
 
 
 
 
-    public void Process(Expression expression)
+    public string Process(Expression expression)
+        => expression.Process(this);
+
+
+    public string ProcessLiteral(LiteralExpression expression)
+        => expression.Value.Lexeme;
+
+
+
+
+    public string ProcessBinary(BinaryExpression expression)
+        => Stringify(expression.Operator.Lexeme, [expression.Left, expression.Right]);
+
+
+    public string ProcessGrouping(GroupingExpression expression)
+        => Parenthesize(expression.Expression);
+
+
+    public string ProcessIdentifier(IdentifierExpression expression)
+        => $"{(expression.GetAddress ? "&" : "$")}{expression.Identifier.Lexeme}";
+
+
+    public string ProcessAssignment(AssignmentExpression expression)
+        => BinaryStringify("=", expression.Identifier, expression.Value);
+
+
+    public string ProcessCall(CallExpression expression)
     {
-        expression.Process(this);
-    }
+        var builder = new StringBuilder();
 
-
-
-
-    public void ProcessLiteral(LiteralExpression expression)
-    {
-        _builder.Append(expression.Value.Lexeme);
-    }
-
-
-
-
-    public void ProcessBinary(BinaryExpression expression)
-    {
-        Stringify(expression.Operator.Lexeme, [expression.Left, expression.Right]);
-    }
-
-
-    public void ProcessGrouping(GroupingExpression expression)
-    {
-        Parenthesize(expression.Expression);
-    }
-
-
-
-
-    public void ProcessIdentifier(IdentifierExpression expression)
-    {
-        _builder.Append($"{(expression.GetAddress ? "&" : "$")}{expression.Identifier.Lexeme}");
-    }
-
-
-    public void ProcessAssignment(AssignmentExpression expression)
-    {
-        BinaryStringify("=", expression.Identifier, expression.Value);
-    }
-
-
-
-
-    public void ProcessCall(CallExpression expression)
-    {
-        Process(expression.Callee);
-        _builder.Append('(');
+        builder.Append(Process(expression.Callee));
+        builder.Append('(');
 
         var arguments = expression.Arguments.ToArray();
 
@@ -315,21 +243,18 @@ public class ASTPrinter : IExpressionProcessor, IStatementProcessor
             var argument = arguments[i];
             var atEnd = i + 1 >= arguments.Length;
 
-            Process(argument);
-            _builder.Append(atEnd ? "" : ", ");
+            builder.Append(Process(argument));
+            builder.Append(atEnd ? "" : ", ");
         }
 
-        _builder.Append(')');
+        builder.Append(')');
+
+        return builder.ToString();
     }
 
 
 
 
-    public void ProcessCast(CastExpression expression)
-    {
-        _builder.Append('(');
-        Process(expression.Expression);
-        _builder.Append($" {expression.Keyword.Lexeme} {expression.Type.Lexeme}");
-        _builder.Append(')');
-    }
+    public string ProcessCast(CastExpression expression)
+        => $"({Process(expression.Expression)} as {expression.Type.Lexeme})";
 }

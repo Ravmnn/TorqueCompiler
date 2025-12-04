@@ -1,9 +1,18 @@
 int main()
 {
     int value = 10 + 15;
-    int result = value  25;
+    int result = value - 25;
 
-    int = 5;
+    int null = 5;
+
+    {
+        bool boolean = true;
+        char character = 32;
+
+        byte red = 255;
+    }
+
+    result * null - 100;
 
     return result;
 }
