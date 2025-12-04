@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -12,14 +13,9 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
+public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValueRef>
 {
     private const string FunctionEntryBlockName = "entry";
-
-
-
-
-    private readonly Stack<LLVMValueRef> _valueStack = new Stack<LLVMValueRef>();
 
 
     public FileInfo? FileInfo { get; init; }
@@ -116,28 +112,6 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
 
-    private void PushValue(LLVMValueRef value)
-        => _valueStack.Push(value);
-
-
-    private LLVMValueRef PopValue()
-    {
-        if (_valueStack.Count == 0)
-            throw new InvalidOperationException("Value stack is empty.");
-
-        return _valueStack.Pop();
-    }
-
-
-    private LLVMValueRef Consume(Expression expression)
-    {
-        Process(expression);
-        return PopValue();
-    }
-
-
-
-
     private void ScopeEnter(TokenLocation location, LLVMMetadataRef? debugFunctionReference = null)
     {
         var debugScope = DebugCreateLexicalScope(location);
@@ -209,15 +183,9 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
 
-    public void Process(Expression expression)
-        => expression.Process(this);
-
-
     public void Process(Statement statement)
     {
         statement.Process(this);
-
-        _valueStack.Clear();
     }
 
 
@@ -248,7 +216,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
         // Scope.Symbols.Add(new CompilerIdentifier(reference, llvmType, debugReference));
 
-        Builder.BuildStore(Consume(statement.Value), reference);
+        Builder.BuildStore(Process(statement.Value), reference);
         DebugUpdateLocalVariableValue(name, statementSource);
 
         DebugSetLocationTo(null);
@@ -289,7 +257,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         if (statement.Expression is not null)
         {
             DebugSetLocationTo(statement.Source());
-            Builder.BuildRet(Consume(statement.Expression));
+            Builder.BuildRet(Process(statement.Expression));
             DebugSetLocationTo(null);
         }
         else
@@ -316,107 +284,111 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
 
 
-    public void ProcessLiteral(LiteralExpression expression)
+
+
+
+
+    public LLVMValueRef Process(Expression expression)
+        => expression.Process(this);
+
+
+
+
+    public LLVMValueRef ProcessLiteral(LiteralExpression expression)
     {
         // var value = LLVMValueRef.CreateConstInt(expression.Type.PrimitiveToLLVMType(), ulong.Parse(expression.Value.Lexeme));
         // PushValue(value);
+
+        throw new NotImplementedException();
     }
 
 
 
 
-    public void ProcessBinary(BinaryExpression expression)
+    public LLVMValueRef ProcessBinary(BinaryExpression expression)
     {
-        Process(expression.Left);
-        Process(expression.Right);
-
-        var right = PopValue();
-        var left = PopValue();
+        var right = Process(expression.Left);
+        var left = Process(expression.Right);
 
         switch (expression.Operator.Type)
         {
             case TokenType.Plus:
-                PushValue(Builder.BuildAdd(left, right, "sum"));
-                break;
+                return Builder.BuildAdd(left, right, "sum");
 
             case TokenType.Minus:
-                PushValue(Builder.BuildSub(left, right, "sub"));
-                break;
+                return Builder.BuildSub(left, right, "sub");
 
             case TokenType.Star:
-                PushValue(Builder.BuildMul(left, right, "mult"));
-                break;
+                return Builder.BuildMul(left, right, "mult");
 
             case TokenType.Slash:
-                PushValue(Builder.BuildSDiv(left, right, "div"));
-                break;
+                return Builder.BuildSDiv(left, right, "div");
         }
+
+        throw new UnreachableException();
     }
 
 
 
 
-    public void ProcessGrouping(GroupingExpression expression)
-    {
-        Process(expression.Expression);
-    }
+    public LLVMValueRef ProcessGrouping(GroupingExpression expression)
+        => Process(expression.Expression);
 
 
-
-
-    public void ProcessIdentifier(IdentifierExpression expression)
+    public LLVMValueRef ProcessIdentifier(IdentifierExpression expression)
     {
         // var identifier = Scope.GetIdentifier(expression.Identifier.Lexeme);
         // var value = expression.GetAddress ? identifier.Address : Builder.BuildLoad2(identifier.Type, identifier.Address, "value");
         //
         // PushValue(value);
+
+        throw new NotImplementedException();
     }
 
 
 
 
-    public void ProcessAssignment(AssignmentExpression expression)
+    public LLVMValueRef ProcessAssignment(AssignmentExpression expression)
     {
-        var identifier = Consume(expression.Identifier);
-        var value = Consume(expression.Value);
+        var identifier = Process(expression.Identifier);
+        var value = Process(expression.Value);
 
-        PushValue(Builder.BuildStore(value, identifier));
+        var result = Builder.BuildStore(value, identifier);
 
         var identifierName = expression.Identifier.Identifier.Lexeme;
         DebugUpdateLocalVariableValue(identifierName, expression.Source());
+
+        return result;
     }
 
 
 
 
-    public void ProcessCall(CallExpression expression)
+    public LLVMValueRef ProcessCall(CallExpression expression)
     {
-        var function = Consume(expression.Callee);
+        var function = Process(expression.Callee);
+        var arguments = expression.Arguments.Select(Process).ToArray();
 
-        var arguments
-            = from argument in expression.Arguments select Consume(argument);
-
-        Builder.BuildCall2(function.TypeOf.ElementType, function, arguments.ToArray(), "retval");
+        return Builder.BuildCall2(function.TypeOf.ElementType, function, arguments, "retval");
     }
 
 
 
 
-    public void ProcessCast(CastExpression expression)
+    public LLVMValueRef ProcessCast(CastExpression expression)
     {
-        var value = Consume(expression.Expression);
+        var value = Process(expression.Expression);
         var toType = expression.Type.TokenToLLVMType();
 
         var sourceTypeSize = SizeOf(value.TypeOf);
         var targetTypeSize = SizeOf(toType);
 
         if (sourceTypeSize < targetTypeSize)
-            PushValue(Builder.BuildIntCast(value, toType, "incrcast"));
+            return Builder.BuildIntCast(value, toType, "incrcast");
 
-        else if (sourceTypeSize > targetTypeSize)
-            PushValue(Builder.BuildTrunc(value, toType, "decrcast"));
+        if (sourceTypeSize > targetTypeSize)
+            return Builder.BuildTrunc(value, toType, "decrcast");
 
-        else
-            PushValue(value);
+        return value;
     }
 }
