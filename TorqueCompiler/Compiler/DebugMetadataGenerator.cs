@@ -37,7 +37,7 @@ public class DebugMetadataGenerator
    public LLVMBuilderRef Builder => Compiler.Builder;
    public LLVMTargetDataRef TargetData => Compiler.TargetData;
 
-   public Scope<CompilerIdentifier> Scope => Compiler.Scope;
+   public Scope Scope => Compiler.Scope;
 
 
 
@@ -55,7 +55,7 @@ public class DebugMetadataGenerator
         if (!Scope.IsGlobal)
             throw new InvalidOperationException("Debug metadata generator must be initialized at the global scope.");
 
-        Scope.DebugReference = File;
+        Scope.DebugMetadata = File;
     }
 
 
@@ -110,12 +110,12 @@ public class DebugMetadataGenerator
 
 
     public unsafe LLVMMetadataRef CreateDebugLocation(int line, int column)
-        => LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, Scope.DebugReference!, null);
+        => LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, Scope.DebugMetadata!, null);
 
 
     public unsafe LLVMMetadataRef CreateLexicalScope(int line, int column)
     {
-        var scopeReference = LLVM.DIBuilderCreateLexicalBlock(DebugBuilder, Scope.DebugReference!, File, (uint)line, (uint)column);
+        var scopeReference = LLVM.DIBuilderCreateLexicalBlock(DebugBuilder, Scope.DebugMetadata!, File, (uint)line, (uint)column);
         return scopeReference;
     }
 
@@ -142,7 +142,7 @@ public class DebugMetadataGenerator
 
     private LLVMMetadataRef CreateFunction(string name, int lineNumber, LLVMMetadataRef debugFunctionType)
         => DebugBuilder.CreateFunction(
-            Scope.DebugReference!.Value, name, name, File, (uint)lineNumber, debugFunctionType, 0, 1,
+            Scope.DebugMetadata!.Value, name, name, File, (uint)lineNumber, debugFunctionType, 0, 1,
             (uint)lineNumber, LLVMDIFlags.LLVMDIFlagZero, 0
         );
 
@@ -176,7 +176,7 @@ public class DebugMetadataGenerator
 
     private unsafe LLVMOpaqueMetadata* CreateAutoVariable(string name, int lineNumber, LLVMMetadataRef typeMetadata, uint sizeInBits)
         => LLVM.DIBuilderCreateAutoVariable(
-            DebugBuilder, Scope.DebugReference!, StringToSBytePtr(name), (uint)name.Length, File,
+            DebugBuilder, Scope.DebugMetadata!, StringToSBytePtr(name), (uint)name.Length, File,
             (uint)lineNumber, typeMetadata, 0, LLVMDIFlags.LLVMDIFlagZero, sizeInBits
         );
 
@@ -197,8 +197,8 @@ public class DebugMetadataGenerator
 
     public LLVMDbgRecordRef UpdateLocalVariableValue(string name, LLVMMetadataRef location)
     {
-        var variable = Scope.GetIdentifier(name);
-        return UpdateLocalVariableValue(variable.Address, variable.DebugReference!.Value, location);
+        var variable = Scope.GetSymbol(name);
+        return UpdateLocalVariableValue(variable.LLVMReference!.Value, variable.LLVMDebugMetadata!.Value, location);
     }
 
 

@@ -22,7 +22,7 @@ public readonly partial struct Diagnostic
     public enum LexerCatalog
     {
         [Item(DiagnosticScope.Lexer)] UnexpectedToken = 0,
-        [Item(DiagnosticScope.Lexer)] UnclosedMultilineComment,
+        [Item(DiagnosticScope.Lexer)] UnclosedMultilineComment
     }
 
 
@@ -42,6 +42,13 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.Parser)] UnclosedGroupingExpression,
         [Item(DiagnosticScope.Parser)] UnclosedBlock,
         [Item(DiagnosticScope.Parser)] WrongBlockPlacement
+    }
+
+
+    public enum SymbolResolverCatalog
+    {
+        [Item(DiagnosticScope.SymbolResolver)] MultipleIdentifierDeclaration,
+        [Item(DiagnosticScope.SymbolResolver)] UndeclaredIdentifier
     }
 
 

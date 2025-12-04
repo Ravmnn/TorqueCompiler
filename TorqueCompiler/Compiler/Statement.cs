@@ -16,11 +16,23 @@ public interface IStatementProcessor
 }
 
 
+public interface IStatementProcessor<out T>
+{
+    T ProcessExpression(ExpressionStatement statement);
+    T ProcessDeclaration(DeclarationStatement statement);
+    T ProcessFunctionDeclaration(FunctionDeclarationStatement statement);
+    T ProcessReturn(ReturnStatement statement);
+    T ProcessBlock(BlockStatement statement);
+}
+
+
 
 
 public abstract class Statement
 {
     public abstract void Process(IStatementProcessor processor);
+    public abstract T Process<T>(IStatementProcessor<T> processor);
+
 
     public abstract Token Source();
 }
@@ -39,6 +51,10 @@ public class ExpressionStatement(Expression expression) : Statement
         => processor.ProcessExpression(this);
 
 
+    public override T Process<T>(IStatementProcessor<T> processor)
+        => processor.ProcessExpression(this);
+
+
     public override Token Source() => Expression.Source();
 }
 
@@ -54,6 +70,10 @@ public class DeclarationStatement(Token name, Token type, Expression value) : St
 
 
     public override void Process(IStatementProcessor processor)
+        => processor.ProcessDeclaration(this);
+
+
+    public override T Process<T>(IStatementProcessor<T> processor)
         => processor.ProcessDeclaration(this);
 
 
@@ -80,6 +100,10 @@ public class FunctionDeclarationStatement(Token name, Token returnType, IEnumera
         => processor.ProcessFunctionDeclaration(this);
 
 
+    public override T Process<T>(IStatementProcessor<T> processor)
+        => processor.ProcessFunctionDeclaration(this);
+
+
     public override Token Source() => ReturnType;
 }
 
@@ -97,6 +121,10 @@ public class ReturnStatement(Token keyword, Expression? expression = null) : Sta
         => processor.ProcessReturn(this);
 
 
+    public override T Process<T>(IStatementProcessor<T> processor)
+        => processor.ProcessReturn(this);
+
+
     public override Token Source() => Keyword;
 }
 
@@ -110,6 +138,10 @@ public class BlockStatement(Token start, Token end, IEnumerable<Statement> state
 
 
     public override void Process(IStatementProcessor processor)
+        => processor.ProcessBlock(this);
+
+
+    public override T Process<T>(IStatementProcessor<T> processor)
         => processor.ProcessBlock(this);
 
 

@@ -9,47 +9,54 @@ namespace Torque.Compiler;
 
 
 
-public class Scope<T>(Scope<T>? parent = null, LLVMMetadataRef? debugReference = null)
-    : List<T> where T : IIdentifier
+public class Scope(Scope? parent = null)
 {
-    public Scope<T>? Parent { get; } = parent;
-
-    public LLVMMetadataRef? DebugReference { get; set; } = debugReference;
-
-
+    public Scope? Parent { get; } = parent;
     public bool IsGlobal => Parent is null;
 
+    public LLVMMetadataRef? DebugMetadata { get; set; }
+
+
+    public List<Symbol> Symbols { get; } = [];
 
 
 
-    public T GetIdentifier(string name)
+
+    public Scope Global()
+        => IsGlobal ? this : Parent!.Global();
+
+
+
+
+    // TODO: TryGet__ should be the main implementation, since it's faster
+    public Symbol GetSymbol(string name)
     {
-        foreach (var identifier in this)
+        foreach (var identifier in Symbols)
             if (identifier.Name == name)
                 return identifier;
 
         if (Parent is null)
             throw new InvalidOperationException($"Invalid identifier \"{name}\".");
 
-        return Parent.GetIdentifier(name);
+        return Parent.GetSymbol(name);
     }
 
 
-    public T? TryGetIdentifier(string name)
+    public Symbol? TryGetSymbol(string name)
     {
         try
         {
-            return GetIdentifier(name);
+            return GetSymbol(name);
         }
         catch
         {
-            return default;
+            return null;
         }
     }
 
 
 
 
-    public bool IdentifierExists(string name)
-        => TryGetIdentifier(name) is not null;
+    public bool SymbolExists(string name)
+        => TryGetSymbol(name) is not null;
 }

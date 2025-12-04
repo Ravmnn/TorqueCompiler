@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 
+
 namespace Torque.Compiler;
 
 
 
 
+// TODO: add another variant IExpressionProcessor<T> and implement in the classes that uses it. do this for Statement too
 public interface IExpressionProcessor
 {
     void ProcessLiteral(LiteralExpression expression);
@@ -17,11 +19,24 @@ public interface IExpressionProcessor
 }
 
 
+public interface IExpressionProcessor<out T>
+{
+    T ProcessLiteral(LiteralExpression expression);
+    T ProcessBinary(BinaryExpression expression);
+    T ProcessGrouping(GroupingExpression expression);
+    T ProcessIdentifier(IdentifierExpression expression);
+    T ProcessAssignment(AssignmentExpression expression);
+    T ProcessCall(CallExpression expression);
+    T ProcessCast(CastExpression expression);
+}
+
+
 
 
 public abstract class Expression
 {
     public abstract void Process(IExpressionProcessor processor);
+    public abstract T Process<T>(IExpressionProcessor<T> processor);
 
 
     public abstract Token Source();
@@ -30,15 +45,18 @@ public abstract class Expression
 
 
 
-public class LiteralExpression(Token value, PrimitiveType type) : Expression
+public class LiteralExpression(Token value) : Expression
 {
     public Token Value { get; } = value;
-    public PrimitiveType Type { get; } = type;
 
 
 
 
     public override void Process(IExpressionProcessor processor)
+        => processor.ProcessLiteral(this);
+
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessLiteral(this);
 
 
@@ -61,6 +79,10 @@ public class BinaryExpression(Expression left, Token @operator, Expression right
         => processor.ProcessBinary(this);
 
 
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessBinary(this);
+
+
     public override Token Source() => Operator;
 }
 
@@ -75,6 +97,10 @@ public class GroupingExpression(Expression expression) : Expression
 
 
     public override void Process(IExpressionProcessor processor)
+        => processor.ProcessGrouping(this);
+
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessGrouping(this);
 
 
@@ -93,6 +119,10 @@ public class IdentifierExpression(Token identifier, bool getAddress = false) : E
 
 
     public override void Process(IExpressionProcessor processor)
+        => processor.ProcessIdentifier(this);
+
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessIdentifier(this);
 
 
@@ -115,6 +145,10 @@ public class AssignmentExpression(IdentifierExpression identifier, Token @operat
         => processor.ProcessAssignment(this);
 
 
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessAssignment(this);
+
+
     public override Token Source() => Operator;
 }
 
@@ -131,6 +165,10 @@ public class CallExpression(Token leftParen, Expression callee, IEnumerable<Expr
 
 
     public override void Process(IExpressionProcessor processor)
+        => processor.ProcessCall(this);
+
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessCall(this);
 
 
@@ -154,5 +192,9 @@ public class CastExpression(Token keyword, Expression expression, Token type) : 
         => processor.ProcessCast(this);
 
 
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessCast(this);
+
+
     public override Token Source() => Keyword;
-};
+}

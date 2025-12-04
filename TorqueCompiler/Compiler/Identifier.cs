@@ -12,8 +12,17 @@ public interface IIdentifier
 }
 
 
-public readonly record struct CompilerIdentifier(LLVMValueRef Address, LLVMTypeRef Type, LLVMMetadataRef? DebugReference = null)
-    : IIdentifier
+
+
+public readonly record struct SymbolResolverIdentifier(Token Identifier) : IIdentifier
+{
+    public string Name => Identifier.Lexeme;
+}
+
+
+
+
+public readonly record struct CompilerIdentifier(LLVMValueRef Address, LLVMTypeRef Type, LLVMMetadataRef? DebugReference = null) : IIdentifier
 {
     public string Name => Address.Name;
 }

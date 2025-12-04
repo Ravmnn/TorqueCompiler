@@ -333,9 +333,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
     private Expression ParseLiteral()
     {
-        var token = Previous();
-
-        return new LiteralExpression(token, DefaultPrimitiveType);
+        return new LiteralExpression(Previous());
     }
 
 

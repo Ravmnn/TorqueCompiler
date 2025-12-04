@@ -36,8 +36,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
     public DebugMetadataGenerator? Debug { get; }
 
 
-    public Scope<CompilerIdentifier> GlobalScope { get; } = [];
-    public Scope<CompilerIdentifier> Scope { get; private set; }
+    public Scope Scope { get; }
 
 
     public Statement[] Statements { get; }
@@ -59,15 +58,13 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         // - identifier resolver
         // - type checker
 
-        // TODO: change way errors are expressed, don't use exceptions anymore
-
         // TODO: make this user's choice (command line options)
         const string Triple = "x86_64-pc-linux-gnu";
 
         InitializeTargetMachine(Triple);
         SetupModuleTargetProperties(Triple);
 
-        Scope = GlobalScope;
+        //Scope = GlobalScope;
 
         if (generateDebugMetadata)
             Debug = new DebugMetadataGenerator(this);
@@ -146,12 +143,12 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var debugScope = DebugCreateLexicalScope(location);
         debugScope = debugFunctionReference ?? debugScope;
 
-        Scope = new Scope<CompilerIdentifier>(Scope, debugScope);
+        // Scope = new Scope(Scope) { DebugMetadata = debugScope };
     }
 
 
     private void ScopeExit()
-        => Scope = Scope.Parent ?? throw new InvalidOperationException("Cannot exit the global scope.");
+    {}// => Scope = Scope.Parent ?? throw new InvalidOperationException("Cannot exit the global scope.");
 
 
 
@@ -249,7 +246,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var reference = Builder.BuildAlloca(llvmType, name);
         var debugReference = DebugGenerateLocalVariable(name, type, statementSource, reference);
 
-        Scope.Add(new CompilerIdentifier(reference, llvmType, debugReference));
+        // Scope.Symbols.Add(new CompilerIdentifier(reference, llvmType, debugReference));
 
         Builder.BuildStore(Consume(statement.Value), reference);
         DebugUpdateLocalVariableValue(name, statementSource);
@@ -276,7 +273,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
         var function = Module.AddFunction(functionName, functionType);
         var functionDebugReference = DebugGenerateFunction(function, functionName, functionLocation, functionReturnType, parameterTypes);
 
-        Scope.Add(new CompilerIdentifier(function, functionType, functionDebugReference));
+        // Scope.Add(new CompilerIdentifier(function, functionType, functionDebugReference));
 
         var entry = function.AppendBasicBlock(FunctionEntryBlockName);
         Builder.PositionAtEnd(entry);
@@ -321,8 +318,8 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void ProcessLiteral(LiteralExpression expression)
     {
-        var value = LLVMValueRef.CreateConstInt(expression.Type.PrimitiveToLLVMType(), ulong.Parse(expression.Value.Lexeme));
-        PushValue(value);
+        // var value = LLVMValueRef.CreateConstInt(expression.Type.PrimitiveToLLVMType(), ulong.Parse(expression.Value.Lexeme));
+        // PushValue(value);
     }
 
 
@@ -369,10 +366,10 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor
 
     public void ProcessIdentifier(IdentifierExpression expression)
     {
-        var identifier = Scope.GetIdentifier(expression.Identifier.Lexeme);
-        var value = expression.GetAddress ? identifier.Address : Builder.BuildLoad2(identifier.Type, identifier.Address, "value");
-
-        PushValue(value);
+        // var identifier = Scope.GetIdentifier(expression.Identifier.Lexeme);
+        // var value = expression.GetAddress ? identifier.Address : Builder.BuildLoad2(identifier.Type, identifier.Address, "value");
+        //
+        // PushValue(value);
     }
 
 

@@ -18,6 +18,7 @@ public enum DiagnosticScope
 {
     Lexer,
     Parser,
+    SymbolResolver,
     Compiler
 }
 
@@ -63,6 +64,7 @@ public readonly partial struct Diagnostic()
     {
         DiagnosticScope.Lexer => LexerDiagnostics.ResourceManager.GetString(MessageId)!,
         DiagnosticScope.Parser => ParserDiagnostics.ResourceManager.GetString(MessageId)!,
+        DiagnosticScope.SymbolResolver => SymbolResolverDiagnostics.ResourceManager.GetString(MessageId)!,
 
         _ => throw new InvalidOperationException("Invalid diagnostic scope")
     };
