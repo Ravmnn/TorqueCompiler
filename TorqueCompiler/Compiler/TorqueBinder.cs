@@ -9,7 +9,7 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporter<Diagnostic.SymbolResolverCatalog>,
+public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporter<Diagnostic.BinderCatalog>,
     IExpressionProcessor<BoundExpression>, IStatementProcessor<BoundStatement>
 {
     private Scope _scope = new Scope();
@@ -30,7 +30,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
 
 
-    private BoundStatement Process(Statement statement)
+    public BoundStatement Process(Statement statement)
         => statement.Process(this);
 
 
@@ -45,7 +45,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
     public BoundStatement ProcessDeclaration(DeclarationStatement statement)
     {
         if (_scope.SymbolExists(statement.Name.Lexeme))
-            ReportToken(Diagnostic.SymbolResolverCatalog.MultipleSymbolDeclaration, statement.Source());
+            ReportToken(Diagnostic.BinderCatalog.MultipleSymbolDeclaration, statement.Source());
 
         var identifier = new ValueSymbol(statement.Name.Lexeme, null, statement.Name.Location, _scope);
         var value = Process(statement.Value);
@@ -61,7 +61,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
     public BoundStatement ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
     {
         if (_scope.SymbolExists(statement.Name.Lexeme))
-            ReportToken(Diagnostic.SymbolResolverCatalog.MultipleSymbolDeclaration, statement.Source());
+            ReportToken(Diagnostic.BinderCatalog.MultipleSymbolDeclaration, statement.Source());
 
         var symbol = new FunctionSymbol(statement.Name.Lexeme, null, null, statement.Name.Location, _scope);
         _scope.Symbols.Add(symbol);
@@ -101,7 +101,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
 
 
-    private BoundExpression Process(Expression expression)
+    public BoundExpression Process(Expression expression)
         => expression.Process(this);
 
 
@@ -136,17 +136,17 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
 
 
-    public BoundExpression ProcessIdentifier(IdentifierExpression expression)
+    public BoundExpression ProcessSymbol(SymbolExpression expression)
     {
         var symbol = _scope.TryGetSymbol(expression.Identifier.Lexeme);
 
         if (symbol is null)
-            ReportToken(Diagnostic.SymbolResolverCatalog.UndeclaredSymbol, expression.Source());
+            ReportToken(Diagnostic.BinderCatalog.UndeclaredSymbol, expression.Source());
 
         else if (symbol is not ValueSymbol)
-            ReportToken(Diagnostic.SymbolResolverCatalog.SymbolIsNotAValue, expression.Source());
+            ReportToken(Diagnostic.BinderCatalog.SymbolIsNotAValue, expression.Source());
 
-        return new BoundIdentifierExpression(expression, (symbol as ValueSymbol)!);
+        return new BoundSymbolExpression(expression, (symbol as ValueSymbol)!);
     }
 
 
@@ -154,7 +154,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
     public BoundExpression ProcessAssignment(AssignmentExpression expression)
     {
-        var identifier = (Process(expression.Identifier) as BoundIdentifierExpression)!;
+        var identifier = (Process(expression.Symbol) as BoundSymbolExpression)!;
         var value = Process(expression.Value);
 
         return new BoundAssignmentExpression(expression, identifier, value);

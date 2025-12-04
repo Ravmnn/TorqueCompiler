@@ -8,11 +8,25 @@ namespace Torque.Compiler;
 
 public interface IBoundStatementProcessor
 {
+    void Process(BoundStatement statement);
+
     void ProcessExpression(BoundExpressionStatement statement);
     void ProcessDeclaration(BoundDeclarationStatement statement);
     void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement statement);
     void ProcessReturn(BoundReturnStatement statement);
     void ProcessBlock(BoundBlockStatement statement);
+}
+
+
+public interface IBoundStatementProcessor<T>
+{
+    T Process(BoundStatement statement);
+
+    T ProcessExpression(BoundExpressionStatement statement);
+    T ProcessDeclaration(BoundDeclarationStatement statement);
+    T ProcessFunctionDeclaration(BoundFunctionDeclarationStatement statement);
+    T ProcessReturn(BoundReturnStatement statement);
+    T ProcessBlock(BoundBlockStatement statement);
 }
 
 
@@ -24,6 +38,7 @@ public abstract class BoundStatement(Statement syntax)
 
 
     public abstract void Process(IBoundStatementProcessor processor);
+    public abstract T Process<T>(IBoundStatementProcessor<T> processor);
 }
 
 
@@ -35,6 +50,10 @@ public class BoundExpressionStatement(ExpressionStatement syntax, BoundExpressio
 
 
     public override void Process(IBoundStatementProcessor processor)
+        => processor.ProcessExpression(this);
+
+
+    public override T Process<T>(IBoundStatementProcessor<T> processor)
         => processor.ProcessExpression(this);
 }
 
@@ -48,6 +67,10 @@ public class BoundDeclarationStatement(DeclarationStatement syntax, ValueSymbol 
 
 
     public override void Process(IBoundStatementProcessor processor)
+        => processor.ProcessDeclaration(this);
+
+
+    public override T Process<T>(IBoundStatementProcessor<T> processor)
         => processor.ProcessDeclaration(this);
 }
 
@@ -63,6 +86,10 @@ public class BoundFunctionDeclarationStatement(FunctionDeclarationStatement synt
 
     public override void Process(IBoundStatementProcessor processor)
         => processor.ProcessFunctionDeclaration(this);
+
+
+    public override T Process<T>(IBoundStatementProcessor<T> processor)
+        => processor.ProcessFunctionDeclaration(this);
 }
 
 
@@ -75,6 +102,10 @@ public class BoundReturnStatement(ReturnStatement syntax, BoundExpression? expre
 
     public override void Process(IBoundStatementProcessor processor)
         => processor.ProcessReturn(this);
+
+
+    public override T Process<T>(IBoundStatementProcessor<T> processor)
+        => processor.ProcessReturn(this);
 }
 
 
@@ -86,6 +117,10 @@ public class BoundBlockStatement(BlockStatement syntax, IEnumerable<BoundStateme
 
 
     public override void Process(IBoundStatementProcessor processor)
+        => processor.ProcessBlock(this);
+
+
+    public override T Process<T>(IBoundStatementProcessor<T> processor)
         => processor.ProcessBlock(this);
 }
 

@@ -23,9 +23,13 @@
         <Generator>ResXFileCodeGenerator</Generator>
         <LastGenOutput>ParserDiagnostics.Designer.cs</LastGenOutput>
       </EmbeddedResource>
-      <EmbeddedResource Update="Compiler\Diagnostics\SymbolResolverDiagnostics.resx">
+      <EmbeddedResource Update="Compiler\Diagnostics\BinderDiagnostics.resx">
         <Generator>ResXFileCodeGenerator</Generator>
         <LastGenOutput>SymbolResolver.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Compiler\Diagnostics\TypeCheckerDiagnostics.resx">
+        <Generator>ResXFileCodeGenerator</Generator>
+        <LastGenOutput>TypeCheckerDiagnostics.Designer.cs</LastGenOutput>
       </EmbeddedResource>
     </ItemGroup>
 
@@ -40,10 +44,15 @@
         <AutoGen>True</AutoGen>
         <DependentUpon>ParserDiagnostics.resx</DependentUpon>
       </Compile>
-      <Compile Update="Compiler\Diagnostics\SymbolResolverDiagnostics.Designer.cs">
+      <Compile Update="Compiler\Diagnostics\BinderDiagnostics.Designer.cs">
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
-        <DependentUpon>SymbolResolverDiagnostics.resx</DependentUpon>
+        <DependentUpon>BinderDiagnostics.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Compiler\Diagnostics\TypeCheckerDiagnostics.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>TypeCheckerDiagnostics.resx</DependentUpon>
       </Compile>
     </ItemGroup>
 

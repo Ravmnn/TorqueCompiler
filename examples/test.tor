@@ -1,21 +1,18 @@
 int main()
 {
     int value = 10 + 15;
-    int result = valuex - 25;
-    char result = 10;
+    int result = (value - 25 as byte);
 
     int null = 5;
 
     {
         bool boolean = true;
-        char character = 32;
+        char character = 32 as char;
 
-        uint64 value = 1;
-
-        byte red = 255;
+        byte red = 255 as byte;
     }
 
-    result * nullx - 100;
+    result * null - 100;
 
     return result;
 }

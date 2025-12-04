@@ -79,11 +79,20 @@ public static class Torque
         if (Failed || PrintedAST(statements))
             return null;
 
-        // binding
+        // bind
         var binder = new TorqueBinder(statements);
         var boundStatements = binder.Bind();
         LogDiagnostics(binder.Diagnostics);
 
+        if (Failed)
+            return null;
+
+        // type check
+        var typeChecker = new TorqueTypeChecker(boundStatements);
+        typeChecker.Check();
+        LogDiagnostics(typeChecker.Diagnostics);
+
+        // TODO: after you fix the compiler, remove this
         if (true)
             return null;
 

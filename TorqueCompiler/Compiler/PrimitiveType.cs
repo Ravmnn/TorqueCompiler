@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 using LLVMSharp.Interop;
 
@@ -33,6 +34,12 @@ public static class PrimitiveTypeExtensions
 
     public static PrimitiveType TokenToPrimitive(this Token token)
         => Token.Primitives[token.Lexeme];
+
+
+
+
+    public static string PrimitiveToString(this PrimitiveType type)
+        => Token.Primitives.First(pair => pair.Value == type).Key;
 
 
 

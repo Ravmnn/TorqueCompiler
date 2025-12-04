@@ -335,7 +335,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
         => Process(expression.Expression);
 
 
-    public LLVMValueRef ProcessIdentifier(IdentifierExpression expression)
+    public LLVMValueRef ProcessSymbol(SymbolExpression expression)
     {
         // var identifier = Scope.GetIdentifier(expression.Identifier.Lexeme);
         // var value = expression.GetAddress ? identifier.Address : Builder.BuildLoad2(identifier.Type, identifier.Address, "value");
@@ -350,12 +350,12 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
 
     public LLVMValueRef ProcessAssignment(AssignmentExpression expression)
     {
-        var identifier = Process(expression.Identifier);
+        var identifier = Process(expression.Symbol);
         var value = Process(expression.Value);
 
         var result = Builder.BuildStore(value, identifier);
 
-        var identifierName = expression.Identifier.Identifier.Lexeme;
+        var identifierName = expression.Symbol.Identifier.Lexeme;
         DebugUpdateLocalVariableValue(identifierName, expression.Source());
 
         return result;

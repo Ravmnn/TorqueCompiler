@@ -45,11 +45,17 @@ public readonly partial struct Diagnostic
     }
 
 
-    public enum SymbolResolverCatalog
+    public enum BinderCatalog
     {
         [Item(DiagnosticScope.Binder)] MultipleSymbolDeclaration,
         [Item(DiagnosticScope.Binder)] UndeclaredSymbol,
         [Item(DiagnosticScope.Binder)] SymbolIsNotAValue
+    }
+
+
+    public enum TypeCheckerCatalog
+    {
+        [Item(DiagnosticScope.TypeChecker)] TypeDiffers
     }
 
 

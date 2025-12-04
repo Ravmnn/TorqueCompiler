@@ -8,6 +8,8 @@ namespace Torque.Compiler;
 
 public interface IStatementProcessor
 {
+    void Process(Statement statement);
+
     void ProcessExpression(ExpressionStatement statement);
     void ProcessDeclaration(DeclarationStatement statement);
     void ProcessFunctionDeclaration(FunctionDeclarationStatement statement);
@@ -18,6 +20,8 @@ public interface IStatementProcessor
 
 public interface IStatementProcessor<out T>
 {
+    T Process(Statement statement);
+
     T ProcessExpression(ExpressionStatement statement);
     T ProcessDeclaration(DeclarationStatement statement);
     T ProcessFunctionDeclaration(FunctionDeclarationStatement statement);

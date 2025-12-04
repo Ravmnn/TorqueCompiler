@@ -13,7 +13,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     private uint _indentDegree;
 
 
-    public bool IgnoreBlocks { get; set; }
+    public bool FoldBlocks { get; set; }
     public bool NoNewlines { get; set; }
 
 
@@ -123,8 +123,10 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
 
-    private string Process(Statement statement)
+    public string Process(Statement statement)
         => statement.Process(this);
+
+
 
 
     public string ProcessExpression(ExpressionStatement statement)
@@ -176,7 +178,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     {
         var builder = new StringBuilder();
 
-        if (IgnoreBlocks)
+        if (FoldBlocks)
         {
             builder.Append("block...");
             return builder.ToString();
@@ -202,6 +204,8 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
 
+
+
     public string Process(Expression expression)
         => expression.Process(this);
 
@@ -220,12 +224,12 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         => Parenthesize(expression.Expression);
 
 
-    public string ProcessIdentifier(IdentifierExpression expression)
+    public string ProcessSymbol(SymbolExpression expression)
         => $"{(expression.GetAddress ? "&" : "$")}{expression.Identifier.Lexeme}";
 
 
     public string ProcessAssignment(AssignmentExpression expression)
-        => BinaryStringify("=", expression.Identifier, expression.Value);
+        => BinaryStringify("=", expression.Symbol, expression.Value);
 
 
     public string ProcessCall(CallExpression expression)

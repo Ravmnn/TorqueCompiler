@@ -12,11 +12,6 @@ namespace Torque.Compiler;
 
 public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagnostic.ParserCatalog>
 {
-    public const PrimitiveType DefaultPrimitiveType = PrimitiveType.Int32;
-
-
-
-
     private readonly List<Statement> _statements = [];
     private uint _current;
 
@@ -210,7 +205,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
             var @operator = Previous();
             var value = Assignment();
 
-            if (expression is not IdentifierExpression identifier)
+            if (expression is not SymbolExpression identifier)
             {
                 ReportAndThrow(Diagnostic.ParserCatalog.ExpectIdentifier);
                 throw new UnreachableException();
@@ -318,10 +313,10 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
             return ParseLiteral();
 
         if (Match(TokenType.Ampersand))
-            return new IdentifierExpression(ExpectIdentifier(), true);
+            return new SymbolExpression(ExpectIdentifier(), true);
 
         if (Match(TokenType.Identifier))
-            return new IdentifierExpression(Previous());
+            return new SymbolExpression(Previous());
 
         if (Match(TokenType.ParenLeft))
             return ParseGroupExpression();

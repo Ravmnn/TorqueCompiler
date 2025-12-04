@@ -8,10 +8,12 @@ namespace Torque.Compiler;
 
 public interface IExpressionProcessor
 {
+    void Process(Expression expression);
+
     void ProcessLiteral(LiteralExpression expression);
     void ProcessBinary(BinaryExpression expression);
     void ProcessGrouping(GroupingExpression expression);
-    void ProcessIdentifier(IdentifierExpression expression);
+    void ProcessSymbol(SymbolExpression expression);
     void ProcessAssignment(AssignmentExpression expression);
     void ProcessCall(CallExpression expression);
     void ProcessCast(CastExpression expression);
@@ -20,10 +22,12 @@ public interface IExpressionProcessor
 
 public interface IExpressionProcessor<out T>
 {
+    T Process(Expression expression);
+
     T ProcessLiteral(LiteralExpression expression);
     T ProcessBinary(BinaryExpression expression);
     T ProcessGrouping(GroupingExpression expression);
-    T ProcessIdentifier(IdentifierExpression expression);
+    T ProcessSymbol(SymbolExpression expression);
     T ProcessAssignment(AssignmentExpression expression);
     T ProcessCall(CallExpression expression);
     T ProcessCast(CastExpression expression);
@@ -109,7 +113,7 @@ public class GroupingExpression(Expression expression) : Expression
 
 
 
-public class IdentifierExpression(Token identifier, bool getAddress = false) : Expression
+public class SymbolExpression(Token identifier, bool getAddress = false) : Expression
 {
     public Token Identifier { get; } = identifier;
     public bool GetAddress { get; } = getAddress;
@@ -118,11 +122,11 @@ public class IdentifierExpression(Token identifier, bool getAddress = false) : E
 
 
     public override void Process(IExpressionProcessor processor)
-        => processor.ProcessIdentifier(this);
+        => processor.ProcessSymbol(this);
 
 
     public override T Process<T>(IExpressionProcessor<T> processor)
-        => processor.ProcessIdentifier(this);
+        => processor.ProcessSymbol(this);
 
 
     public override Token Source() => Identifier;
@@ -131,9 +135,9 @@ public class IdentifierExpression(Token identifier, bool getAddress = false) : E
 
 
 
-public class AssignmentExpression(IdentifierExpression identifier, Token @operator, Expression value) : Expression
+public class AssignmentExpression(SymbolExpression symbol, Token @operator, Expression value) : Expression
 {
-    public IdentifierExpression Identifier { get; } = identifier;
+    public SymbolExpression Symbol { get; } = symbol;
     public Token Operator { get; } = @operator;
     public Expression Value { get; } = value;
 
