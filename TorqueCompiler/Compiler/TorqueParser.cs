@@ -205,7 +205,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
             var @operator = Previous();
             var value = Assignment();
 
-            if (expression is not SymbolExpression identifier)
+            if (expression is not SymbolExpression { GetAddress: false } identifier)
             {
                 ReportAndThrow(Diagnostic.ParserCatalog.ExpectIdentifier);
                 throw new UnreachableException();

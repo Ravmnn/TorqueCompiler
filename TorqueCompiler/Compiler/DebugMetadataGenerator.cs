@@ -37,6 +37,7 @@ public class DebugMetadataGenerator
    public LLVMBuilderRef Builder => Compiler.Builder;
    public LLVMTargetDataRef TargetData => Compiler.TargetData;
 
+   public Scope GlobalScope => Compiler.GlobalScope;
    public Scope Scope => Compiler.Scope;
 
 
@@ -51,21 +52,17 @@ public class DebugMetadataGenerator
 
         InitializeDebugBuilder();
 
-
-        if (!Scope.IsGlobal)
-            throw new InvalidOperationException("Debug metadata generator must be initialized at the global scope.");
-
-        Scope.DebugMetadata = File;
+        GlobalScope.DebugMetadata = File;
     }
 
 
     private unsafe void InitializeDebugBuilder()
     {
-        if (Compiler.FileInfo is null)
-            throw new InvalidOperationException("Debug metadata generator requires a compiler file info");
+        if (Compiler.File is null || !Compiler.File.Exists)
+            throw new InvalidOperationException("Debug metadata generator requires a valid compiler file info");
 
-        var file = Compiler.FileInfo.Name;
-        var directoryPath = Compiler.FileInfo.Directory?.FullName ?? "/";
+        var file = Compiler.File.Name;
+        var directoryPath = Compiler.File.Directory?.FullName ?? "/";
 
         DebugBuilder = LLVM.CreateDIBuilder(Module);
         File = DebugBuilder.CreateFile(file, directoryPath);
@@ -110,12 +107,16 @@ public class DebugMetadataGenerator
 
 
     public unsafe LLVMMetadataRef CreateDebugLocation(int line, int column)
-        => LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, Scope.DebugMetadata!, null);
+        => LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, Scope.DebugMetadata!.Value, null);
 
 
     public unsafe LLVMMetadataRef CreateLexicalScope(int line, int column)
     {
-        var scopeReference = LLVM.DIBuilderCreateLexicalBlock(DebugBuilder, Scope.DebugMetadata!, File, (uint)line, (uint)column);
+        // this function assumes "TorqueCompiler.Scope" is the new scope to insert debug metadata,
+        // so the scope that encloses the new one (its parent) is "Scope.Parent"
+
+        var parentScope = Scope.Parent!.DebugMetadata!.Value;
+        var scopeReference = LLVM.DIBuilderCreateLexicalBlock(DebugBuilder, parentScope, File, (uint)line, (uint)column);
         return scopeReference;
     }
 
@@ -176,7 +177,7 @@ public class DebugMetadataGenerator
 
     private unsafe LLVMOpaqueMetadata* CreateAutoVariable(string name, int lineNumber, LLVMMetadataRef typeMetadata, uint sizeInBits)
         => LLVM.DIBuilderCreateAutoVariable(
-            DebugBuilder, Scope.DebugMetadata!, StringToSBytePtr(name), (uint)name.Length, File,
+            DebugBuilder, Scope.DebugMetadata!.Value, StringToSBytePtr(name), (uint)name.Length, File,
             (uint)lineNumber, typeMetadata, 0, LLVMDIFlags.LLVMDIFlagZero, sizeInBits
         );
 

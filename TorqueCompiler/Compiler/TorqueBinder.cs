@@ -12,10 +12,9 @@ namespace Torque.Compiler;
 public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporter<Diagnostic.BinderCatalog>,
     IExpressionProcessor<BoundExpression>, IStatementProcessor<BoundStatement>
 {
-    private Scope _scope = new Scope();
-
-
     public IEnumerable<Statement> Statements { get; } = statements;
+
+    public Scope Scope { get; private set; } = new Scope();
 
 
 
@@ -44,13 +43,13 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
     public BoundStatement ProcessDeclaration(DeclarationStatement statement)
     {
-        if (_scope.SymbolExists(statement.Name.Lexeme))
+        if (Scope.SymbolExists(statement.Name.Lexeme))
             ReportToken(Diagnostic.BinderCatalog.MultipleSymbolDeclaration, statement.Source());
 
-        var identifier = new ValueSymbol(statement.Name.Lexeme, null, statement.Name.Location, _scope);
+        var identifier = new ValueSymbol(statement.Name.Lexeme, null, statement.Name.Location, Scope);
         var value = Process(statement.Value);
 
-        _scope.Symbols.Add(identifier);
+        Scope.Symbols.Add(identifier);
 
         return new BoundDeclarationStatement(statement, identifier, value);
     }
@@ -60,11 +59,11 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
     public BoundStatement ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
     {
-        if (_scope.SymbolExists(statement.Name.Lexeme))
+        if (Scope.SymbolExists(statement.Name.Lexeme))
             ReportToken(Diagnostic.BinderCatalog.MultipleSymbolDeclaration, statement.Source());
 
-        var symbol = new FunctionSymbol(statement.Name.Lexeme, null, null, statement.Name.Location, _scope);
-        _scope.Symbols.Add(symbol);
+        var symbol = new FunctionSymbol(statement.Name.Lexeme, null, null, statement.Name.Location, Scope);
+        Scope.Symbols.Add(symbol);
 
         var body = (Process(statement.Body) as BoundBlockStatement)!;
 
@@ -85,13 +84,14 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
     public BoundStatement ProcessBlock(BlockStatement statement)
     {
-        _scope = new Scope(_scope);
+        Scope = new Scope(Scope);
 
         var boundStatements = statement.Statements.Select(Process).ToArray();
+        var blockStatement = new BoundBlockStatement(Scope, statement, boundStatements);
 
-        _scope = _scope.Parent!;
+        Scope = Scope.Parent!;
 
-        return new BoundBlockStatement(statement, boundStatements);
+        return blockStatement;
     }
 
 
@@ -138,7 +138,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
     public BoundExpression ProcessSymbol(SymbolExpression expression)
     {
-        var symbol = _scope.TryGetSymbol(expression.Identifier.Lexeme);
+        var symbol = Scope.TryGetSymbol(expression.Identifier.Lexeme);
 
         if (symbol is null)
             ReportToken(Diagnostic.BinderCatalog.UndeclaredSymbol, expression.Source());

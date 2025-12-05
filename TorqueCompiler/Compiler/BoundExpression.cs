@@ -20,7 +20,7 @@ public interface IBoundExpressionProcessor
 }
 
 
-public interface IBoundExpressionProcessor<T>
+public interface IBoundExpressionProcessor<out T>
 {
     T Process(BoundExpression expression);
 
@@ -44,6 +44,9 @@ public abstract class BoundExpression(Expression syntax)
 
     public abstract void Process(IBoundExpressionProcessor processor);
     public abstract T Process<T>(IBoundExpressionProcessor<T> processor);
+
+
+    public Token Source() => Syntax.Source();
 }
 
 
@@ -51,6 +54,9 @@ public abstract class BoundExpression(Expression syntax)
 
 public class BoundLiteralExpression(LiteralExpression syntax) : BoundExpression(syntax)
 {
+    public ulong? Value { get; set; }
+
+
     public override void Process(IBoundExpressionProcessor processor)
         => processor.ProcessLiteral(this);
 
@@ -99,11 +105,12 @@ public class BoundGroupingExpression(GroupingExpression syntax, BoundExpression 
 
 
 
-public class BoundSymbolExpression(SymbolExpression syntax, ValueSymbol value) : BoundExpression(syntax)
+public class BoundSymbolExpression(SymbolExpression syntax, ValueSymbol symbol) : BoundExpression(syntax)
 {
-    public ValueSymbol Value { get; } = value;
+    public ValueSymbol Symbol { get; } = symbol;
+    public bool GetAddress => (Syntax as SymbolExpression)!.GetAddress;
 
-    public override PrimitiveType? Type => Value.Type;
+    public override PrimitiveType? Type => Symbol.Type;
 
 
     public override void Process(IBoundExpressionProcessor processor)

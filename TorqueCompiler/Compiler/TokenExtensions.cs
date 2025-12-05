@@ -15,6 +15,13 @@ public static class TokenExtensions
         => token is "true" or "false";
 
 
+    public static ulong ValueFromNumber(this string token)
+        => ulong.Parse(token);
+
+    public static ulong ValueFromBool(this string token)
+        => token == "true" ? 1UL : 0UL;
+
+
 
 
     public static bool IsKeyword(this Token token)
@@ -25,4 +32,11 @@ public static class TokenExtensions
 
     public static bool IsBoolean(this Token token)
         => token.Lexeme.IsBoolean();
+
+
+    public static ulong ValueFromNumber(this Token token)
+        => ValueFromNumber(token.Lexeme);
+
+    public static ulong ValueFromBool(this Token token)
+        => ValueFromBool(token.Lexeme);
 }

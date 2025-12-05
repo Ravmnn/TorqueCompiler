@@ -13,12 +13,14 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValueRef>
+public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcessor<LLVMValueRef>
 {
     private const string FunctionEntryBlockName = "entry";
 
 
-    public FileInfo? FileInfo { get; init; }
+    // if debug metadata generation is desired, this property must be set, since
+    // debug metadata uses some file information
+    public FileInfo? File { get; }
 
 
     private readonly LLVMModuleRef _module = LLVMModuleRef.CreateWithName("MainModule");
@@ -32,15 +34,17 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
     public DebugMetadataGenerator? Debug { get; }
 
 
-    public Scope Scope { get; }
+    // TODO: move these to DebugMetadataGenerator, since only it uses them
+    public Scope GlobalScope { get; }
+    public Scope Scope { get; private set; }
 
 
-    public Statement[] Statements { get; }
+    public BoundStatement[] Statements { get; }
 
 
 
 
-    public TorqueCompiler(IEnumerable<Statement> statements, bool generateDebugMetadata = false)
+    public TorqueCompiler(IEnumerable<BoundStatement> statements, Scope globalGlobalScope, FileInfo? file = null, bool generateDebugMetadata = false)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
 
@@ -50,9 +54,9 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
         // TODO: only pointers type (T*) should be able to modify the memory itself:
         // normal types that acquires the memory of something (&value) should treat the address returned as a normal integer
 
-        // TODO: create semantic analysis:
-        // - identifier resolver
-        // - type checker
+        // TODO: add pointers
+
+        // TODO: weird error when there's still code after a return statement
 
         // TODO: make this user's choice (command line options)
         const string Triple = "x86_64-pc-linux-gnu";
@@ -60,7 +64,10 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
         InitializeTargetMachine(Triple);
         SetupModuleTargetProperties(Triple);
 
-        //Scope = GlobalScope;
+        GlobalScope = globalGlobalScope;
+        Scope = GlobalScope;
+
+        File = file;
 
         if (generateDebugMetadata)
             Debug = new DebugMetadataGenerator(this);
@@ -101,6 +108,14 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
 
     public string Compile()
     {
+        // Many parts of the code in this file assumes that there are values in some nullables
+        // as "BoundExpression.Type", and that "BoundExpression.Syntax" (or "BoundStatement.Syntax")
+        // stores the correct value according to the real expression (or statement).
+        // Because of that, no null check is performed and if any system exception is thrown
+        // due to null access or bad type conversion, or it is a bug, or the caller of the compiler API
+        // didn't set up (binding, type checking...) the statements correctly.
+
+
         foreach (var statement in Statements)
             Process(statement);
 
@@ -108,21 +123,6 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
 
         return Module.PrintToString();
     }
-
-
-
-
-    private void ScopeEnter(TokenLocation location, LLVMMetadataRef? debugFunctionReference = null)
-    {
-        var debugScope = DebugCreateLexicalScope(location);
-        debugScope = debugFunctionReference ?? debugScope;
-
-        // Scope = new Scope(Scope) { DebugMetadata = debugScope };
-    }
-
-
-    private void ScopeExit()
-    {}// => Scope = Scope.Parent ?? throw new InvalidOperationException("Cannot exit the global scope.");
 
 
 
@@ -183,7 +183,18 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
 
 
 
-    public void Process(Statement statement)
+    private void DebugGenerateScope(Scope scope, TokenLocation location, LLVMMetadataRef? debugFunctionReference = null)
+    {
+        var llvmDebugScopeMetadata = DebugCreateLexicalScope(location);
+        llvmDebugScopeMetadata = debugFunctionReference ?? llvmDebugScopeMetadata;
+
+        scope.DebugMetadata = llvmDebugScopeMetadata;
+    }
+
+
+
+
+    public void Process(BoundStatement statement)
     {
         statement.Process(this);
     }
@@ -191,7 +202,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
 
 
 
-    public void ProcessExpression(ExpressionStatement statement)
+    public void ProcessExpression(BoundExpressionStatement statement)
     {
         DebugSetLocationTo(statement.Source());
         Process(statement.Expression);
@@ -200,10 +211,12 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
 
 
 
-    public void ProcessDeclaration(DeclarationStatement statement)
+    public void ProcessDeclaration(BoundDeclarationStatement statement)
     {
-        var name = statement.Name.Lexeme;
-        var type = statement.Type.TokenToPrimitive();
+        var symbol = statement.Symbol;
+
+        var name = symbol.Name;
+        var type = symbol.Type!.Value;
         var llvmType = type.PrimitiveToLLVMType();
 
         var statementSource = statement.Source();
@@ -214,7 +227,9 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
         var reference = Builder.BuildAlloca(llvmType, name);
         var debugReference = DebugGenerateLocalVariable(name, type, statementSource, reference);
 
-        // Scope.Symbols.Add(new CompilerIdentifier(reference, llvmType, debugReference));
+        symbol.LLVMReference = reference;
+        symbol.LLVMType = llvmType;
+        symbol.LLVMDebugMetadata = debugReference;
 
         Builder.BuildStore(Process(statement.Value), reference);
         DebugUpdateLocalVariableValue(name, statementSource);
@@ -225,34 +240,34 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
 
 
 
-    public void ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
+    public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement statement)
     {
-        var parameterTypes
-            = from parameter in statement.Parameters select parameter.Type.TokenToPrimitive();
+        var syntax = (statement.Syntax as FunctionDeclarationStatement)!;
+        var symbol = statement.Symbol;
 
-        var llvmParameterTypes
-            = from parameter in statement.Parameters select parameter.Type.TokenToLLVMType();
+        var functionName = symbol.Name;
+        var functionReturnType = symbol.ReturnType!.Value;
+        var functionLocation = syntax.Source();
+        var parameterTypes = statement.Symbol.Parameters!;
 
-        var functionName = statement.Name.Lexeme;
-        var functionReturnType = statement.ReturnType.TokenToPrimitive();
-        var functionType = LLVMTypeRef.CreateFunction(functionReturnType.PrimitiveToLLVMType(), llvmParameterTypes.ToArray());
-        var functionLocation = statement.Name.Location;
+        var llvmParameterTypes = parameterTypes.Select(parameter => parameter.PrimitiveToLLVMType()).ToArray();
+        var llvmFunctionType = LLVMTypeRef.CreateFunction(functionReturnType.PrimitiveToLLVMType(), llvmParameterTypes.ToArray());
+        var llvmFunctionReference = Module.AddFunction(functionName, llvmFunctionType);
+        var llvmFunctionDebugMetadata = DebugGenerateFunction(llvmFunctionReference, functionName, functionLocation, functionReturnType, parameterTypes);
 
-        var function = Module.AddFunction(functionName, functionType);
-        var functionDebugReference = DebugGenerateFunction(function, functionName, functionLocation, functionReturnType, parameterTypes);
+        symbol.LLVMReference = llvmFunctionReference;
+        symbol.LLVMType = llvmFunctionType;
 
-        // Scope.Add(new CompilerIdentifier(function, functionType, functionDebugReference));
-
-        var entry = function.AppendBasicBlock(FunctionEntryBlockName);
+        var entry = llvmFunctionReference.AppendBasicBlock(FunctionEntryBlockName);
         Builder.PositionAtEnd(entry);
 
-        ProcessScopeBlock(statement.Body, functionDebugReference);
+        ProcessScopeBlock(statement.Body, llvmFunctionDebugMetadata);
     }
 
 
 
 
-    public void ProcessReturn(ReturnStatement statement)
+    public void ProcessReturn(BoundReturnStatement statement)
     {
         if (statement.Expression is not null)
         {
@@ -267,18 +282,21 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
 
 
 
-    public void ProcessBlock(BlockStatement statement)
+    public void ProcessBlock(BoundBlockStatement statement)
         => ProcessScopeBlock(statement);
 
 
-    private void ProcessScopeBlock(BlockStatement statement, LLVMMetadataRef? function = null)
+    private void ProcessScopeBlock(BoundBlockStatement statement, LLVMMetadataRef? function = null)
     {
-        ScopeEnter(statement.Source(), function);
+        var oldScope = Scope;
+        Scope = statement.Scope;
+
+        DebugGenerateScope(statement.Scope, statement.Source(), function);
 
         foreach (var subStatement in statement.Statements)
             Process(subStatement);
 
-        ScopeExit();
+        Scope = oldScope;
     }
 
 
@@ -288,75 +306,79 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
 
 
 
-    public LLVMValueRef Process(Expression expression)
+    public LLVMValueRef Process(BoundExpression expression)
         => expression.Process(this);
 
 
 
 
-    public LLVMValueRef ProcessLiteral(LiteralExpression expression)
+    public LLVMValueRef ProcessLiteral(BoundLiteralExpression expression)
     {
-        // var value = LLVMValueRef.CreateConstInt(expression.Type.PrimitiveToLLVMType(), ulong.Parse(expression.Value.Lexeme));
-        // PushValue(value);
+        var llvmType = expression.Type!.Value.PrimitiveToLLVMType();
+        var value = expression.Value!.Value;
 
-        throw new NotImplementedException();
+        var llvmReference = LLVMValueRef.CreateConstInt(llvmType, value);
+
+        return llvmReference;
     }
 
 
 
 
-    public LLVMValueRef ProcessBinary(BinaryExpression expression)
+    public LLVMValueRef ProcessBinary(BoundBinaryExpression expression)
     {
+        var syntax = (expression.Syntax as BinaryExpression)!;
+
         var right = Process(expression.Left);
         var left = Process(expression.Right);
 
-        switch (expression.Operator.Type)
+        return syntax.Operator.Type switch
         {
-            case TokenType.Plus:
-                return Builder.BuildAdd(left, right, "sum");
+            TokenType.Plus => Builder.BuildAdd(left, right, "sum"),
+            TokenType.Minus => Builder.BuildSub(left, right, "sub"),
+            TokenType.Star => Builder.BuildMul(left, right, "mult"),
+            TokenType.Slash => Builder.BuildSDiv(left, right, "div"),
 
-            case TokenType.Minus:
-                return Builder.BuildSub(left, right, "sub");
-
-            case TokenType.Star:
-                return Builder.BuildMul(left, right, "mult");
-
-            case TokenType.Slash:
-                return Builder.BuildSDiv(left, right, "div");
-        }
-
-        throw new UnreachableException();
+            _ => throw new UnreachableException()
+        };
     }
 
 
 
 
-    public LLVMValueRef ProcessGrouping(GroupingExpression expression)
+    public LLVMValueRef ProcessGrouping(BoundGroupingExpression expression)
         => Process(expression.Expression);
 
 
-    public LLVMValueRef ProcessSymbol(SymbolExpression expression)
+    public LLVMValueRef ProcessSymbol(BoundSymbolExpression expression)
     {
-        // var identifier = Scope.GetIdentifier(expression.Identifier.Lexeme);
-        // var value = expression.GetAddress ? identifier.Address : Builder.BuildLoad2(identifier.Type, identifier.Address, "value");
-        //
-        // PushValue(value);
+        var symbol = expression.Symbol;
 
-        throw new NotImplementedException();
+        var llvmReference = symbol.LLVMReference!.Value;
+        var llvmType = symbol.LLVMType!.Value;
+
+        if (expression.GetAddress)
+            return llvmReference;
+
+        return Builder.BuildLoad2(llvmType, llvmReference, "value");
     }
 
 
 
 
-    public LLVMValueRef ProcessAssignment(AssignmentExpression expression)
+    public LLVMValueRef ProcessAssignment(BoundAssignmentExpression expression)
     {
-        var identifier = Process(expression.Symbol);
+        // processing "expression.Symbol" (a BoundExpression) is not actually needed, since
+        // it will always be a "BoundSymbolExpression", so it is possible to get the symbol information
+        // directly.
+
+        var symbol = expression.Symbol.Symbol;
         var value = Process(expression.Value);
 
-        var result = Builder.BuildStore(value, identifier);
+        var pointer = symbol.LLVMReference!.Value;
 
-        var identifierName = expression.Symbol.Identifier.Lexeme;
-        DebugUpdateLocalVariableValue(identifierName, expression.Source());
+        var result = Builder.BuildStore(value, pointer);
+        DebugUpdateLocalVariableValue(symbol.Name, expression.Source());
 
         return result;
     }
@@ -364,7 +386,7 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
 
 
 
-    public LLVMValueRef ProcessCall(CallExpression expression)
+    public LLVMValueRef ProcessCall(BoundCallExpression expression)
     {
         var function = Process(expression.Callee);
         var arguments = expression.Arguments.Select(Process).ToArray();
@@ -375,10 +397,10 @@ public class TorqueCompiler : IStatementProcessor, IExpressionProcessor<LLVMValu
 
 
 
-    public LLVMValueRef ProcessCast(CastExpression expression)
+    public LLVMValueRef ProcessCast(BoundCastExpression expression)
     {
-        var value = Process(expression.Expression);
-        var toType = expression.Type.TokenToLLVMType();
+        var value = Process(expression.Value);
+        var toType = expression.Type!.Value.PrimitiveToLLVMType();
 
         var sourceTypeSize = SizeOf(value.TypeOf);
         var targetTypeSize = SizeOf(toType);

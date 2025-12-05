@@ -1,7 +1,7 @@
 int main()
 {
     int value = 10 + 15;
-    int result = (value - 25 as byte);
+    int result = (value - 25);
 
     int null = 5;
 
@@ -14,5 +14,8 @@ int main()
 
     result * null - 100;
 
-    return result;
+    int returnValue = 123;
+    returnValue = returnValue - 123;
+
+    return returnValue;
 }

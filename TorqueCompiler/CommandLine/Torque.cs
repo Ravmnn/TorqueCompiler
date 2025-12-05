@@ -3,8 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Dynamic;
 using System.IO;
 using System.Linq;
 
@@ -71,6 +69,7 @@ public static class Torque
         if (Failed)
             return null;
 
+
         // parse
         var parser = new TorqueParser(tokens);
         var statements = parser.Parse();
@@ -78,6 +77,7 @@ public static class Torque
 
         if (Failed || PrintedAST(statements))
             return null;
+
 
         // bind
         var binder = new TorqueBinder(statements);
@@ -87,20 +87,23 @@ public static class Torque
         if (Failed)
             return null;
 
+
         // type check
         var typeChecker = new TorqueTypeChecker(boundStatements);
         typeChecker.Check();
         LogDiagnostics(typeChecker.Diagnostics);
 
-        // TODO: after you fix the compiler, remove this
-        if (true)
+        if (Failed)
             return null;
 
-        var compiler = new TorqueCompiler(statements, s_settings.Debug) { FileInfo = s_settings.File };
+
+        // compile
+        var compiler = new TorqueCompiler(boundStatements, binder.Scope, s_settings.File, s_settings.Debug);
         var bitCode = compiler.Compile();
 
         if (PrintedLLVM(bitCode) || PrintedASM(bitCode))
             return null;
+
 
         return bitCode;
     }

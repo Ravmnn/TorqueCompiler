@@ -39,6 +39,9 @@ public abstract class BoundStatement(Statement syntax)
 
     public abstract void Process(IBoundStatementProcessor processor);
     public abstract T Process<T>(IBoundStatementProcessor<T> processor);
+
+
+    public Token Source() => Syntax.Source();
 }
 
 
@@ -111,8 +114,9 @@ public class BoundReturnStatement(ReturnStatement syntax, BoundExpression? expre
 
 
 
-public class BoundBlockStatement(BlockStatement syntax, IEnumerable<BoundStatement> statements) : BoundStatement(syntax)
+public class BoundBlockStatement(Scope scope, BlockStatement syntax, IEnumerable<BoundStatement> statements) : BoundStatement(syntax)
 {
+    public Scope Scope { get; } = scope;
     public IEnumerable<BoundStatement> Statements { get; } = statements;
 
 
