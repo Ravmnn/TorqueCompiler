@@ -38,7 +38,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public Scope GlobalScope { get; }
     public Scope Scope { get; private set; }
 
-
     public BoundStatement[] Statements { get; }
 
 
@@ -133,6 +132,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
+    private void UnreachableCode()
+        => throw new UnreachableCodeControl();
+
+
+
+
     private LLVMMetadataRef? DebugSetLocationTo(TokenLocation? location)
     {
         if (location is null)
@@ -190,6 +195,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         scope.DebugMetadata = llvmDebugScopeMetadata;
     }
+
+
+
+
 
 
 
@@ -277,6 +286,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         }
         else
             Builder.BuildRetVoid();
+
+        UnreachableCode();
     }
 
 
@@ -293,8 +304,16 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         DebugGenerateScope(statement.Scope, statement.Source(), function);
 
-        foreach (var subStatement in statement.Statements)
-            Process(subStatement);
+        // If a return statement is reached, the subsequent code after the return that is inside the same scope
+        // will never be reached, so everything after it can be safely ignored. Also, LLVM doesn't compile
+        // if it finds any code after a terminator.
+        try
+        {
+            foreach (var subStatement in statement.Statements)
+                Process(subStatement);
+        }
+        catch (UnreachableCodeControl)
+        {}
 
         Scope = oldScope;
     }
@@ -368,7 +387,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessAssignment(BoundAssignmentExpression expression)
     {
-        // processing "expression.Symbol" (a BoundExpression) is not actually needed, since
+        // Processing "expression.Symbol" (a BoundExpression) is not actually needed, since
         // it will always be a "BoundSymbolExpression", so it is possible to get the symbol information
         // directly.
 
