@@ -1,3 +1,6 @@
+// ReSharper disable LocalizableElement
+
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -34,16 +37,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public DebugMetadataGenerator? Debug { get; }
 
 
-    // TODO: move these to DebugMetadataGenerator, since only it uses them
-    public Scope GlobalScope { get; }
-    public Scope Scope { get; private set; }
-
     public BoundStatement[] Statements { get; }
 
 
 
 
-    public TorqueCompiler(IEnumerable<BoundStatement> statements, Scope globalGlobalScope, FileInfo? file = null, bool generateDebugMetadata = false)
+    public TorqueCompiler(IEnumerable<BoundStatement> statements, Scope? globalScope = null, FileInfo? file = null, bool generateDebugMetadata = false)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
 
@@ -55,21 +54,21 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         // TODO: add pointers
 
-        // TODO: weird error when there's still code after a return statement
-
         // TODO: make this user's choice (command line options)
         const string Triple = "x86_64-pc-linux-gnu";
 
         InitializeTargetMachine(Triple);
         SetupModuleTargetProperties(Triple);
 
-        GlobalScope = globalGlobalScope;
-        Scope = GlobalScope;
-
         File = file;
 
         if (generateDebugMetadata)
-            Debug = new DebugMetadataGenerator(this);
+        {
+            if (globalScope is null)
+                throw new ArgumentNullException(null, "Debug metadata generator requires a valid global scope");
+
+            Debug = new DebugMetadataGenerator(this, globalScope);
+        }
 
 
         Statements = statements.ToArray();
@@ -188,6 +187,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
+    private void DebugEnterScope(Scope newScope) => Debug?.EnterScope(newScope);
+    private void DebugLeaveScope() => Debug?.LeaveScope();
+
+
     private void DebugGenerateScope(Scope scope, TokenLocation location, LLVMMetadataRef? debugFunctionReference = null)
     {
         var llvmDebugScopeMetadata = DebugCreateLexicalScope(location);
@@ -299,9 +302,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private void ProcessScopeBlock(BoundBlockStatement statement, LLVMMetadataRef? function = null)
     {
-        var oldScope = Scope;
-        Scope = statement.Scope;
-
+        DebugEnterScope(statement.Scope);
         DebugGenerateScope(statement.Scope, statement.Source(), function);
 
         // If a return statement is reached, the subsequent code after the return that is inside the same scope
@@ -315,7 +316,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         catch (UnreachableCodeControl)
         {}
 
-        Scope = oldScope;
+        DebugLeaveScope();
     }
 
 
