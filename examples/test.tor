@@ -15,7 +15,7 @@ int main()
     result * null - 100;
 
     int returnValue = 123;
-    returnValue = returnValue - 123;
+    &returnValue = returnValue - 123;
     
     return returnValue;
 }

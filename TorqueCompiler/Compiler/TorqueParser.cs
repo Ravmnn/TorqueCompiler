@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 using Torque.Compiler.Diagnostics;
@@ -207,7 +208,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
             if (expression is not SymbolExpression { GetAddress: false } identifier)
             {
-                ReportAndThrow(Diagnostic.ParserCatalog.ExpectIdentifier);
+                ReportAndThrow(Diagnostic.ParserCatalog.ExpectIdentifier, location: expression.Source());
                 throw new UnreachableException();
             }
 
@@ -376,12 +377,17 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
 
 
+    [DoesNotReturn]
+    public override void ReportAndThrow(Diagnostic.ParserCatalog item, object[]? arguments = null, TokenLocation? location = null)
+        => base.ReportAndThrow(item, arguments, location ?? Peek());
+
+
     private Token Expect(TokenType token, Diagnostic.ParserCatalog item, TokenLocation? location = null)
     {
         if (Check(token))
             return Advance();
 
-        ReportAndThrow(item, location: location ?? Peek().Location);
+        ReportAndThrow(item, location: location);
         throw new UnreachableException();
     }
 

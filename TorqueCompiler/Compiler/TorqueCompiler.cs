@@ -395,6 +395,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var symbol = expression.Symbol.Symbol;
         var value = Process(expression.Value);
 
+        // assignment expressions automatically fetches the symbol pointer
         var pointer = symbol.LLVMReference!.Value;
 
         var result = Builder.BuildStore(value, pointer);
