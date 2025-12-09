@@ -39,7 +39,7 @@ public interface IBoundExpressionProcessor<out T>
 public abstract class BoundExpression(Expression syntax)
 {
     public Expression Syntax { get; } = syntax;
-    public virtual PrimitiveType? Type { get; set; }
+    public virtual Type? Type { get; set; }
 
 
     public abstract void Process(IBoundExpressionProcessor processor);
@@ -73,7 +73,7 @@ public class BoundBinaryExpression(BinaryExpression syntax, BoundExpression left
     public BoundExpression Left { get; } = left;
     public BoundExpression Right { get; } = right;
 
-    public override PrimitiveType? Type => Left.Type;
+    public override Type? Type => Left.Type;
 
 
     public override void Process(IBoundExpressionProcessor processor)
@@ -91,7 +91,7 @@ public class BoundGroupingExpression(GroupingExpression syntax, BoundExpression 
 {
     public BoundExpression Expression { get; } = expression;
 
-    public override PrimitiveType? Type => Expression.Type;
+    public override Type? Type => Expression.Type;
 
 
     public override void Process(IBoundExpressionProcessor processor)
@@ -110,7 +110,7 @@ public class BoundSymbolExpression(SymbolExpression syntax, ValueSymbol symbol) 
     public ValueSymbol Symbol { get; } = symbol;
     public bool GetAddress => (Syntax as SymbolExpression)!.GetAddress;
 
-    public override PrimitiveType? Type => Symbol.Type;
+    public override Type? Type => Symbol.Type;
 
 
     public override void Process(IBoundExpressionProcessor processor)
@@ -130,7 +130,7 @@ public class BoundAssignmentExpression(AssignmentExpression syntax, BoundSymbolE
     public BoundSymbolExpression Symbol { get; } = symbol;
     public BoundExpression Value { get; } = value;
 
-    public override PrimitiveType? Type => Symbol.Type;
+    public override Type? Type => Symbol.Type;
 
 
     public override void Process(IBoundExpressionProcessor processor)
@@ -151,7 +151,7 @@ public class BoundCallExpression(CallExpression syntax, BoundExpression callee, 
     public IEnumerable<BoundExpression> Arguments { get; } = arguments;
 
     // the Symbol.Type of a callee is its return type
-    public override PrimitiveType? Type => Callee.Type;
+    public override Type? Type => Callee.Type;
 
 
     public override void Process(IBoundExpressionProcessor processor)
@@ -169,8 +169,6 @@ public class BoundCastExpression(CastExpression syntax, BoundExpression value) :
 {
     public BoundExpression Value { get; } = value;
 
-    public override PrimitiveType? Type => (Syntax as CastExpression)!.Type.TokenToPrimitive();
-
 
     public override void Process(IBoundExpressionProcessor processor)
         => processor.ProcessCast(this);
@@ -179,6 +177,3 @@ public class BoundCastExpression(CastExpression syntax, BoundExpression value) :
     public override T Process<T>(IBoundExpressionProcessor<T> processor)
         => processor.ProcessCast(this);
 }
-
-
-

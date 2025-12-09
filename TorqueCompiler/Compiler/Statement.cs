@@ -64,10 +64,11 @@ public class ExpressionStatement(Expression expression) : Statement
 
 
 
-public class DeclarationStatement(Token name, Token type, Expression value) : Statement
+
+public class DeclarationStatement(Token name, TypeName type, Expression value) : Statement
 {
     public Token Name { get; } = name;
-    public Token Type { get; } = type;
+    public TypeName Type { get; } = type;
     public Expression Value { get; } = value;
 
 
@@ -86,14 +87,16 @@ public class DeclarationStatement(Token name, Token type, Expression value) : St
 
 
 
-public readonly record struct FunctionParameterDeclaration(Token Name, Token Type);
+
+public readonly record struct FunctionParameterDeclaration(Token Name, TypeName Type);
 
 
-public class FunctionDeclarationStatement(Token name, Token returnType, IEnumerable<FunctionParameterDeclaration> parameters,
+
+public class FunctionDeclarationStatement(Token name, TypeName returnType, IEnumerable<FunctionParameterDeclaration> parameters,
     BlockStatement body) : Statement
 {
     public Token Name { get; } = name;
-    public Token ReturnType { get; } = returnType;
+    public TypeName ReturnType { get; } = returnType;
     public IEnumerable<FunctionParameterDeclaration> Parameters { get; } = parameters;
     public BlockStatement Body { get; } = body;
 
@@ -110,6 +113,7 @@ public class FunctionDeclarationStatement(Token name, Token returnType, IEnumera
 
     public override Token Source() => Name;
 }
+
 
 
 
@@ -131,6 +135,9 @@ public class ReturnStatement(Token keyword, Expression? expression = null) : Sta
 
     public override Token Source() => Keyword;
 }
+
+
+
 
 public class BlockStatement(Token start, Token end, IEnumerable<Statement> statements) : Statement
 {

@@ -182,11 +182,11 @@ public class CallExpression(Token leftParen, Expression callee, IEnumerable<Expr
 
 
 
-public class CastExpression(Token keyword, Expression expression, Token type) : Expression
+public class CastExpression(Token keyword, Expression expression, TypeName type) : Expression
 {
     public Token Keyword { get; } = keyword;
     public Expression Expression { get; } = expression;
-    public Token Type { get; } = type;
+    public TypeName Type { get; } = type;
 
 
 

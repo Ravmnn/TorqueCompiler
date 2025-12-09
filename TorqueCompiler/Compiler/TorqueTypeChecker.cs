@@ -11,7 +11,7 @@ namespace Torque.Compiler;
 
 
 public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
-    : DiagnosticReporter<Diagnostic.TypeCheckerCatalog>, IBoundStatementProcessor, IBoundExpressionProcessor<PrimitiveType>
+    : DiagnosticReporter<Diagnostic.TypeCheckerCatalog>, IBoundStatementProcessor, IBoundExpressionProcessor<Type>
 {
     public const PrimitiveType DefaultLiteralType = PrimitiveType.Int32;
 
@@ -37,13 +37,19 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
 
-    private void ReportIfDiffers(PrimitiveType expected, PrimitiveType got, TokenLocation location)
+    private void ReportIfDiffers(Type expected, Type got, TokenLocation location)
     {
         if (expected == got)
             return;
 
-        Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.PrimitiveToString(), got.PrimitiveToString()], location);
+        Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
     }
+
+
+
+
+    private static Type TypeFromTypeName(TypeName typeName)
+        => new Type(typeName.BaseType.TokenToPrimitive(), typeName.IsPointer);
 
 
 
@@ -64,11 +70,11 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
     {
         var declarationSyntax = (statement.Syntax as DeclarationStatement)!;
 
-        var symbolType = declarationSyntax.Type.TokenToPrimitive();
+        var symbolType = TypeFromTypeName(declarationSyntax.Type);
         var valueType = Process(statement.Value);
 
         statement.Symbol.Type = symbolType;
-        ReportIfDiffers(symbolType, valueType, statement.Source());
+        ReportIfDiffers(symbolType, valueType, statement.Value.Source());
     }
 
 
@@ -78,8 +84,8 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
     {
         var functionSyntax = (statement.Syntax as FunctionDeclarationStatement)!;
 
-        var returnType = functionSyntax.ReturnType.TokenToPrimitive();
-        var parameterTypes = functionSyntax.Parameters.Select(param => param.Type.TokenToPrimitive()).ToArray();
+        var returnType = TypeFromTypeName(functionSyntax.ReturnType);
+        var parameterTypes = functionSyntax.Parameters.Select(param => TypeFromTypeName(param.Type)).ToArray();
 
         statement.Symbol.ReturnType = returnType;
         statement.Symbol.Parameters = parameterTypes;
@@ -119,18 +125,18 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
 
-    public PrimitiveType Process(BoundExpression expression)
+    public Type Process(BoundExpression expression)
         => expression.Process(this);
 
 
 
 
-    public PrimitiveType ProcessLiteral(BoundLiteralExpression expression)
+    public Type ProcessLiteral(BoundLiteralExpression expression)
     {
         var token = expression.Source();
 
         expression.Type = token.IsBoolean() ? PrimitiveType.Bool : DefaultLiteralType; // TODO: add char notation 'char' (converts to number)
-        expression.Value = expression.Type switch
+        expression.Value = expression.Type.Value.BaseType switch
         {
             PrimitiveType.Bool => token.ValueFromBool(),
             PrimitiveType.Char => throw new NotImplementedException(),
@@ -144,7 +150,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
 
-    public PrimitiveType ProcessBinary(BoundBinaryExpression expression)
+    public Type ProcessBinary(BoundBinaryExpression expression)
     {
         var leftType = Process(expression.Left);
         var rightType = Process(expression.Right);
@@ -157,7 +163,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
 
-    public PrimitiveType ProcessGrouping(BoundGroupingExpression expression)
+    public Type ProcessGrouping(BoundGroupingExpression expression)
     {
         Process(expression.Expression);
         return expression.Type!.Value;
@@ -166,7 +172,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
 
-    public PrimitiveType ProcessSymbol(BoundSymbolExpression expression)
+    public Type ProcessSymbol(BoundSymbolExpression expression)
     {
         return expression.Type!.Value;
     }
@@ -174,7 +180,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
 
-    public PrimitiveType ProcessAssignment(BoundAssignmentExpression expression)
+    public Type ProcessAssignment(BoundAssignmentExpression expression)
     {
         var identifierType = Process(expression.Symbol);
         var valueType = Process(expression.Value);
@@ -187,7 +193,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
 
-    public PrimitiveType ProcessCall(BoundCallExpression expression)
+    public Type ProcessCall(BoundCallExpression expression)
     {
         // TODO: add pointer types, then use them to call functions
 
@@ -197,9 +203,12 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
 
-    public PrimitiveType ProcessCast(BoundCastExpression expression)
+    public Type ProcessCast(BoundCastExpression expression)
     {
+        var castSyntax = (expression.Syntax as CastExpression)!;
+
         Process(expression.Value);
+        expression.Type = TypeFromTypeName(castSyntax.Type);
 
         return expression.Type!.Value;
     }

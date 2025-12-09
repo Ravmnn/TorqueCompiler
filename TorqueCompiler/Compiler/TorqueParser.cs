@@ -50,7 +50,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
         switch (Peek().Type)
         {
         case TokenType.Type: {
-            var type = ExpectTypeName();
+            var type = ParseTypeName();
             var name = ExpectIdentifier();
 
             if (Check(TokenType.ParenLeft))
@@ -67,7 +67,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
 
 
-    private Statement VariableDeclaration(Token type, Token name)
+    private Statement VariableDeclaration(TypeName type, Token name)
     {
         Expect(TokenType.Equal, Diagnostic.ParserCatalog.ExpectAssignmentOperator);
 
@@ -81,7 +81,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
 
 
-    private Statement FunctionDeclaration(Token returnType, Token name)
+    private Statement FunctionDeclaration(TypeName returnType, Token name)
     {
         Expect(TokenType.ParenLeft, Diagnostic.ParserCatalog.ExpectLeftParenAfterFunctionName);
         var parameters = FunctionParameters();
@@ -102,7 +102,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
             {
                 var name = ExpectIdentifier();
                 Expect(TokenType.Colon, Diagnostic.ParserCatalog.ExpectTypeSpecifier);
-                var type = ExpectTypeName();
+                var type = ParseTypeName();
 
                 parameters.Add(new FunctionParameterDeclaration(name, type));
             }
@@ -262,7 +262,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
         while (Match(TokenType.KwAs))
         {
             var keyword = Previous();
-            var type = ExpectTypeName();
+            var type = ParseTypeName();
             expression = new CastExpression(keyword, expression, type);
         }
 
@@ -341,6 +341,20 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
         Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectExpression, leftParen);
 
         return new GroupingExpression(expression);
+    }
+
+
+
+
+    private TypeName ParseTypeName()
+    {
+        var baseType = ExpectTypeName();
+        Token? pointerSpecifier = null;
+
+        if (Match(TokenType.Star))
+            pointerSpecifier = Previous();
+
+        return new TypeName(baseType, pointerSpecifier);
     }
 
 

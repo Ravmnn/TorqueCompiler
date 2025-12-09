@@ -39,7 +39,7 @@ public class DebugMetadataGenerator
    public LLVMTargetDataRef TargetData => Compiler.TargetData;
 
 
-   private Stack<Scope> _scopeStack = [];
+   private readonly Stack<Scope> _scopeStack = [];
 
    public Scope GlobalScope { get; }
    public Scope Scope { get; private set; }
@@ -143,10 +143,10 @@ public class DebugMetadataGenerator
 
 
 
-    public unsafe LLVMMetadataRef GenerateFunction(LLVMValueRef function, string name, int lineNumber, PrimitiveType? returnType, PrimitiveType[] parametersType)
+    public unsafe LLVMMetadataRef GenerateFunction(LLVMValueRef function, string name, int lineNumber, Type? returnType, Type[] parametersType)
     {
-        var typeArray = CreateFunctionPrimitiveTypeArray(returnType, parametersType);
-        var metadataTypeArray = PrimitiveTypesToMetadataArray(typeArray);
+        var typeArray = CreateFunctionTypeArray(returnType, parametersType);
+        var metadataTypeArray = TypesToMetadataArray(typeArray);
 
         var debugFunctionType = CreateSubroutineType(metadataTypeArray);
         var functionMetadata = CreateFunction(name, lineNumber, debugFunctionType);
@@ -168,10 +168,10 @@ public class DebugMetadataGenerator
         );
 
 
-    private PrimitiveType[] CreateFunctionPrimitiveTypeArray(PrimitiveType? returnType, PrimitiveType[] parametersType)
+    private Type[] CreateFunctionTypeArray(Type? returnType, Type[] parametersType)
     {
         var length = (returnType is not null ? 1 : 0) + parametersType.Length;
-        var types = new PrimitiveType[length];
+        var types = new Type[length];
 
         if (returnType is not null)
             types[0] = returnType.Value;
@@ -182,9 +182,9 @@ public class DebugMetadataGenerator
 
 
 
-    public unsafe LLVMMetadataRef GenerateLocalVariable(string name, PrimitiveType type, int lineNumber, LLVMValueRef alloca, LLVMMetadataRef location)
+    public unsafe LLVMMetadataRef GenerateLocalVariable(string name, Type type, int lineNumber, LLVMValueRef alloca, LLVMMetadataRef location)
     {
-        var typeMetadata = PrimitiveTypeToMetadata(type);
+        var typeMetadata = TypeToMetadata(type);
         var sizeInBits = (uint)type.SizeOfThis(TargetData) * 8;
 
         var debugReference = CreateAutoVariable(name, lineNumber, typeMetadata, sizeInBits);
@@ -225,36 +225,42 @@ public class DebugMetadataGenerator
 
 
 
-    public LLVMMetadataRef[] PrimitiveTypesToMetadataArray(PrimitiveType[] types)
+    public LLVMMetadataRef[] TypesToMetadataArray(Type[] types)
     {
         var metadataArray = new LLVMMetadataRef[types.Length];
 
         for (var i = 0; i < types.Length; i++)
-            metadataArray[i] = PrimitiveTypeToMetadata(types[i]);
+            metadataArray[i] = TypeToMetadata(types[i]);
 
         return metadataArray;
     }
 
 
-    public unsafe LLVMMetadataRef PrimitiveTypeToMetadata(PrimitiveType type)
+    public unsafe LLVMMetadataRef TypeToMetadata(Type type)
     {
-        var name = Token.Primitives.First(primitive => primitive.Value == type).Key;
+        var name = Token.Primitives.First(primitive => primitive.Value == type.BaseType).Key;
+
+        if (type.IsPointer)
+            name += "*";
+
         var sbyteName = StringToSBytePtr(name);
         var sizeInBits = type.SizeOfThis(TargetData) * 8;
-        var encoding = GetEncodingFromPrimitive(type);
+        var encoding = GetEncodingFromType(type);
 
         return LLVM.DIBuilderCreateBasicType(DebugBuilder, sbyteName, (uint)name.Length, (ulong)sizeInBits, (uint)encoding, LLVMDIFlags.LLVMDIFlagZero);
     }
 
 
-    private int GetEncodingFromPrimitive(PrimitiveType type) => type switch
+    private int GetEncodingFromType(Type type) => type.BaseType switch
     {
+        _ when type.IsPointer => DebugMetadataTypeEncodings.Unsigned,
+
         PrimitiveType.Bool => DebugMetadataTypeEncodings.Boolean,
         PrimitiveType.Char => DebugMetadataTypeEncodings.UnsignedChar,
         PrimitiveType.UInt8 or PrimitiveType.UInt16 or PrimitiveType.UInt32 or PrimitiveType.UInt64 => DebugMetadataTypeEncodings.Unsigned,
         PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 => DebugMetadataTypeEncodings.Signed,
 
-        _ => 0
+        _ => DebugMetadataTypeEncodings.Void
     };
 
 

@@ -127,6 +127,3 @@ public class BoundBlockStatement(Scope scope, BlockStatement syntax, IEnumerable
     public override T Process<T>(IBoundStatementProcessor<T> processor)
         => processor.ProcessBlock(this);
 }
-
-
-

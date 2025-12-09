@@ -45,6 +45,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public TorqueCompiler(IEnumerable<BoundStatement> statements, Scope? globalScope = null, FileInfo? file = null, bool generateDebugMetadata = false)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
+        // TODO: add importing system
 
         // TODO: add floats
         // TODO: add function calling
@@ -52,6 +53,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: only pointers type (T*) should be able to modify the memory itself:
         // normal types that acquires the memory of something (&value) should treat the address returned as a normal integer
 
+        // TODO: make infinite indirection pointers? (T****...) or limit to double? (T**)
         // TODO: add pointers
 
         // TODO: make this user's choice (command line options)
@@ -131,7 +133,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    private void UnreachableCode()
+    private static void UnreachableCode()
         => throw new UnreachableCodeControl();
 
 
@@ -159,13 +161,13 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    private LLVMMetadataRef? DebugGenerateFunction(LLVMValueRef function, string functionName, TokenLocation functionLocation, PrimitiveType functionReturnType, IEnumerable<PrimitiveType> parameterTypes)
+    private LLVMMetadataRef? DebugGenerateFunction(LLVMValueRef function, string functionName, TokenLocation functionLocation, Type functionReturnType, IEnumerable<Type> parameterTypes)
         => Debug?.GenerateFunction(function, functionName, functionLocation.Line, functionReturnType, parameterTypes.ToArray());
 
 
 
 
-    private LLVMMetadataRef? DebugGenerateLocalVariable(string name, PrimitiveType type, Token statementSource, LLVMValueRef alloca)
+    private LLVMMetadataRef? DebugGenerateLocalVariable(string name, Type type, Token statementSource, LLVMValueRef alloca)
     {
         var location = statementSource.Location;
         var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
@@ -218,6 +220,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         DebugSetLocationTo(statement.Source());
         Process(statement.Expression);
+        DebugSetLocationTo(null);
     }
 
 
@@ -229,7 +232,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         var name = symbol.Name;
         var type = symbol.Type!.Value;
-        var llvmType = type.PrimitiveToLLVMType();
+        var llvmType = type.TypeToLLVMType();
 
         var statementSource = statement.Source();
 
@@ -262,8 +265,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var functionLocation = syntax.Source();
         var parameterTypes = statement.Symbol.Parameters!;
 
-        var llvmParameterTypes = parameterTypes.Select(parameter => parameter.PrimitiveToLLVMType()).ToArray();
-        var llvmFunctionType = LLVMTypeRef.CreateFunction(functionReturnType.PrimitiveToLLVMType(), llvmParameterTypes.ToArray());
+        var llvmParameterTypes = parameterTypes.Select(parameter => parameter.TypeToLLVMType()).ToArray();
+        var llvmFunctionType = LLVMTypeRef.CreateFunction(functionReturnType.TypeToLLVMType(), llvmParameterTypes.ToArray());
         var llvmFunctionReference = Module.AddFunction(functionName, llvmFunctionType);
         var llvmFunctionDebugMetadata = DebugGenerateFunction(llvmFunctionReference, functionName, functionLocation, functionReturnType, parameterTypes);
 
@@ -334,7 +337,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessLiteral(BoundLiteralExpression expression)
     {
-        var llvmType = expression.Type!.Value.PrimitiveToLLVMType();
+        var llvmType = expression.Type!.Value.TypeToLLVMType();
         var value = expression.Value!.Value;
 
         var llvmReference = LLVMValueRef.CreateConstInt(llvmType, value);
@@ -421,16 +424,38 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMValueRef ProcessCast(BoundCastExpression expression)
     {
         var value = Process(expression.Value);
-        var toType = expression.Type!.Value.PrimitiveToLLVMType();
 
-        var sourceTypeSize = SizeOf(value.TypeOf);
-        var targetTypeSize = SizeOf(toType);
+        var valueType = expression.Value.Type!.Value;
+        var toType = expression.Type!.Value;
 
+        var llvmValueType = value.TypeOf;
+        var llvmToType = expression.Type!.Value.TypeToLLVMType();
+
+        var sourceTypeSize = SizeOf(llvmValueType);
+        var targetTypeSize = SizeOf(llvmToType);
+
+
+        // int to pointer... is this really useful?
+        if (!valueType.IsPointer && toType.IsPointer)
+            return Builder.BuildIntToPtr(value, llvmToType, "itopcast");
+
+        // pointer to int
+        if (valueType.IsPointer && !toType.IsPointer)
+            return Builder.BuildPtrToInt(value, llvmToType, "ptoicast");
+
+        // pointer to another pointer type
+        if (valueType.IsPointer && toType.IsPointer)
+            return Builder.BuildPointerCast(value, llvmToType, "ptrcast");
+
+
+        // cast to higher
         if (sourceTypeSize < targetTypeSize)
-            return Builder.BuildIntCast(value, toType, "incrcast");
+            return Builder.BuildIntCast(value, llvmToType, "incrcast");
 
+        // cast to lower
         if (sourceTypeSize > targetTypeSize)
-            return Builder.BuildTrunc(value, toType, "decrcast");
+            return Builder.BuildTrunc(value, llvmToType, "decrcast");
+
 
         return value;
     }

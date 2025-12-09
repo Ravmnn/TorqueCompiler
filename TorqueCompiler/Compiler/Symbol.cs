@@ -21,23 +21,23 @@ public abstract class Symbol(string name, TokenLocation location, Scope declarat
 
 
 
-public class ValueSymbol(string name, PrimitiveType? type, TokenLocation location, Scope declarationScope)
+public class ValueSymbol(string name, Type? type, TokenLocation location, Scope declarationScope)
     : Symbol(name, location, declarationScope)
 {
-    public PrimitiveType? Type { get; set; } = type;
+    public Type? Type { get; set; } = type;
 }
 
 
 
 
-public class FunctionSymbol(string name, PrimitiveType? returnType, PrimitiveType[]? parameters, TokenLocation location, Scope declarationScope)
+public class FunctionSymbol(string name, Type? returnType, Type[]? parameters, TokenLocation location, Scope declarationScope)
     : ValueSymbol(name, returnType, location, declarationScope)
 {
-    public PrimitiveType? ReturnType
+    public Type? ReturnType
     {
         get => Type;
         set => Type = value;
     }
 
-    public PrimitiveType[]? Parameters { get; set; } = parameters;
+    public Type[]? Parameters { get; set; } = parameters;
 }

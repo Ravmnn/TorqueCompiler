@@ -136,7 +136,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessDeclaration(DeclarationStatement statement)
-        => $"{BeginStatement()}{statement.Type.Lexeme} {statement.Name.Lexeme} = {Process(statement.Value)} {EndStatement()}";
+        => $"{BeginStatement()}{statement.Type} {statement.Name.Lexeme} = {Process(statement.Value)} {EndStatement()}";
 
 
 
@@ -146,7 +146,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         var builder = new StringBuilder();
 
         builder.Append(BeginStatement());
-        builder.Append($"{statement.ReturnType.Lexeme} {statement.Name.Lexeme}(");
+        builder.Append($"{statement.ReturnType} {statement.Name.Lexeme}(");
 
         var parameters = statement.Parameters.ToArray();
 
@@ -155,7 +155,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
             var parameter = parameters[i];
             var atEnd = i + 1 >= parameters.Length;
 
-            builder.Append($"{parameter.Type.Lexeme} {parameter.Name.Lexeme}{(!atEnd ? ", " : "")}");
+            builder.Append($"{parameter.Type} {parameter.Name.Lexeme}{(!atEnd ? ", " : "")}");
         }
 
         builder.Append($") {NewlineChar()}");
@@ -259,5 +259,5 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessCast(CastExpression expression)
-        => $"({Process(expression.Expression)} as {expression.Type.Lexeme})";
+        => $"({Process(expression.Expression)} as {expression.Type})";
 }
