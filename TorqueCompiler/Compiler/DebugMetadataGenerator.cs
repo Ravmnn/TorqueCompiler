@@ -223,6 +223,13 @@ public class DebugMetadataGenerator
     }
 
 
+    public LLVMDbgRecordRef UpdateLocalVariableValue(LLVMValueRef reference, LLVMMetadataRef location)
+    {
+        var variable = Scope.GetSymbol(reference);
+        return UpdateLocalVariableValue(reference, variable.LLVMDebugMetadata!.Value, location);
+    }
+
+
 
 
     public LLVMMetadataRef[] TypesToMetadataArray(Type[] types)

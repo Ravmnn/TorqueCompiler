@@ -50,5 +50,11 @@ namespace Torque.Compiler.Diagnostics {
                 return ResourceManager.GetString("TypeDiffers", resourceCulture);
             }
         }
+        
+        internal static string PointerExpected {
+            get {
+                return ResourceManager.GetString("PointerExpected", resourceCulture);
+            }
+        }
     }
 }

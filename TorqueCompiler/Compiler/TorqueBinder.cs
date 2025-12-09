@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -126,6 +127,16 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
 
 
+    public BoundExpression ProcessUnary(UnaryExpression expression)
+    {
+        var boundExpression = Process(expression.Expression);
+
+        return new BoundUnaryExpression(expression, boundExpression);
+    }
+
+
+
+
     public BoundExpression ProcessGrouping(GroupingExpression expression)
     {
         var boundExpression = Process(expression.Expression);
@@ -154,11 +165,28 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
     public BoundExpression ProcessAssignment(AssignmentExpression expression)
     {
-        var identifier = (Process(expression.Symbol) as BoundSymbolExpression)!;
+        var pointer = Process(expression.Pointer);
+        var reference = ToAssignmentReference(pointer);
+
         var value = Process(expression.Value);
 
-        return new BoundAssignmentExpression(expression, identifier, value);
+        return new BoundAssignmentExpression(expression, reference, value);
     }
+
+
+    private BoundAssignmentReferenceExpression ToAssignmentReference(BoundExpression expression)
+    {
+        if (expression is not BoundSymbolExpression and not BoundPointerAccessExpression)
+            Report(Diagnostic.BinderCatalog.MustBeAssignmentReference, location: expression.Source());
+
+        return new BoundAssignmentReferenceExpression(expression.Syntax, expression);
+    }
+
+
+
+
+    public BoundExpression ProcessPointerAccess(PointerAccessExpression expression)
+        => new BoundPointerAccessExpression(expression, Process(expression.Pointer));
 
 
 

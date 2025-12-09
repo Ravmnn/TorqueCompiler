@@ -82,6 +82,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
             case '*': return TokenFromType(TokenType.Star);
             case '/': return TokenFromType(TokenType.Slash);
             case '=': return TokenFromType(TokenType.Equal);
+            case '!': return TokenFromType(TokenType.Exclamation);
             case '&': return TokenFromType(TokenType.Ampersand);
             case '(': return TokenFromType(TokenType.ParenLeft);
             case ')': return TokenFromType(TokenType.ParenRight);

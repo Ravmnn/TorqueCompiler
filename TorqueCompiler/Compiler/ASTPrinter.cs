@@ -228,8 +228,16 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         => $"{(expression.GetAddress ? "&" : "$")}{expression.Identifier.Lexeme}";
 
 
+    public string ProcessUnary(UnaryExpression expression)
+        => UnaryStringify(expression.Operator.Lexeme, expression.Expression);
+
+
     public string ProcessAssignment(AssignmentExpression expression)
-        => BinaryStringify("=", expression.Symbol, expression.Value);
+        => BinaryStringify("=", expression.Pointer, expression.Value);
+
+
+    public string ProcessPointerAccess(PointerAccessExpression expression)
+        => UnaryStringify("*", expression.Pointer);
 
 
     public string ProcessCall(CallExpression expression)

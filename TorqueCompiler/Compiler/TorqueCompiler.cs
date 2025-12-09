@@ -50,11 +50,13 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add floats
         // TODO: add function calling
 
+        // TODO: add boolean expressions
+        // TODO: add number negation operator "-"
+
         // TODO: only pointers type (T*) should be able to modify the memory itself:
         // normal types that acquires the memory of something (&value) should treat the address returned as a normal integer
 
         // TODO: make infinite indirection pointers? (T****...) or limit to double? (T**)
-        // TODO: add pointers
 
         // TODO: make this user's choice (command line options)
         const string Triple = "x86_64-pc-linux-gnu";
@@ -184,6 +186,14 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
 
         return Debug?.UpdateLocalVariableValue(name, llvmLocation!.Value);
+    }
+
+
+    private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(LLVMValueRef reference, TokenLocation location)
+    {
+        var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
+
+        return Debug?.UpdateLocalVariableValue(reference, llvmLocation!.Value);
     }
 
 
@@ -369,6 +379,25 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
+    public LLVMValueRef ProcessUnary(BoundUnaryExpression expression)
+    {
+        var syntax = (expression.Syntax as UnaryExpression)!;
+
+        var value = Process(expression.Expression);
+        var llvmType = expression.Type!.Value.TypeToLLVMType();
+
+        switch (syntax.Operator.Type)
+        {
+            case TokenType.Minus: return Builder.BuildSub(LLVMValueRef.CreateConstInt(llvmType, 0), value, "ineg");
+            case TokenType.Exclamation: return Builder.BuildXor(value, LLVMValueRef.CreateConstInt(llvmType, 1), "bneg");
+
+            default: throw new UnreachableException();
+        }
+    }
+
+
+
+
     public LLVMValueRef ProcessGrouping(BoundGroupingExpression expression)
         => Process(expression.Expression);
 
@@ -391,20 +420,33 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessAssignment(BoundAssignmentExpression expression)
     {
-        // Processing "expression.Symbol" (a BoundExpression) is not actually needed, since
-        // it will always be a "BoundSymbolExpression", so it is possible to get the symbol information
-        // directly.
-
-        var symbol = expression.Symbol.Symbol;
+        var reference = Process(expression.Reference);
         var value = Process(expression.Value);
 
-        // assignment expressions automatically fetches the symbol pointer
-        var pointer = symbol.LLVMReference!.Value;
-
-        var result = Builder.BuildStore(value, pointer);
-        DebugUpdateLocalVariableValue(symbol.Name, expression.Source());
+        var result = Builder.BuildStore(value, reference);
+        //DebugUpdateLocalVariableValue(reference, expression.Source());
 
         return result;
+    }
+
+
+    public LLVMValueRef ProcessAssignmentReference(BoundAssignmentReferenceExpression expression) => expression.Reference switch
+    {
+        BoundSymbolExpression symbol => symbol.Symbol.LLVMReference!.Value,
+        BoundPointerAccessExpression pointer => Process(pointer.Pointer),
+
+        _ => throw new UnreachableException()
+    };
+
+
+
+
+    public LLVMValueRef ProcessPointerAccess(BoundPointerAccessExpression expression)
+    {
+        var value = Process(expression.Pointer);
+        var llvmType = expression.Type!.Value.TypeToLLVMType();
+
+        return Builder.BuildLoad2(llvmType, value, "ptraccess");
     }
 
 

@@ -37,7 +37,7 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.Parser)] ExpectAssignmentOperator,
         [Item(DiagnosticScope.Parser)] ExpectLeftParenAfterFunctionName,
         [Item(DiagnosticScope.Parser)] ExpectRightParenBeforeReturnType,
-        [Item(DiagnosticScope.Parser)] ExpectReturnTypeSpecifierAfterParameters,
+        [Item(DiagnosticScope.Parser)] ExpectReturnTypeSpecifierAfterParameters, // TODO: not used?
         [Item(DiagnosticScope.Parser)] ExpectRightParenAfterArguments,
         [Item(DiagnosticScope.Parser)] UnclosedGroupingExpression,
         [Item(DiagnosticScope.Parser)] UnclosedBlock,
@@ -49,13 +49,15 @@ public readonly partial struct Diagnostic
     {
         [Item(DiagnosticScope.Binder)] MultipleSymbolDeclaration,
         [Item(DiagnosticScope.Binder)] UndeclaredSymbol,
-        [Item(DiagnosticScope.Binder)] SymbolIsNotAValue
+        [Item(DiagnosticScope.Binder)] SymbolIsNotAValue,
+        [Item(DiagnosticScope.Binder)] MustBeAssignmentReference
     }
 
 
     public enum TypeCheckerCatalog
     {
-        [Item(DiagnosticScope.TypeChecker)] TypeDiffers
+        [Item(DiagnosticScope.TypeChecker)] TypeDiffers,
+        [Item(DiagnosticScope.TypeChecker)] PointerExpected
     }
 
 

@@ -12,9 +12,11 @@ public interface IExpressionProcessor
 
     void ProcessLiteral(LiteralExpression expression);
     void ProcessBinary(BinaryExpression expression);
+    void ProcessUnary(UnaryExpression expression);
     void ProcessGrouping(GroupingExpression expression);
     void ProcessSymbol(SymbolExpression expression);
     void ProcessAssignment(AssignmentExpression expression);
+    void ProcessPointerAccess(PointerAccessExpression expression);
     void ProcessCall(CallExpression expression);
     void ProcessCast(CastExpression expression);
 }
@@ -26,9 +28,11 @@ public interface IExpressionProcessor<out T>
 
     T ProcessLiteral(LiteralExpression expression);
     T ProcessBinary(BinaryExpression expression);
+    T ProcessUnary(UnaryExpression expression);
     T ProcessGrouping(GroupingExpression expression);
     T ProcessSymbol(SymbolExpression expression);
     T ProcessAssignment(AssignmentExpression expression);
+    T ProcessPointerAccess(PointerAccessExpression expression);
     T ProcessCall(CallExpression expression);
     T ProcessCast(CastExpression expression);
 }
@@ -92,6 +96,28 @@ public class BinaryExpression(Expression left, Token @operator, Expression right
 
 
 
+public class UnaryExpression(Token @operator, Expression expression) : Expression
+{
+    public Token Operator { get; } = @operator;
+    public Expression Expression { get; } = expression;
+
+
+
+
+    public override void Process(IExpressionProcessor processor)
+        => processor.ProcessUnary(this);
+
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessUnary(this);
+
+
+    public override Token Source() => Operator;
+}
+
+
+
+
 public class GroupingExpression(Expression expression) : Expression
 {
     public Expression Expression { get; } = expression;
@@ -135,9 +161,9 @@ public class SymbolExpression(Token identifier, bool getAddress = false) : Expre
 
 
 
-public class AssignmentExpression(SymbolExpression symbol, Token @operator, Expression value) : Expression
+public class AssignmentExpression(Expression pointer, Token @operator, Expression value) : Expression
 {
-    public SymbolExpression Symbol { get; } = symbol;
+    public Expression Pointer { get; } = pointer;
     public Token Operator { get; } = @operator;
     public Expression Value { get; } = value;
 
@@ -150,6 +176,28 @@ public class AssignmentExpression(SymbolExpression symbol, Token @operator, Expr
 
     public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessAssignment(this);
+
+
+    public override Token Source() => Operator;
+}
+
+
+
+
+public class PointerAccessExpression(Token @operator, Expression pointer) : Expression
+{
+    public Token Operator { get; } = @operator;
+    public Expression Pointer { get; } = pointer;
+
+
+
+
+    public override void Process(IExpressionProcessor processor)
+        => processor.ProcessPointerAccess(this);
+
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessPointerAccess(this);
 
 
     public override Token Source() => Operator;

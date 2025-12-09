@@ -36,10 +36,25 @@ public class Scope(Scope? parent = null)
                 return symbol;
 
         if (Parent is null)
-            throw new InvalidOperationException($"Invalid identifier \"{name}\".");
+            throw new InvalidOperationException($"Invalid symbol \"{name}\".");
 
         return Parent.GetSymbol(name);
     }
+
+
+    public Symbol GetSymbol(LLVMValueRef reference)
+    {
+        foreach (var symbol in Symbols)
+            if (symbol.LLVMReference == reference)
+                return symbol;
+
+        if (Parent is null)
+            throw new InvalidOperationException($"Invalid symbol reference \"{reference}\"");
+
+        return Parent.GetSymbol(reference);
+    }
+
+
 
 
     public Symbol? TryGetSymbol(string name)
@@ -47,6 +62,19 @@ public class Scope(Scope? parent = null)
         try
         {
             return GetSymbol(name);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+
+    public Symbol? TryGetSymbol(LLVMValueRef reference)
+    {
+        try
+        {
+            return GetSymbol(reference);
         }
         catch
         {

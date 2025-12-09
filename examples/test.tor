@@ -1,10 +1,6 @@
 int main()
 {
-    int number = 10;
-    int* ptrNumber = number as int*;
-    byte* null = 0 as byte*;
+    int* number = 0 as int* + 123 as int*;
 
-    int* realptr = &number as int*;
-    
     return 0;
 }

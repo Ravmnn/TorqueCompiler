@@ -31,4 +31,7 @@
     <data name="SymbolIsNotAValue" xml:space="preserve">
         <value>Symbol "{0}" is not an expression value</value>
     </data>
+    <data name="MustBeAssignmentReference" xml:space="preserve">
+        <value>Expected symbol or pointer access expression</value>
+    </data>
 </root>

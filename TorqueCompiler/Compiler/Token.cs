@@ -11,6 +11,7 @@ public enum TokenType
     SemiColon, Colon, Arrow,
     Comma,
 
+    Exclamation,
     Plus, Minus, Star, Slash, Equal, Ampersand,
     ParenLeft, ParenRight, CurlyBraceLeft, CurlyBraceRight,
 

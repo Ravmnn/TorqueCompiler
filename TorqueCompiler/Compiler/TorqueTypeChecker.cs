@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using Torque.Compiler.Diagnostics;
@@ -43,6 +44,15 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
             return;
 
         Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
+    }
+
+
+    private void ReportIfNotAPointer(Type type, TokenLocation location)
+    {
+        if (type.IsPointer)
+            return;
+
+        Report(Diagnostic.TypeCheckerCatalog.PointerExpected, location: location);
     }
 
 
@@ -163,11 +173,29 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
 
-    public Type ProcessGrouping(BoundGroupingExpression expression)
+    public Type ProcessUnary(BoundUnaryExpression expression)
     {
-        Process(expression.Expression);
+        var unarySyntax = (expression.Syntax as UnaryExpression)!;
+
+        var type = Process(expression.Expression);
+
+        switch (unarySyntax.Operator.Type)
+        {
+            case TokenType.Star: ReportIfNotAPointer(type, expression.Source()); break;
+            case TokenType.Minus: break;
+            case TokenType.Exclamation: ReportIfDiffers(PrimitiveType.Bool, type, expression.Source()); break;
+
+            default: throw new UnreachableException();
+        }
+
         return expression.Type!.Value;
     }
+
+
+
+
+    public Type ProcessGrouping(BoundGroupingExpression expression)
+        => Process(expression.Expression);
 
 
 
@@ -182,11 +210,24 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
     public Type ProcessAssignment(BoundAssignmentExpression expression)
     {
-        var identifierType = Process(expression.Symbol);
+        var referenceType = Process(expression.Reference);
         var valueType = Process(expression.Value);
 
-        ReportIfDiffers(identifierType, valueType, expression.Value.Source());
+        ReportIfDiffers(referenceType, valueType, expression.Value.Source());
 
+        return expression.Type!.Value;
+    }
+
+
+    public Type ProcessAssignmentReference(BoundAssignmentReferenceExpression expression)
+        => Process(expression.Reference);
+
+
+
+
+    public Type ProcessPointerAccess(BoundPointerAccessExpression expression)
+    {
+        Process(expression.Pointer);
         return expression.Type!.Value;
     }
 

@@ -206,13 +206,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
             var @operator = Previous();
             var value = Assignment();
 
-            if (expression is not SymbolExpression { GetAddress: false } identifier)
-            {
-                ReportAndThrow(Diagnostic.ParserCatalog.ExpectIdentifier, location: expression.Source());
-                throw new UnreachableException();
-            }
-
-            expression = new AssignmentExpression(identifier, @operator, value);
+            expression = new AssignmentExpression(expression, @operator, value);
         }
 
         return expression;
@@ -257,7 +251,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
     private Expression Cast()
     {
-        var expression = Call();
+        var expression = PointerAccess();
 
         while (Match(TokenType.KwAs))
         {
@@ -267,6 +261,38 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
         }
 
         return expression;
+    }
+
+
+
+
+    private Expression PointerAccess()
+    {
+        if (Match(TokenType.Star))
+        {
+            var @operator = Previous();
+            var pointer = PointerAccess();
+
+            return new PointerAccessExpression(@operator, pointer);
+        }
+
+        return Unary();
+    }
+
+
+
+
+    private Expression Unary()
+    {
+        if (Match(TokenType.Minus, TokenType.Exclamation))
+        {
+            var @operator = Previous();
+            var expression = Unary();
+
+            return new UnaryExpression(@operator, expression);
+        }
+
+        return Call();
     }
 
 
