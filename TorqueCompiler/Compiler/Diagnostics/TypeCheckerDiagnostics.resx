@@ -28,4 +28,10 @@
     <data name="PointerExpected" xml:space="preserve">
         <value>Pointer type expected</value>
     </data>
+    <data name="CannotUseVoidHere" xml:space="preserve">
+        <value>Type "void" cannot be used in this context</value>
+    </data>
+    <data name="ExpressionDoesNotReturnAnyValue" xml:space="preserve">
+        <value>Expected value, but expression does not return any (void)</value>
+    </data>
 </root>

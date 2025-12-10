@@ -83,9 +83,9 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
     private Statement FunctionDeclaration(TypeName returnType, Token name)
     {
-        Expect(TokenType.ParenLeft, Diagnostic.ParserCatalog.ExpectLeftParenAfterFunctionName);
+        Expect(TokenType.ParenLeft, Diagnostic.ParserCatalog.ExpectLeftParen);
         var parameters = FunctionParameters();
-        Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectRightParenBeforeReturnType);
+        Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectRightParen);
 
         var body = Block() as BlockStatement;
 
@@ -309,7 +309,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
             if (!Check(TokenType.ParenRight))
                 arguments = Arguments().ToList();
 
-            Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectRightParenAfterArguments);
+            Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectRightParen);
 
             expression = new CallExpression(parenLeft, expression, arguments);
         }
@@ -363,7 +363,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
         var leftParen = Previous();
         var expression = Expression();
 
-        Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectExpression, leftParen);
+        Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectRightParen, leftParen);
 
         return new GroupingExpression(expression);
     }
@@ -376,10 +376,31 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
         var baseType = ExpectTypeName();
         Token? pointerSpecifier = null;
 
+        if (Match(TokenType.ParenLeft))
+        {
+            var parameters = ParseFunctionTypeNameParameters();
+            Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectRightParen);
+
+            return new FunctionTypeName(baseType, parameters.ToArray());
+        }
+
         if (Match(TokenType.Star))
             pointerSpecifier = Previous();
 
         return new TypeName(baseType, pointerSpecifier);
+    }
+
+
+    private IEnumerable<TypeName> ParseFunctionTypeNameParameters()
+    {
+        var parameters = new List<TypeName>();
+
+        if (!Check(TokenType.ParenRight))
+            do
+                parameters.Add(ParseTypeName());
+            while (Match(TokenType.Comma));
+
+        return parameters;
     }
 
 

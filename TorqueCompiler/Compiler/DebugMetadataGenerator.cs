@@ -123,9 +123,9 @@ public class DebugMetadataGenerator
 
 
 
-    public unsafe LLVMMetadataRef GenerateFunction(LLVMValueRef function, string name, int lineNumber, Type? returnType, Type[] parametersType)
+    public unsafe LLVMMetadataRef GenerateFunction(LLVMValueRef function, string name, int lineNumber, FunctionType type)
     {
-        var typeArray = CreateFunctionTypeArray(returnType, parametersType);
+        var typeArray = CreateFunctionTypeArray(type);
         var metadataTypeArray = TypesToMetadataArray(typeArray);
 
         var debugFunctionType = CreateSubroutineType(metadataTypeArray);
@@ -148,15 +148,11 @@ public class DebugMetadataGenerator
         );
 
 
-    private Type[] CreateFunctionTypeArray(Type? returnType, Type[] parametersType)
+    private Type[] CreateFunctionTypeArray(FunctionType type)
     {
-        var length = (returnType is not null ? 1 : 0) + parametersType.Length;
-        var types = new Type[length];
+        var typeArray = new Type[] { type.ReturnType };
 
-        if (returnType is not null)
-            types[0] = returnType.Value;
-
-        return types.Concat(parametersType).ToArray();
+        return typeArray.Concat(type.ParametersType).ToArray();
     }
 
 

@@ -56,5 +56,17 @@ namespace Torque.Compiler.Diagnostics {
                 return ResourceManager.GetString("PointerExpected", resourceCulture);
             }
         }
+        
+        internal static string CannotUseVoidHere {
+            get {
+                return ResourceManager.GetString("CannotUseVoidHere", resourceCulture);
+            }
+        }
+        
+        internal static string ExpressionDoesNotReturnAnyValue {
+            get {
+                return ResourceManager.GetString("ExpressionDoesNotReturnAnyValue", resourceCulture);
+            }
+        }
     }
 }

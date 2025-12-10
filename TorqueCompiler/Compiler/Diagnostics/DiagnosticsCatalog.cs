@@ -33,13 +33,9 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.Parser)] ExpectExpression,
         [Item(DiagnosticScope.Parser)] ExpectIdentifier,
         [Item(DiagnosticScope.Parser)] ExpectTypeName,
-        [Item(DiagnosticScope.Parser)] ExpectTypeSpecifier,
         [Item(DiagnosticScope.Parser)] ExpectAssignmentOperator,
-        [Item(DiagnosticScope.Parser)] ExpectLeftParenAfterFunctionName,
-        [Item(DiagnosticScope.Parser)] ExpectRightParenBeforeReturnType,
-        [Item(DiagnosticScope.Parser)] ExpectReturnTypeSpecifierAfterParameters, // TODO: not used?
-        [Item(DiagnosticScope.Parser)] ExpectRightParenAfterArguments,
-        [Item(DiagnosticScope.Parser)] UnclosedGroupingExpression,
+        [Item(DiagnosticScope.Parser)] ExpectLeftParen,
+        [Item(DiagnosticScope.Parser)] ExpectRightParen,
         [Item(DiagnosticScope.Parser)] UnclosedBlock,
         [Item(DiagnosticScope.Parser)] WrongBlockPlacement
     }
@@ -57,7 +53,9 @@ public readonly partial struct Diagnostic
     public enum TypeCheckerCatalog
     {
         [Item(DiagnosticScope.TypeChecker)] TypeDiffers,
-        [Item(DiagnosticScope.TypeChecker)] PointerExpected
+        [Item(DiagnosticScope.TypeChecker)] PointerExpected,
+        [Item(DiagnosticScope.TypeChecker)] CannotUseVoidHere,
+        [Item(DiagnosticScope.TypeChecker)] ExpressionDoesNotReturnAnyValue
     }
 
 

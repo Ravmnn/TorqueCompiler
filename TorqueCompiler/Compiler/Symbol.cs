@@ -37,13 +37,13 @@ public class VariableSymbol(string name, Type? type, TokenLocation location, Sco
 
 
 
-public class FunctionSymbol(string name, Type? returnType, VariableSymbol[] parameters, TokenLocation location, Scope declarationScope)
-    : VariableSymbol(name, returnType, location, declarationScope)
+public class FunctionSymbol(string name, Type? type, VariableSymbol[] parameters, TokenLocation location, Scope declarationScope)
+    : VariableSymbol(name, type, location, declarationScope)
 {
-    public Type? ReturnType
+    public new FunctionType? Type
     {
-        get => Type;
-        set => Type = value;
+        get => base.Type as FunctionType;
+        set => base.Type = value;
     }
 
     public VariableSymbol[] Parameters { get; set; } = parameters;

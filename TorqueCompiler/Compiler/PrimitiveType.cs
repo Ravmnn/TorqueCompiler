@@ -11,6 +11,7 @@ namespace Torque.Compiler;
 
 public enum PrimitiveType
 {
+    Void,
     Bool,
     Char,
     UInt8,
@@ -54,6 +55,8 @@ public static class PrimitiveTypeExtensions
 
     public static LLVMTypeRef PrimitiveToLLVMType(this PrimitiveType type) => type switch
     {
+        PrimitiveType.Void => LLVMTypeRef.Void,
+
         PrimitiveType.Bool => LLVMTypeRef.Int8,
 
         PrimitiveType.Char or PrimitiveType.Int8 or PrimitiveType.UInt8 => LLVMTypeRef.Int8,

@@ -23,45 +23,36 @@
 
 
     <data name="ExpectBlock" xml:space="preserve">
-        <value>Expect block statement.</value>
+        <value>Expect block statement</value>
     </data>
     <data name="ExpectSemicolonAfterStatement" xml:space="preserve">
-        <value>Expect semicolon (";") after statement.</value>
+        <value>Expect semicolon (";") after statement</value>
     </data>
     <data name="ExpectExpression" xml:space="preserve">
-        <value>Expect expression.</value>
+        <value>Expect expression</value>
     </data>
     <data name="ExpectIdentifier" xml:space="preserve">
-        <value>Expect identifier.</value>
+        <value>Expect identifier</value>
     </data>
     <data name="ExpectTypeName" xml:space="preserve">
-        <value>Expect type name.</value>
+        <value>Expect type name</value>
     </data>
     <data name="ExpectTypeSpecifier" xml:space="preserve">
-        <value>Expect type specifier.</value>
+        <value>Expect type specifier</value>
     </data>
     <data name="ExpectAssignmentOperator" xml:space="preserve">
-        <value>Expect assignment operator.</value>
+        <value>Expect assignment operator</value>
     </data>
-    <data name="ExpectLeftParenAfterFunctionName" xml:space="preserve">
-        <value>Expect "(" after function name.</value>
+    <data name="ExpectLeftParen" xml:space="preserve">
+        <value>Expect "("</value>
     </data>
-    <data name="ExpectRightParenBeforeReturnType" xml:space="preserve">
-        <value>Expect ")" before return type specifier.</value>
-    </data>
-    <data name="ExpectReturnTypeSpecifierAfterParameters" xml:space="preserve">
-        <value>Expect function return type specifier after parameter list.</value>
-    </data>
-    <data name="ExpectRightParenAfterArguments" xml:space="preserve">
-        <value>Expect ")" after argument list.</value>
-    </data>
-    <data name="UnclosedGroupingExpression" xml:space="preserve">
-        <value>Unclosed grouping expression.</value>
+    <data name="ExpectRightParen" xml:space="preserve">
+        <value>Expect ")"</value>
     </data>
     <data name="UnclosedBlock" xml:space="preserve">
-        <value>Unclosed block statement.</value>
+        <value>Unclosed block statement</value>
     </data>
     <data name="WrongBlockPlacement" xml:space="preserve">
-        <value>Wrong block placement.</value>
+        <value>Wrong block placement</value>
     </data>
 </root>

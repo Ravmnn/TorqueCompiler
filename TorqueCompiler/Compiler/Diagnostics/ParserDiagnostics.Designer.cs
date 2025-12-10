@@ -87,33 +87,15 @@ namespace Torque.Compiler.Diagnostics {
             }
         }
         
-        internal static string ExpectLeftParenAfterFunctionName {
+        internal static string ExpectLeftParen {
             get {
-                return ResourceManager.GetString("ExpectLeftParenAfterFunctionName", resourceCulture);
+                return ResourceManager.GetString("ExpectLeftParen", resourceCulture);
             }
         }
         
-        internal static string ExpectRightParenBeforeReturnType {
+        internal static string ExpectRightParen {
             get {
-                return ResourceManager.GetString("ExpectRightParenBeforeReturnType", resourceCulture);
-            }
-        }
-        
-        internal static string ExpectReturnTypeSpecifierAfterParameters {
-            get {
-                return ResourceManager.GetString("ExpectReturnTypeSpecifierAfterParameters", resourceCulture);
-            }
-        }
-        
-        internal static string ExpectRightParenAfterArguments {
-            get {
-                return ResourceManager.GetString("ExpectRightParenAfterArguments", resourceCulture);
-            }
-        }
-        
-        internal static string UnclosedGroupingExpression {
-            get {
-                return ResourceManager.GetString("UnclosedGroupingExpression", resourceCulture);
+                return ResourceManager.GetString("ExpectRightParen", resourceCulture);
             }
         }
         

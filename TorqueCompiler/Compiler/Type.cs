@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+
 using LLVMSharp.Interop;
 
 
@@ -6,29 +9,80 @@ namespace Torque.Compiler;
 
 
 
-public readonly record struct Type(PrimitiveType BaseType, bool IsPointer = false)
+// TODO: make type infinite recursive
+public class Type(PrimitiveType baseType, bool isPointer = false)
 {
+    public PrimitiveType BaseType { get; } = baseType;
+    public bool IsPointer { get; } = isPointer;
+    public bool IsVoid => BaseType == PrimitiveType.Void;
+
+
+
+
     public static implicit operator PrimitiveType(Type type) => type.BaseType;
     public static implicit operator Type(PrimitiveType type) => new Type(type);
 
 
     public override string ToString()
         => $"{BaseType.PrimitiveToString()}{(IsPointer ? "*" : "")}";
+
+
+
+
+    public static bool operator ==(Type left, Type right) => left.Equals((object)right);
+    public static bool operator !=(Type left, Type right) => !(left == right);
+
+
+    public override bool Equals(object? other)
+    {
+        if (other is not Type type)
+            return false;
+
+        return Equals(type) && type.Equals(this);
+    }
+
+
+    protected virtual bool Equals(Type other)
+        => BaseType == other.BaseType && IsPointer == other.IsPointer;
+
+
+    public override int GetHashCode()
+        => HashCode.Combine((int)BaseType, IsPointer);
 }
 
 
 
 
-public readonly struct TypeName(Token baseType, Token? pointerSpecifier = null)
+public class FunctionType(Type returnType, Type[] parametersType)
+    : Type(returnType.BaseType, true)
 {
-    public Token BaseType { get; } = baseType;
-    public Token? PointerSpecifier { get; } = pointerSpecifier;
+    public Type ReturnType => BaseType;
 
-    public bool IsPointer => PointerSpecifier is not null;
+    public Type[] ParametersType { get; } = parametersType;
 
 
     public override string ToString()
-        => $"{BaseType.Lexeme}{(IsPointer ? "*" : "")}";
+    {
+        var parameterTypesString = ParametersType.Select(parameter => parameter.ToString());
+        var parameters = string.Join(", ", parameterTypesString);
+
+        return $"{(IsVoid ? "void" : ReturnType.ToString())}({parameters})";
+    }
+
+
+
+
+    protected override bool Equals(Type other)
+    {
+        if (other is not FunctionType otherType)
+            return false;
+
+        return ReturnType == otherType.ReturnType && ParametersType.SequenceEqual(otherType.ParametersType);
+    }
+
+
+    public override int GetHashCode()
+        => HashCode.Combine((int)BaseType, ParametersType);
 }
 
 
@@ -42,14 +96,30 @@ public static class TypeExtensions
 
         return type switch
         {
+            FunctionType functionType => FunctionTypeToLLVMType(functionType),
+
             _ when type.IsPointer => LLVMTypeRef.CreatePointer(llvmBaseType, 0),
             _ => llvmBaseType
         };
     }
 
 
+    public static LLVMTypeRef FunctionTypeToLLVMType(this FunctionType functionType, bool pointer = true)
+    {
+        var llvmReturnType = functionType.BaseType.PrimitiveToLLVMType();
+        var llvmParametersType = from type in functionType.ParametersType select type.TypeToLLVMType();
+        var llvmFunctionType = LLVMTypeRef.CreateFunction(llvmReturnType, llvmParametersType.ToArray());
+
+        return pointer ? LLVMTypeRef.CreatePointer(llvmFunctionType, 0) : llvmFunctionType;
+    }
+
+
 
 
     public static int SizeOfThis(this Type type, LLVMTargetDataRef targetData)
-        => (int)targetData.ABISizeOfType(type.TypeToLLVMType());
+        => type switch
+        {
+            _ when type.BaseType == PrimitiveType.Void => 0,
+            _ => (int)targetData.ABISizeOfType(type.TypeToLLVMType())
+        };
 }

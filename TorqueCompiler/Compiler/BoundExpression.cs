@@ -213,7 +213,7 @@ public class BoundPointerAccessExpression(PointerAccessExpression syntax, BoundE
 {
     public BoundExpression Pointer { get; } = pointer;
 
-    public override Type? Type => Pointer.Type!.Value.BaseType;
+    public override Type Type => Pointer.Type!.BaseType;
 
 
 
@@ -236,7 +236,7 @@ public class BoundCallExpression(CallExpression syntax, BoundExpression callee, 
     public IEnumerable<BoundExpression> Arguments { get; } = arguments;
 
     // the Symbol.Type of a callee is its return type
-    public override Type? Type => Callee.Type;
+    public override Type Type => (Callee.Type as FunctionType)!.ReturnType;
 
 
 

@@ -4,9 +4,20 @@ int sum(int x, int y)
 }
 
 
+void nothing()
+{
+    
+}
+
+
 int main()
 {
-    int number = sum(25 as byte);
+    int num = nothing();
+
+    int(int, int) process = sum;
+
+    int number = process(25, 15);
+    int result = process(number, 60);
 
     return 0;
 }

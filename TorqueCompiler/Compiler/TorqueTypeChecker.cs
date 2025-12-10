@@ -38,12 +38,16 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
 
+    // BUG: casting void to any type results in a loop
     private void ReportIfDiffers(Type expected, Type got, TokenLocation location)
     {
         if (expected == got)
             return;
 
-        Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
+        if (got.IsVoid)
+            Report(Diagnostic.TypeCheckerCatalog.ExpressionDoesNotReturnAnyValue, [], location);
+        else
+            Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
     }
 
 
@@ -56,10 +60,41 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
     }
 
 
+    private void ReportIfVoid(Type type, TokenLocation location)
+    {
+        if (!type.IsVoid)
+            return;
+
+        Report(Diagnostic.TypeCheckerCatalog.CannotUseVoidHere, location: location);
+    }
 
 
-    private static Type TypeFromTypeName(TypeName typeName)
+
+
+    private Type TypeFromTypeName(TypeName typeName, bool reportIfVoid = true)
+    {
+        var type = typeName switch
+        {
+            FunctionTypeName function => FunctionTypeFromTypeName(function),
+            _ => RawTypeFromTypeName(typeName)
+        };
+
+        if (reportIfVoid)
+            ReportIfVoid(type, typeName.BaseType);
+
+        return type;
+    }
+
+
+    private Type RawTypeFromTypeName(TypeName typeName)
         => new Type(typeName.BaseType.TokenToPrimitive(), typeName.IsPointer);
+
+
+    private FunctionType FunctionTypeFromTypeName(FunctionTypeName typeName)
+    {
+        var parameters = (from parameter in typeName.ParametersType select TypeFromTypeName(parameter)).ToArray();
+        return new FunctionType(typeName.ReturnType.TokenToPrimitive(), parameters);
+    }
 
 
 
@@ -94,10 +129,11 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
     {
         var functionSyntax = (statement.Syntax as FunctionDeclarationStatement)!;
 
-        var returnType = TypeFromTypeName(functionSyntax.ReturnType);
-        var parameterTypes = (from parameter in functionSyntax.Parameters.ToArray() select TypeFromTypeName(parameter.Type)).ToArray();
+        var returnType = TypeFromTypeName(functionSyntax.ReturnType, false);
+        var parameterTypes = (from parameter in functionSyntax.Parameters.ToArray()
+            select TypeFromTypeName(parameter.Type)).ToArray();
 
-        statement.Symbol.ReturnType = returnType;
+        statement.Symbol.Type = new FunctionType(returnType, parameterTypes);
 
         for (var i = 0; i < parameterTypes.Length; i++)
             statement.Symbol.Parameters[i].Type = parameterTypes[i];
@@ -148,7 +184,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
         var token = expression.Source();
 
         expression.Type = token.IsBoolean() ? PrimitiveType.Bool : DefaultLiteralType; // TODO: add char notation 'char' (converts to number)
-        expression.Value = expression.Type.Value.BaseType switch
+        expression.Value = expression.Type.BaseType switch
         {
             PrimitiveType.Bool => token.ValueFromBool(),
             PrimitiveType.Char => throw new NotImplementedException(),
@@ -156,7 +192,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
             _ => token.ValueFromNumber()
         };
 
-        return expression.Type!.Value;
+        return expression.Type!;
     }
 
 
@@ -169,7 +205,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
         ReportIfDiffers(leftType, rightType, expression.Right.Source());
 
-        return expression.Type!.Value;
+        return expression.Type!;
     }
 
 
@@ -190,7 +226,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
             default: throw new UnreachableException();
         }
 
-        return expression.Type!.Value;
+        return expression.Type!;
     }
 
 
@@ -204,7 +240,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
     public Type ProcessSymbol(BoundSymbolExpression expression)
     {
-        return expression.Type!.Value;
+        return expression.Type!;
     }
 
 
@@ -217,7 +253,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
         ReportIfDiffers(referenceType, valueType, expression.Value.Source());
 
-        return expression.Type!.Value;
+        return expression.Type!;
     }
 
 
@@ -230,7 +266,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
     public Type ProcessPointerAccess(BoundPointerAccessExpression expression)
     {
         Process(expression.Pointer);
-        return expression.Type!.Value;
+        return expression.Type;
     }
 
 
@@ -245,7 +281,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
         foreach (var argument in expression.Arguments)
             Process(argument);
 
-        return expression.Type!.Value;
+        return expression.Type;
     }
 
 
@@ -258,6 +294,6 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
         Process(expression.Value);
         expression.Type = TypeFromTypeName(castSyntax.Type);
 
-        return expression.Type!.Value;
+        return expression.Type!;
     }
 }

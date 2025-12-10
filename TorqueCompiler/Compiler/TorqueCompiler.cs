@@ -162,8 +162,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    private LLVMMetadataRef? DebugGenerateFunction(LLVMValueRef function, string functionName, TokenLocation functionLocation, Type functionReturnType, IEnumerable<Type> parameterTypes)
-        => Debug?.GenerateFunction(function, functionName, functionLocation.Line, functionReturnType, parameterTypes.ToArray());
+    private LLVMMetadataRef? DebugGenerateFunction(LLVMValueRef function, string functionName, TokenLocation functionLocation, FunctionType type)
+        => Debug?.GenerateFunction(function, functionName, functionLocation.Line, type);
 
 
 
@@ -236,7 +236,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var symbol = statement.Symbol;
 
         var name = symbol.Name;
-        var type = symbol.Type!.Value;
+        var type = symbol.Type!;
         var llvmType = type.TypeToLLVMType();
 
         var statementSource = statement.Source();
@@ -266,15 +266,15 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var symbol = statement.Symbol;
 
         var functionName = symbol.Name;
-        var functionReturnType = symbol.ReturnType!.Value;
+        var functionReturnType = symbol.Type!.ReturnType;
         var functionLocation = syntax.Source();
         var parameters = statement.Symbol.Parameters;
-        var parameterTypes = (from parameter in parameters select parameter.Type!.Value).ToArray();
+        var parameterTypes = symbol.Type.ParametersType;
 
         var llvmParameterTypes = (from parameter in parameterTypes select parameter.TypeToLLVMType()).ToArray();
         var llvmFunctionType = LLVMTypeRef.CreateFunction(functionReturnType.TypeToLLVMType(), llvmParameterTypes);
         var llvmFunctionReference = Module.AddFunction(functionName, llvmFunctionType);
-        var llvmFunctionDebugMetadata = DebugGenerateFunction(llvmFunctionReference, functionName, functionLocation, functionReturnType, parameterTypes);
+        var llvmFunctionDebugMetadata = DebugGenerateFunction(llvmFunctionReference, functionName, functionLocation, symbol.Type);
 
         symbol.LLVMReference = llvmFunctionReference;
         symbol.LLVMType = llvmFunctionType;
@@ -296,7 +296,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             var parameter = parameters[i];
 
             var llvmValue = function.GetParam((uint)i);
-            var llvmType = parameter.Type!.Value.TypeToLLVMType();
+            var llvmType = parameter.Type!.TypeToLLVMType();
 
             parameter.LLVMReference = Builder.BuildAlloca(llvmType, parameter.Name);
             parameter.LLVMType = llvmType;
@@ -366,7 +366,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessLiteral(BoundLiteralExpression expression)
     {
-        var llvmType = expression.Type!.Value.TypeToLLVMType();
+        var llvmType = expression.Type!.TypeToLLVMType();
         var value = expression.Value!.Value;
 
         var llvmReference = LLVMValueRef.CreateConstInt(llvmType, value);
@@ -403,7 +403,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var syntax = (expression.Syntax as UnaryExpression)!;
 
         var value = Process(expression.Expression);
-        var llvmType = expression.Type!.Value.TypeToLLVMType();
+        var llvmType = expression.Type!.TypeToLLVMType();
 
         return syntax.Operator.Type switch
         {
@@ -462,7 +462,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMValueRef ProcessPointerAccess(BoundPointerAccessExpression expression)
     {
         var value = Process(expression.Pointer);
-        var llvmType = expression.Type!.Value.TypeToLLVMType();
+        var llvmType = expression.Type!.TypeToLLVMType();
 
         return Builder.BuildLoad2(llvmType, value, "ptraccess");
     }
@@ -475,9 +475,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var function = Process(expression.Callee);
         var arguments = expression.Arguments.Select(Process).ToArray();
 
-        var functionType = Scope.GetSymbol(function).LLVMType!.Value;
+        var llvmFunctionType = (expression.Callee.Type as FunctionType)!.FunctionTypeToLLVMType(false);
 
-        return Builder.BuildCall2(functionType, function, arguments, "retval");
+        return Builder.BuildCall2(llvmFunctionType, function, arguments, "retval");
     }
 
 
@@ -487,11 +487,11 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         var value = Process(expression.Value);
 
-        var valueType = expression.Value.Type!.Value;
-        var toType = expression.Type!.Value;
+        var valueType = expression.Value.Type!;
+        var toType = expression.Type!;
 
         var llvmValueType = value.TypeOf;
-        var llvmToType = expression.Type!.Value.TypeToLLVMType();
+        var llvmToType = expression.Type!.TypeToLLVMType();
 
         var sourceTypeSize = SizeOf(llvmValueType);
         var targetTypeSize = SizeOf(llvmToType);
