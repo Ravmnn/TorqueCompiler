@@ -97,12 +97,11 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     {
         var parameters = new List<FunctionParameterDeclaration>();
 
-        if (Check(TokenType.Identifier))
+        if (!Check(TokenType.ParenRight))
             do
             {
-                var name = ExpectIdentifier();
-                Expect(TokenType.Colon, Diagnostic.ParserCatalog.ExpectTypeSpecifier);
                 var type = ParseTypeName();
+                var name = ExpectIdentifier();
 
                 parameters.Add(new FunctionParameterDeclaration(name, type));
             }

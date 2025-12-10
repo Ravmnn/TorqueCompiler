@@ -1,6 +1,12 @@
+int sum(int x, int y)
+{
+    return x + y;
+}
+
+
 int main()
 {
-    int* number = 0 as int* + 123 as int*;
+    int number = sum(25 as byte);
 
     return 0;
 }

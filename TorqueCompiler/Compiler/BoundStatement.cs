@@ -63,9 +63,9 @@ public class BoundExpressionStatement(ExpressionStatement syntax, BoundExpressio
 
 
 
-public class BoundDeclarationStatement(DeclarationStatement syntax, ValueSymbol symbol, BoundExpression value) : BoundStatement(syntax)
+public class BoundDeclarationStatement(DeclarationStatement syntax, VariableSymbol symbol, BoundExpression value) : BoundStatement(syntax)
 {
-    public ValueSymbol Symbol { get; } = symbol;
+    public VariableSymbol Symbol { get; } = symbol;
     public BoundExpression Value { get; } = value;
 
 
@@ -80,7 +80,8 @@ public class BoundDeclarationStatement(DeclarationStatement syntax, ValueSymbol 
 
 
 
-public class BoundFunctionDeclarationStatement(FunctionDeclarationStatement syntax, BoundBlockStatement body, FunctionSymbol symbol) : BoundStatement(syntax)
+public class BoundFunctionDeclarationStatement(FunctionDeclarationStatement syntax, BoundBlockStatement body, FunctionSymbol symbol)
+    : BoundStatement(syntax)
 {
     public BoundBlockStatement Body { get; } = body;
 

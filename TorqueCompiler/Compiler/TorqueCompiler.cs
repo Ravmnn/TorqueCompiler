@@ -37,24 +37,25 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public DebugMetadataGenerator? Debug { get; }
 
 
+    public Scope GlobalScope { get; }
+    public Scope Scope { get; private set; }
+
     public BoundStatement[] Statements { get; }
 
 
 
 
-    public TorqueCompiler(IEnumerable<BoundStatement> statements, Scope? globalScope = null, FileInfo? file = null, bool generateDebugMetadata = false)
+    public TorqueCompiler(IEnumerable<BoundStatement> statements, Scope globalScope, FileInfo? file = null, bool generateDebugMetadata = false)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add importing system
 
         // TODO: add floats
         // TODO: add function calling
+        // TODO: in order to call functions, you'll probably need to implement a way to represent function type:
+        // int(int16, int16, bool)...
 
         // TODO: add boolean expressions
-        // TODO: add number negation operator "-"
-
-        // TODO: only pointers type (T*) should be able to modify the memory itself:
-        // normal types that acquires the memory of something (&value) should treat the address returned as a normal integer
 
         // TODO: make infinite indirection pointers? (T****...) or limit to double? (T**)
 
@@ -66,14 +67,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         File = file;
 
+
+        GlobalScope = globalScope;
+        Scope = GlobalScope;
+
         if (generateDebugMetadata)
-        {
-            if (globalScope is null)
-                throw new ArgumentNullException(null, "Debug metadata generator requires a valid global scope");
-
-            Debug = new DebugMetadataGenerator(this, globalScope);
-        }
-
+            Debug = new DebugMetadataGenerator(this);
 
         Statements = statements.ToArray();
     }
@@ -199,10 +198,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    private void DebugEnterScope(Scope newScope) => Debug?.EnterScope(newScope);
-    private void DebugLeaveScope() => Debug?.LeaveScope();
-
-
     private void DebugGenerateScope(Scope scope, TokenLocation location, LLVMMetadataRef? debugFunctionReference = null)
     {
         var llvmDebugScopeMetadata = DebugCreateLexicalScope(location);
@@ -273,20 +268,42 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var functionName = symbol.Name;
         var functionReturnType = symbol.ReturnType!.Value;
         var functionLocation = syntax.Source();
-        var parameterTypes = statement.Symbol.Parameters!;
+        var parameters = statement.Symbol.Parameters;
+        var parameterTypes = (from parameter in parameters select parameter.Type!.Value).ToArray();
 
-        var llvmParameterTypes = parameterTypes.Select(parameter => parameter.TypeToLLVMType()).ToArray();
-        var llvmFunctionType = LLVMTypeRef.CreateFunction(functionReturnType.TypeToLLVMType(), llvmParameterTypes.ToArray());
+        var llvmParameterTypes = (from parameter in parameterTypes select parameter.TypeToLLVMType()).ToArray();
+        var llvmFunctionType = LLVMTypeRef.CreateFunction(functionReturnType.TypeToLLVMType(), llvmParameterTypes);
         var llvmFunctionReference = Module.AddFunction(functionName, llvmFunctionType);
         var llvmFunctionDebugMetadata = DebugGenerateFunction(llvmFunctionReference, functionName, functionLocation, functionReturnType, parameterTypes);
 
         symbol.LLVMReference = llvmFunctionReference;
         symbol.LLVMType = llvmFunctionType;
+        symbol.LLVMDebugMetadata = llvmFunctionDebugMetadata;
 
         var entry = llvmFunctionReference.AppendBasicBlock(FunctionEntryBlockName);
         Builder.PositionAtEnd(entry);
 
+        ProcessFunctionParametersDeclaration(llvmFunctionReference, parameters);
+
         ProcessScopeBlock(statement.Body, llvmFunctionDebugMetadata);
+    }
+
+
+    private void ProcessFunctionParametersDeclaration(LLVMValueRef function, VariableSymbol[] parameters)
+    {
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            var parameter = parameters[i];
+
+            var llvmValue = function.GetParam((uint)i);
+            var llvmType = parameter.Type!.Value.TypeToLLVMType();
+
+            parameter.LLVMReference = Builder.BuildAlloca(llvmType, parameter.Name);
+            parameter.LLVMType = llvmType;
+            // TODO: debug for parameter
+
+            Builder.BuildStore(llvmValue, parameter.LLVMReference.Value);
+        }
     }
 
 
@@ -315,7 +332,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private void ProcessScopeBlock(BoundBlockStatement statement, LLVMMetadataRef? function = null)
     {
-        DebugEnterScope(statement.Scope);
+        var oldScope = Scope;
+        Scope = statement.Scope;
+
         DebugGenerateScope(statement.Scope, statement.Source(), function);
 
         // If a return statement is reached, the subsequent code after the return that is inside the same scope
@@ -329,7 +348,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         catch (UnreachableCodeControl)
         {}
 
-        DebugLeaveScope();
+        Scope = oldScope;
     }
 
 
@@ -362,8 +381,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         var syntax = (expression.Syntax as BinaryExpression)!;
 
-        var right = Process(expression.Left);
         var left = Process(expression.Right);
+        var right = Process(expression.Left);
 
         return syntax.Operator.Type switch
         {
@@ -386,13 +405,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var value = Process(expression.Expression);
         var llvmType = expression.Type!.Value.TypeToLLVMType();
 
-        switch (syntax.Operator.Type)
+        return syntax.Operator.Type switch
         {
-            case TokenType.Minus: return Builder.BuildSub(LLVMValueRef.CreateConstInt(llvmType, 0), value, "ineg");
-            case TokenType.Exclamation: return Builder.BuildXor(value, LLVMValueRef.CreateConstInt(llvmType, 1), "bneg");
-
-            default: throw new UnreachableException();
-        }
+            TokenType.Minus => Builder.BuildSub(LLVMValueRef.CreateConstInt(llvmType, 0), value, "ineg"),
+            TokenType.Exclamation => Builder.BuildXor(value, LLVMValueRef.CreateConstInt(llvmType, 1), "bneg"),
+            _ => throw new UnreachableException()
+        };
     }
 
 
@@ -409,10 +427,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var llvmReference = symbol.LLVMReference!.Value;
         var llvmType = symbol.LLVMType!.Value;
 
-        if (expression.GetAddress)
+        if (expression.GetAddress || symbol is FunctionSymbol)
             return llvmReference;
 
-        return Builder.BuildLoad2(llvmType, llvmReference, "value");
+        return Builder.BuildLoad2(llvmType, llvmReference, "symval");
     }
 
 
@@ -457,7 +475,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var function = Process(expression.Callee);
         var arguments = expression.Arguments.Select(Process).ToArray();
 
-        return Builder.BuildCall2(function.TypeOf.ElementType, function, arguments, "retval");
+        var functionType = Scope.GetSymbol(function).LLVMType!.Value;
+
+        return Builder.BuildCall2(functionType, function, arguments, "retval");
     }
 
 

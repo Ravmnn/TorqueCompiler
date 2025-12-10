@@ -47,7 +47,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
         if (Scope.SymbolExists(statement.Name.Lexeme))
             ReportToken(Diagnostic.BinderCatalog.MultipleSymbolDeclaration, statement.Source());
 
-        var identifier = new ValueSymbol(statement.Name.Lexeme, null, statement.Name.Location, Scope);
+        var identifier = new VariableSymbol(statement.Name, Scope);
         var value = Process(statement.Value);
 
         Scope.Symbols.Add(identifier);
@@ -63,10 +63,12 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
         if (Scope.SymbolExists(statement.Name.Lexeme))
             ReportToken(Diagnostic.BinderCatalog.MultipleSymbolDeclaration, statement.Source());
 
-        var symbol = new FunctionSymbol(statement.Name.Lexeme, null, null, statement.Name.Location, Scope);
+        var symbol = new FunctionSymbol(statement.Name, Scope);
         Scope.Symbols.Add(symbol);
 
-        var body = (Process(statement.Body) as BoundBlockStatement)!;
+        var body = (ProcessFunctionBlock(statement.Body, statement.Parameters, out var parameterSymbols) as BoundBlockStatement)!;
+
+        symbol.Parameters = parameterSymbols.ToArray();
 
         return new BoundFunctionDeclarationStatement(statement, body, symbol);
     }
@@ -84,15 +86,51 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
 
     public BoundStatement ProcessBlock(BlockStatement statement)
+        => ProcessLexicalBlock(statement);
+
+
+    private BoundStatement ProcessLexicalBlock(BlockStatement statement)
+        => ProcessInnerScope(Scope, () => BlockToBound(statement));
+
+
+    private BoundStatement ProcessFunctionBlock(BlockStatement statement, IEnumerable<FunctionParameterDeclaration> parameters,
+        out IEnumerable<VariableSymbol> parameterSymbols)
     {
-        Scope = new Scope(Scope);
+        var parameterSymbolsList = new List<VariableSymbol>();
 
+        var boundBlock = ProcessInnerScope(Scope, () =>
+        {
+            foreach (var parameter in parameters)
+                parameterSymbolsList.Add(new VariableSymbol(parameter.Name, Scope) { IsParameter = true });
+
+            Scope.Symbols.AddRange(parameterSymbolsList);
+
+            return BlockToBound(statement);
+        });
+
+        parameterSymbols = parameterSymbolsList;
+
+        return boundBlock;
+    }
+
+
+    private BoundBlockStatement BlockToBound(BlockStatement statement)
+    {
         var boundStatements = statement.Statements.Select(Process).ToArray();
-        var blockStatement = new BoundBlockStatement(Scope, statement, boundStatements);
+        return new BoundBlockStatement(Scope, statement, boundStatements);
+    }
 
-        Scope = Scope.Parent!;
 
-        return blockStatement;
+    private T ProcessInnerScope<T>(Scope scope, Func<T> func)
+    {
+        var oldScope = Scope;
+        Scope = new Scope(scope);
+
+        var result = func();
+
+        Scope = oldScope;
+
+        return result;
     }
 
 
@@ -154,10 +192,10 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
         if (symbol is null)
             ReportToken(Diagnostic.BinderCatalog.UndeclaredSymbol, expression.Source());
 
-        else if (symbol is not ValueSymbol)
+        else if (symbol is not VariableSymbol)
             ReportToken(Diagnostic.BinderCatalog.SymbolIsNotAValue, expression.Source());
 
-        return new BoundSymbolExpression(expression, (symbol as ValueSymbol)!);
+        return new BoundSymbolExpression(expression, (symbol as VariableSymbol)!);
     }
 
 
@@ -193,6 +231,8 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
 
     public BoundExpression ProcessCall(CallExpression expression)
     {
+        // TODO: check function arity (after add delegates)
+
         var callee = Process(expression.Callee);
         var arguments = expression.Arguments.Select(Process).ToArray();
 

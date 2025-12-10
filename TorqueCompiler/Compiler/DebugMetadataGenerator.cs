@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -39,25 +38,21 @@ public class DebugMetadataGenerator
    public LLVMTargetDataRef TargetData => Compiler.TargetData;
 
 
-   private readonly Stack<Scope> _scopeStack = [];
-
-   public Scope GlobalScope { get; }
-   public Scope Scope { get; private set; }
+   public Scope GlobalScope => Compiler.GlobalScope;
+   public Scope Scope => Compiler.Scope;
 
 
 
 
-    public DebugMetadataGenerator(TorqueCompiler compiler, Scope globalScope)
+    public DebugMetadataGenerator(TorqueCompiler compiler)
     {
         Compiler = compiler;
-
         Compiler.Module.AddModuleFlag("Debug Info Version", LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorWarning, LLVM.DebugMetadataVersion());
 
         InitializeDebugBuilder();
 
-        GlobalScope = globalScope;
-        GlobalScope.DebugMetadata = File;
-        Scope = GlobalScope;
+
+        Compiler.GlobalScope.DebugMetadata = File;
     }
 
 
@@ -113,21 +108,6 @@ public class DebugMetadataGenerator
 
     public unsafe LLVMMetadataRef CreateDebugLocation(int line, int column)
         => LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, Scope.DebugMetadata!.Value, null);
-
-
-
-
-    public void EnterScope(Scope newScope)
-    {
-        _scopeStack.Push(Scope);
-        Scope = newScope;
-    }
-
-
-    public void LeaveScope()
-    {
-        Scope = _scopeStack.Pop();
-    }
 
 
     public unsafe LLVMMetadataRef CreateLexicalScope(int line, int column)

@@ -21,17 +21,24 @@ public abstract class Symbol(string name, TokenLocation location, Scope declarat
 
 
 
-public class ValueSymbol(string name, Type? type, TokenLocation location, Scope declarationScope)
+public class VariableSymbol(string name, Type? type, TokenLocation location, Scope declarationScope)
     : Symbol(name, location, declarationScope)
 {
     public Type? Type { get; set; } = type;
+
+    public bool IsParameter { get; init; }
+
+
+    public VariableSymbol(Token symbol, Scope declarationScope)
+        : this(symbol.Lexeme, null, symbol.Location, declarationScope)
+    {}
 }
 
 
 
 
-public class FunctionSymbol(string name, Type? returnType, Type[]? parameters, TokenLocation location, Scope declarationScope)
-    : ValueSymbol(name, returnType, location, declarationScope)
+public class FunctionSymbol(string name, Type? returnType, VariableSymbol[] parameters, TokenLocation location, Scope declarationScope)
+    : VariableSymbol(name, returnType, location, declarationScope)
 {
     public Type? ReturnType
     {
@@ -39,5 +46,10 @@ public class FunctionSymbol(string name, Type? returnType, Type[]? parameters, T
         set => Type = value;
     }
 
-    public Type[]? Parameters { get; set; } = parameters;
+    public VariableSymbol[] Parameters { get; set; } = parameters;
+
+
+    public FunctionSymbol(Token symbol, Scope declarationScope)
+        : this(symbol.Lexeme, null, [], symbol.Location, declarationScope)
+    {}
 }

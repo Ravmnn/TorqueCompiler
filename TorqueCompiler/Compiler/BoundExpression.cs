@@ -138,9 +138,9 @@ public class BoundGroupingExpression(GroupingExpression syntax, BoundExpression 
 
 
 
-public class BoundSymbolExpression(SymbolExpression syntax, ValueSymbol symbol) : BoundExpression(syntax)
+public class BoundSymbolExpression(SymbolExpression syntax, VariableSymbol symbol) : BoundExpression(syntax)
 {
-    public ValueSymbol Symbol { get; } = symbol;
+    public VariableSymbol Symbol { get; } = symbol;
     public bool GetAddress => (Syntax as SymbolExpression)!.GetAddress;
 
     public override Type? Type => Symbol.Type;

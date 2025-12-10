@@ -95,10 +95,12 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
         var functionSyntax = (statement.Syntax as FunctionDeclarationStatement)!;
 
         var returnType = TypeFromTypeName(functionSyntax.ReturnType);
-        var parameterTypes = functionSyntax.Parameters.Select(param => TypeFromTypeName(param.Type)).ToArray();
+        var parameterTypes = (from parameter in functionSyntax.Parameters.ToArray() select TypeFromTypeName(parameter.Type)).ToArray();
 
         statement.Symbol.ReturnType = returnType;
-        statement.Symbol.Parameters = parameterTypes;
+
+        for (var i = 0; i < parameterTypes.Length; i++)
+            statement.Symbol.Parameters[i].Type = parameterTypes[i];
 
 
         _expectedReturnType = returnType;
@@ -236,7 +238,12 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
     public Type ProcessCall(BoundCallExpression expression)
     {
-        // TODO: add pointer types, then use them to call functions
+        Process(expression.Callee);
+
+        // TODO: add function types for variables (delegates). After that, use that type to check if the arguments match the function's parameter types
+
+        foreach (var argument in expression.Arguments)
+            Process(argument);
 
         return expression.Type!.Value;
     }
