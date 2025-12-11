@@ -224,8 +224,6 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundExpression ProcessCall(CallExpression expression)
     {
-        // TODO: check function arity (after add delegates)
-
         var callee = Process(expression.Callee);
         var arguments = ProcessAll(expression.Arguments.ToArray());
 

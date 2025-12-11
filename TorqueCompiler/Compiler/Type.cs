@@ -13,6 +13,11 @@ namespace Torque.Compiler;
 // TODO: make type infinite recursive
 public class Type(PrimitiveType baseType, bool isPointer = false)
 {
+    public static Type Void => PrimitiveType.Void;
+
+
+
+
     public PrimitiveType BaseType { get; } = baseType;
     public bool IsPointer { get; } = isPointer;
     public bool IsVoid => BaseType == PrimitiveType.Void;

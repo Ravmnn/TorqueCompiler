@@ -55,7 +55,9 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.TypeChecker)] TypeDiffers,
         [Item(DiagnosticScope.TypeChecker)] PointerExpected,
         [Item(DiagnosticScope.TypeChecker)] CannotUseVoidHere,
-        [Item(DiagnosticScope.TypeChecker)] ExpressionDoesNotReturnAnyValue
+        [Item(DiagnosticScope.TypeChecker)] ExpressionDoesNotReturnAnyValue,
+        [Item(DiagnosticScope.TypeChecker)] CannotCallNonFunction,
+        [Item(DiagnosticScope.TypeChecker)] ArityDiffers
     }
 
 

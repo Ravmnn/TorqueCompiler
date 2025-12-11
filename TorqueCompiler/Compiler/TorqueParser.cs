@@ -410,7 +410,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
 
-    #region Error handling
+    #region Diagnostic Reporting
 
     private void Synchronize()
     {
@@ -435,7 +435,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
     [DoesNotReturn]
-    public override void ReportAndThrow(Diagnostic.ParserCatalog item, object[]? arguments = null, TokenLocation? location = null)
+    public override void ReportAndThrow(Diagnostic.ParserCatalog item, IReadOnlyList<object>? arguments = null, TokenLocation? location = null)
         => base.ReportAndThrow(item, arguments, location ?? Peek());
 
 

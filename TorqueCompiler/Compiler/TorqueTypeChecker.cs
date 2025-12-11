@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 using Torque.Compiler.Diagnostics;
@@ -97,7 +98,9 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public void ProcessReturn(BoundReturnStatement statement)
     {
-        // TODO: when void returns is supported, change this
+        // TODO: check whether the function expects a return but none occurs
+        // TODO: check whether the function doesn't expect a return, but it occurs ("return;" allowed)
+
         var value = Process(statement.Expression!);
 
         ReportIfDiffers(_expectedReturnType!.Value, value, statement.Expression!.Source());
@@ -226,14 +229,40 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public Type ProcessCall(BoundCallExpression expression)
     {
-        Process(expression.Callee);
-
-        // TODO: add function types for variables (delegates). After that, use that type to check if the arguments match the function's parameter types
+        var calleeType = Process(expression.Callee);
 
         foreach (var argument in expression.Arguments)
             Process(argument);
 
-        return expression.Type;
+        CheckCallExpression(expression, calleeType);
+
+        // if the callee has not a function type, "expression.Type" will be null.
+        // fallbacking this has no problem because this class reports diagnostics
+        // if that's the case
+
+        return expression.Type ?? Type.Void;
+    }
+
+
+    private void CheckCallExpression(BoundCallExpression expression, Type calleeType)
+    {
+        if (calleeType is not FunctionType functionType)
+        {
+            Report(Diagnostic.TypeCheckerCatalog.CannotCallNonFunction, location: expression.Source());
+            return;
+        }
+
+        ReportIfArityDiffers(expression);
+        MatchArgumentsTypeWithFunctionType(expression.Arguments, functionType);
+    }
+
+
+    private void MatchArgumentsTypeWithFunctionType(IReadOnlyList<BoundExpression> arguments, FunctionType functionType)
+    {
+        var parametersType = functionType.ParametersType;
+
+        for (var i = 0; i < parametersType.Count && i < arguments.Count; i++)
+            ReportIfDiffers(parametersType[i], arguments[i].Type!, arguments[i].Source());
     }
 
 
@@ -255,6 +284,8 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
 
 
+
+    #region Diagnostic Reporting
 
     // BUG: casting void to any type results in a loop
     private void ReportIfDiffers(Type expected, Type got, TokenLocation location)
@@ -291,7 +322,27 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     }
 
 
+    private void ReportIfArityDiffers(BoundCallExpression expression)
+    {
+        var functionType = (expression.Callee.Type as FunctionType)!;
+        ReportIfArityDiffers(functionType.ParametersType.Count, expression.Arguments.Count, expression.Source());
+    }
 
+
+    private void ReportIfArityDiffers(int expected, int got, TokenLocation location)
+    {
+        if (expected == got)
+            return;
+
+        Report(Diagnostic.TypeCheckerCatalog.ArityDiffers, [expected, got], location);
+    }
+
+    #endregion
+
+
+
+
+    #region Type Convertors
 
     private Type TypeFromNonVoidTypeName(TypeName typeName)
     {
@@ -318,4 +369,6 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var parameters = (from parameter in typeName.ParametersType select TypeFromTypeName(parameter)).ToArray();
         return new FunctionType(typeName.ReturnType.TokenToPrimitive(), parameters);
     }
+
+    #endregion
 }

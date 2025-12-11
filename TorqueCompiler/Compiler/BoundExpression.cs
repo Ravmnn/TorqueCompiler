@@ -255,7 +255,7 @@ public class BoundCallExpression(CallExpression syntax, BoundExpression callee, 
     public IReadOnlyList<BoundExpression> Arguments { get; } = arguments;
 
     // the Symbol.Type of a callee is its return type
-    public override Type Type => (Callee.Type as FunctionType)!.ReturnType;
+    public override Type? Type => (Callee.Type as FunctionType)?.ReturnType;
 
 
 

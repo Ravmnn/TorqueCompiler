@@ -4,10 +4,10 @@ int sum(int x, int y)
 }
 
 
-#>void nothing()
+void nothing()
 {
-    return;
-}<#
+    return 10;
+}
 
 
 int main()
@@ -17,6 +17,8 @@ int main()
     sum(10 as int64);
     int number = process(90 as byte, 15);
     int result = process(number, 60);
+
+    result();
 
     return 0;
 }

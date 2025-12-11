@@ -19,7 +19,7 @@ public static class DiagnosticFormatter
         var locationSpan = diagnostic.Location is { } location ? $", {location}" : null;
 
         var message = diagnostic.GetMessage();
-        var formattedMessage = string.Format(message, diagnostic.Arguments);
+        var formattedMessage = string.Format(message, diagnostic.Arguments.ToArray()); // "ToArray()" is needed to avoid overload ambiguity, do not remove
 
         var codePeek = diagnostic.Location is not null ? GenerateCodePeek(diagnostic.Location.Value) : null;
         codePeek = $"{(codePeek is not null ? "\n" : "")}{codePeek}";

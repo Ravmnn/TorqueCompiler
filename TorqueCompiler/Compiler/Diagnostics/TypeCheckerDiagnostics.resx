@@ -34,4 +34,10 @@
     <data name="ExpressionDoesNotReturnAnyValue" xml:space="preserve">
         <value>Expected value, but expression does not return any (void)</value>
     </data>
+    <data name="CannotCallNonFunction" xml:space="preserve">
+        <value>Expression is not a function and cannot be called</value>
+    </data>
+    <data name="ArityDiffers" xml:space="preserve">
+        <value>Expected "{0}" arguments, but got "{1}"</value>
+    </data>
 </root>

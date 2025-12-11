@@ -68,5 +68,17 @@ namespace Torque.Compiler.Diagnostics {
                 return ResourceManager.GetString("ExpressionDoesNotReturnAnyValue", resourceCulture);
             }
         }
+        
+        internal static string CannotCallNonFunction {
+            get {
+                return ResourceManager.GetString("CannotCallNonFunction", resourceCulture);
+            }
+        }
+        
+        internal static string ArityDiffers {
+            get {
+                return ResourceManager.GetString("ArityDiffers", resourceCulture);
+            }
+        }
     }
 }
