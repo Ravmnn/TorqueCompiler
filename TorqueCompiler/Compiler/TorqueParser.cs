@@ -394,7 +394,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     {
         var parameters = ParseFunctionTypeNameParameters();
         ExpectRightParen();
-        
+
         return new FunctionTypeName(baseType, parameters);
     }
 

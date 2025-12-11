@@ -58,12 +58,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add importing system
 
         // TODO: add floats
-        // TODO: add function calling
-        // TODO: in order to call functions, you'll probably need to implement a way to represent function type:
-        // int(int16, int16, bool)...
-
         // TODO: add boolean expressions
-
         // TODO: make infinite indirection pointers? (T****...) or limit to double? (T**)
 
         // TODO: make this user's choice (command line options)
@@ -178,7 +173,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         symbol.SetLLVMProperties(reference, llvmType, debugReference);
 
         Builder.BuildStore(Process(statement.Value), reference);
-        DebugUpdateLocalVariableValue(name, statementSource);
 
         DebugSetLocationTo(null);
     }
@@ -395,9 +389,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         var result = Builder.BuildStore(value, reference);
 
-        // TODO: remove debug variable value updating and see if variable value tracking still works
-        //DebugUpdateLocalVariableValue(reference, expression.Source());
-
         return result;
     }
 
@@ -516,6 +507,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
 
+    // These methods are only necessary when the variable for some reason does not have an alloca (memory address).
+    // if the variable has an alloca, the debugger is able to track its memory address and, consequently
+    // its value. Since currently a variable cannot be created without alloca, they're useless
     private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(string name, TokenLocation location)
     {
         var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
