@@ -29,7 +29,7 @@ public class Scope(Scope? parent = null)
 
     public static T ProcessInnerScope<T>(ref Scope scope, Scope newScope, Func<T> func)
     {
-        var oldScope = scope; // TODO: check if this works
+        var oldScope = scope;
         scope = new Scope(newScope);
 
         var result = func();
@@ -48,7 +48,7 @@ public class Scope(Scope? parent = null)
 
     public static void ProcessInnerScope(ref Scope scope, Scope newScope, Action action)
     {
-        var oldScope = scope; // TODO: check if this works
+        var oldScope = scope;
 
         scope = newScope;
         action();
@@ -63,59 +63,34 @@ public class Scope(Scope? parent = null)
 
 
 
-
-    // TODO: TryGet__ should be the main implementation, since it's faster
+    
     public Symbol GetSymbol(string name)
-    {
-        foreach (var symbol in Symbols)
-            if (symbol.Name == name)
-                return symbol;
-
-        if (Parent is null)
-            throw new InvalidOperationException($"Invalid symbol \"{name}\".");
-
-        return Parent.GetSymbol(name);
-    }
+        => TryGetSymbol(name) ?? throw new InvalidOperationException($"Invalid symbol \"{name}\".");
 
 
     public Symbol GetSymbol(LLVMValueRef reference)
-    {
-        foreach (var symbol in Symbols)
-            if (symbol.LLVMReference == reference)
-                return symbol;
-
-        if (Parent is null)
-            throw new InvalidOperationException($"Invalid symbol reference \"{reference}\"");
-
-        return Parent.GetSymbol(reference);
-    }
+        => TryGetSymbol(reference) ?? throw new InvalidOperationException($"Invalid symbol reference \"{reference}\"");
 
 
 
 
     public Symbol? TryGetSymbol(string name)
     {
-        try
-        {
-            return GetSymbol(name);
-        }
-        catch
-        {
-            return null;
-        }
+        foreach (var symbol in Symbols)
+            if (symbol.Name == name)
+                return symbol;
+
+        return Parent?.GetSymbol(name);
     }
 
 
     public Symbol? TryGetSymbol(LLVMValueRef reference)
     {
-        try
-        {
-            return GetSymbol(reference);
-        }
-        catch
-        {
-            return null;
-        }
+        foreach (var symbol in Symbols)
+            if (symbol.LLVMReference == reference)
+                return symbol;
+
+        return Parent?.GetSymbol(reference);
     }
 
 
