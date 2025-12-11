@@ -37,6 +37,8 @@ public abstract class BoundStatement(Statement syntax)
     public Statement Syntax { get; } = syntax;
 
 
+
+
     public abstract void Process(IBoundStatementProcessor processor);
     public abstract T Process<T>(IBoundStatementProcessor<T> processor);
 
@@ -49,7 +51,11 @@ public abstract class BoundStatement(Statement syntax)
 
 public class BoundExpressionStatement(ExpressionStatement syntax, BoundExpression expression) : BoundStatement(syntax)
 {
+    public new ExpressionStatement Syntax => (base.Syntax as ExpressionStatement)!;
+
     public BoundExpression Expression { get; } = expression;
+
+
 
 
     public override void Process(IBoundStatementProcessor processor)
@@ -65,8 +71,13 @@ public class BoundExpressionStatement(ExpressionStatement syntax, BoundExpressio
 
 public class BoundDeclarationStatement(DeclarationStatement syntax, VariableSymbol symbol, BoundExpression value) : BoundStatement(syntax)
 {
-    public VariableSymbol Symbol { get; } = symbol;
+    public new DeclarationStatement Syntax => (base.Syntax as DeclarationStatement)!;
+
     public BoundExpression Value { get; } = value;
+
+    public VariableSymbol Symbol { get; } = symbol;
+
+
 
 
     public override void Process(IBoundStatementProcessor processor)
@@ -83,9 +94,13 @@ public class BoundDeclarationStatement(DeclarationStatement syntax, VariableSymb
 public class BoundFunctionDeclarationStatement(FunctionDeclarationStatement syntax, BoundBlockStatement body, FunctionSymbol symbol)
     : BoundStatement(syntax)
 {
+    public new FunctionDeclarationStatement Syntax => (base.Syntax as FunctionDeclarationStatement)!;
+
     public BoundBlockStatement Body { get; } = body;
 
     public FunctionSymbol Symbol { get; } = symbol;
+
+
 
 
     public override void Process(IBoundStatementProcessor processor)
@@ -101,7 +116,11 @@ public class BoundFunctionDeclarationStatement(FunctionDeclarationStatement synt
 
 public class BoundReturnStatement(ReturnStatement syntax, BoundExpression? expression) : BoundStatement(syntax)
 {
+    public new ReturnStatement Syntax => (base.Syntax as ReturnStatement)!;
+
     public BoundExpression? Expression { get; } = expression;
+
+
 
 
     public override void Process(IBoundStatementProcessor processor)
@@ -115,10 +134,15 @@ public class BoundReturnStatement(ReturnStatement syntax, BoundExpression? expre
 
 
 
-public class BoundBlockStatement(Scope scope, BlockStatement syntax, IEnumerable<BoundStatement> statements) : BoundStatement(syntax)
+public class BoundBlockStatement(BlockStatement syntax,  IEnumerable<BoundStatement> statements, Scope scope) : BoundStatement(syntax)
 {
-    public Scope Scope { get; } = scope;
+    public new BlockStatement Syntax => (base.Syntax as BlockStatement)!;
+
     public IEnumerable<BoundStatement> Statements { get; } = statements;
+
+    public Scope Scope { get; } = scope;
+
+
 
 
     public override void Process(IBoundStatementProcessor processor)

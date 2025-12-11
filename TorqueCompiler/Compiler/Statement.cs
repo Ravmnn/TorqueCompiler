@@ -93,11 +93,11 @@ public readonly record struct FunctionParameterDeclaration(Token Name, TypeName 
 
 
 // TODO: search for IEnumerable<T> that can be replaced to List<T> or T[]
-public class FunctionDeclarationStatement(Token name, TypeName returnType, IEnumerable<FunctionParameterDeclaration> parameters,
+public class FunctionDeclarationStatement(TypeName returnType, Token name, IEnumerable<FunctionParameterDeclaration> parameters,
     BlockStatement body) : Statement
 {
-    public Token Name { get; } = name;
     public TypeName ReturnType { get; } = returnType;
+    public Token Name { get; } = name;
     public IEnumerable<FunctionParameterDeclaration> Parameters { get; } = parameters;
     public BlockStatement Body { get; } = body;
 

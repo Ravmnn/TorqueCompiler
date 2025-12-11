@@ -254,8 +254,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
             var argument = arguments[i];
             var atEnd = i + 1 >= arguments.Length;
 
-            builder.Append(Process(argument));
-            builder.Append(atEnd ? "" : ", ");
+            builder.Append($"{Process(argument)}{(!atEnd ? ", " : "")}");
         }
 
         builder.Append(')');

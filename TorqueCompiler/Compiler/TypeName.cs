@@ -12,6 +12,9 @@ public class TypeName(Token baseType, Token? pointerSpecifier = null)
     public Token? PointerSpecifier { get; } = pointerSpecifier;
 
     public virtual bool IsPointer => PointerSpecifier is not null;
+    public bool IsVoid => BaseType.Lexeme == "void";
+
+
 
 
     public override string ToString()
@@ -24,11 +27,12 @@ public class TypeName(Token baseType, Token? pointerSpecifier = null)
 public class FunctionTypeName(Token returnType, TypeName[] parametersType) : TypeName(returnType)
 {
     public Token ReturnType => BaseType;
-    public bool IsVoid => ReturnType.Lexeme == "void";
 
     public TypeName[] ParametersType { get; } = parametersType;
 
     public override bool IsPointer => true;
+
+
 
 
     public override string ToString()

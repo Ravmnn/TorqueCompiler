@@ -33,7 +33,6 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
     public IEnumerable<Token> Tokenize()
     {
         var tokens = new List<Token>();
-
         Reset();
 
         while (!AtEnd())
@@ -84,10 +83,10 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
             case '=': return TokenFromType(TokenType.Equal);
             case '!': return TokenFromType(TokenType.Exclamation);
             case '&': return TokenFromType(TokenType.Ampersand);
-            case '(': return TokenFromType(TokenType.ParenLeft);
-            case ')': return TokenFromType(TokenType.ParenRight);
-            case '{': return TokenFromType(TokenType.CurlyBraceLeft);
-            case '}': return TokenFromType(TokenType.CurlyBraceRight);
+            case '(': return TokenFromType(TokenType.LeftParen);
+            case ')': return TokenFromType(TokenType.RightParen);
+            case '{': return TokenFromType(TokenType.LeftCurlyBrace);
+            case '}': return TokenFromType(TokenType.RightCurlyBrace);
 
             case '#':
                 if (Match('>'))
@@ -98,6 +97,12 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
                 return null;
         }
 
+        return TokenizeLiteralOrReport(character);
+    }
+
+
+    private Token? TokenizeLiteralOrReport(char character)
+    {
         if (char.IsAsciiLetter(character))
             return Identifier();
 
@@ -107,18 +112,6 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         Report(Diagnostic.LexerCatalog.UnexpectedToken);
         return null;
     }
-
-
-    private Token TokenFromType(TokenType type)
-        => new Token(GetCurrentTokenLexeme(), type, GetCurrentLocation());
-
-
-    private TokenLocation GetCurrentLocation()
-        => new TokenLocation(_startInLine, _endInLine, _line);
-
-
-    private string GetCurrentTokenLexeme()
-        => Source[_start .. _end];
 
 
 
@@ -155,18 +148,16 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         while (Peek() is { } @char && char.IsAsciiLetterOrDigit(@char))
             Advance();
 
-        var currentLexeme = GetCurrentTokenLexeme();
+        var lexeme = GetCurrentTokenLexeme();
 
-        if (currentLexeme.IsKeyword())
-            return TokenFromType(Token.Keywords[currentLexeme]);
+        return lexeme switch
+        {
+            _ when lexeme.IsKeyword() => TokenFromType(Token.Keywords[lexeme]),
+            _ when lexeme.IsType() => TokenFromType(TokenType.Type),
+            _ when lexeme.IsBoolean() => TokenFromType(TokenType.Value),
 
-        if (currentLexeme.IsType())
-            return TokenFromType(TokenType.Type);
-
-        if (currentLexeme.IsBoolean())
-            return TokenFromType(TokenType.Value);
-
-        return TokenFromType(TokenType.Identifier);
+            _ => TokenFromType(TokenType.Identifier)
+        };
     }
 
 
@@ -177,6 +168,20 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
         return TokenFromType(TokenType.Value);
     }
+
+
+
+
+    private Token TokenFromType(TokenType type)
+        => new Token(GetCurrentTokenLexeme(), type, GetCurrentLocation());
+
+
+    private TokenLocation GetCurrentLocation()
+        => new TokenLocation(_startInLine, _endInLine, _line);
+
+
+    private string GetCurrentTokenLexeme()
+        => Source[_start .. _end];
 
 
 

@@ -38,66 +38,11 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
 
-    // BUG: casting void to any type results in a loop
-    private void ReportIfDiffers(Type expected, Type got, TokenLocation location)
-    {
-        if (expected == got)
-            return;
-
-        if (got.IsVoid)
-            Report(Diagnostic.TypeCheckerCatalog.ExpressionDoesNotReturnAnyValue, [], location);
-        else
-            Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
-    }
-
-
-    private void ReportIfNotAPointer(Type type, TokenLocation location)
-    {
-        if (type.IsPointer)
-            return;
-
-        Report(Diagnostic.TypeCheckerCatalog.PointerExpected, location: location);
-    }
-
-
-    private void ReportIfVoid(Type type, TokenLocation location)
-    {
-        if (!type.IsVoid)
-            return;
-
-        Report(Diagnostic.TypeCheckerCatalog.CannotUseVoidHere, location: location);
-    }
 
 
 
 
-    private Type TypeFromTypeName(TypeName typeName, bool reportIfVoid = true)
-    {
-        var type = typeName switch
-        {
-            FunctionTypeName function => FunctionTypeFromTypeName(function),
-            _ => RawTypeFromTypeName(typeName)
-        };
-
-        if (reportIfVoid)
-            ReportIfVoid(type, typeName.BaseType);
-
-        return type;
-    }
-
-
-    private Type RawTypeFromTypeName(TypeName typeName)
-        => new Type(typeName.BaseType.TokenToPrimitive(), typeName.IsPointer);
-
-
-    private FunctionType FunctionTypeFromTypeName(FunctionTypeName typeName)
-    {
-        var parameters = (from parameter in typeName.ParametersType select TypeFromTypeName(parameter)).ToArray();
-        return new FunctionType(typeName.ReturnType.TokenToPrimitive(), parameters);
-    }
-
-
-
+    #region Statements
 
     public void Process(BoundStatement statement)
         => statement.Process(this);
@@ -113,9 +58,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
     public void ProcessDeclaration(BoundDeclarationStatement statement)
     {
-        var declarationSyntax = (statement.Syntax as DeclarationStatement)!;
-
-        var symbolType = TypeFromTypeName(declarationSyntax.Type);
+        var symbolType = TypeFromNonVoidTypeName(statement.Syntax.Type);
         var valueType = Process(statement.Value);
 
         statement.Symbol.Type = symbolType;
@@ -127,23 +70,26 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
     public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement statement)
     {
-        var functionSyntax = (statement.Syntax as FunctionDeclarationStatement)!;
+        var returnType = TypeFromTypeName(statement.Syntax.ReturnType);
+        var parametersType = ParametersTypeFromParametersDeclaration(statement.Syntax.Parameters);
 
-        var returnType = TypeFromTypeName(functionSyntax.ReturnType, false);
-        var parameterTypes = (from parameter in functionSyntax.Parameters.ToArray()
-            select TypeFromTypeName(parameter.Type)).ToArray();
-
-        statement.Symbol.Type = new FunctionType(returnType, parameterTypes);
-
-        for (var i = 0; i < parameterTypes.Length; i++)
-            statement.Symbol.Parameters[i].Type = parameterTypes[i];
-
+        statement.Symbol.Type = new FunctionType(returnType, parametersType);
+        SetFunctionSymbolParametersType(statement.Symbol, parametersType);
 
         _expectedReturnType = returnType;
-
         Process(statement.Body);
-
         _expectedReturnType = null;
+    }
+
+
+    private Type[] ParametersTypeFromParametersDeclaration(IEnumerable<FunctionParameterDeclaration> parameters)
+        => (from parameter in parameters select TypeFromNonVoidTypeName(parameter.Type)).ToArray();
+
+
+    private void SetFunctionSymbolParametersType(FunctionSymbol symbol, Type[] parametersType)
+    {
+        for (var i = 0; i < parametersType.Length; i++)
+            symbol.Parameters[i].Type = parametersType[i];
     }
 
 
@@ -166,12 +112,16 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
             Process(blockStatement);
     }
 
+    #endregion
 
 
 
 
 
 
+
+
+    #region Expression
 
     public Type Process(BoundExpression expression)
         => expression.Process(this);
@@ -183,7 +133,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
     {
         var token = expression.Source();
 
-        expression.Type = token.IsBoolean() ? PrimitiveType.Bool : DefaultLiteralType; // TODO: add char notation 'char' (converts to number)
+        expression.Type = TypeOfLiteralToken(token); // TODO: add char notation 'char' (converts to number)
         expression.Value = expression.Type.BaseType switch
         {
             PrimitiveType.Bool => token.ValueFromBool(),
@@ -194,6 +144,13 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
         return expression.Type!;
     }
+
+
+    private PrimitiveType TypeOfLiteralToken(Token literal) => literal switch
+    {
+        _ when literal.IsBoolean() => PrimitiveType.Bool,
+        _ => DefaultLiteralType
+    };
 
 
 
@@ -213,13 +170,10 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
     public Type ProcessUnary(BoundUnaryExpression expression)
     {
-        var unarySyntax = (expression.Syntax as UnaryExpression)!;
-
         var type = Process(expression.Expression);
 
-        switch (unarySyntax.Operator.Type)
+        switch (expression.Syntax.Operator.Type)
         {
-            case TokenType.Star: ReportIfNotAPointer(type, expression.Source()); break;
             case TokenType.Minus: break;
             case TokenType.Exclamation: ReportIfDiffers(PrimitiveType.Bool, type, expression.Source()); break;
 
@@ -239,9 +193,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
 
     public Type ProcessSymbol(BoundSymbolExpression expression)
-    {
-        return expression.Type!;
-    }
+        => expression.Type!;
 
 
 
@@ -266,7 +218,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
     public Type ProcessPointerAccess(BoundPointerAccessExpression expression)
     {
         Process(expression.Pointer);
-        return expression.Type;
+        return expression.Type!;
     }
 
 
@@ -289,11 +241,81 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
 
     public Type ProcessCast(BoundCastExpression expression)
     {
-        var castSyntax = (expression.Syntax as CastExpression)!;
-
         Process(expression.Value);
-        expression.Type = TypeFromTypeName(castSyntax.Type);
+        expression.Type = TypeFromNonVoidTypeName(expression.Syntax.Type);
 
         return expression.Type!;
+    }
+
+    #endregion
+
+
+
+
+
+
+
+
+    // BUG: casting void to any type results in a loop
+    private void ReportIfDiffers(Type expected, Type got, TokenLocation location)
+    {
+        if (expected == got)
+            return;
+
+        if (got.IsVoid)
+            Report(Diagnostic.TypeCheckerCatalog.ExpressionDoesNotReturnAnyValue, [], location);
+        else
+            Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
+    }
+
+
+    private void ReportIfNotAPointer(Type type, TokenLocation location)
+    {
+        if (type.IsPointer)
+            return;
+
+        Report(Diagnostic.TypeCheckerCatalog.PointerExpected, location: location);
+    }
+
+
+    private void ReportIfVoid(Type type, TokenLocation location)
+    {
+        // Here, although "void" should be reported, it is important to check whether
+        // the type is a function type or not, since function types may return void, and
+        // that's alright.
+
+        if (!type.IsVoid || type is FunctionType)
+            return;
+
+        Report(Diagnostic.TypeCheckerCatalog.CannotUseVoidHere, location: location);
+    }
+
+
+
+
+    private Type TypeFromNonVoidTypeName(TypeName typeName)
+    {
+        var type = TypeFromTypeName(typeName);
+        ReportIfVoid(type, typeName.BaseType);
+
+        return type;
+    }
+
+
+    private Type TypeFromTypeName(TypeName typeName) => typeName switch
+    {
+        FunctionTypeName function => FunctionTypeFromTypeName(function),
+        _ => RawTypeFromTypeName(typeName)
+    };
+
+
+    private Type RawTypeFromTypeName(TypeName typeName)
+        => new Type(typeName.BaseType.TokenToPrimitive(), typeName.IsPointer);
+
+
+    private FunctionType FunctionTypeFromTypeName(FunctionTypeName typeName)
+    {
+        var parameters = (from parameter in typeName.ParametersType select TypeFromTypeName(parameter)).ToArray();
+        return new FunctionType(typeName.ReturnType.TokenToPrimitive(), parameters);
     }
 }

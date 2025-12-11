@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -43,25 +44,38 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     }
 
 
-
-
-    private Statement? Declaration()
+    private void Reset()
     {
-        switch (Peek().Type)
-        {
-        case TokenType.Type: {
-            var type = ParseTypeName();
-            var name = ExpectIdentifier();
+        _statements.Clear();
+        _current = 0;
+    }
 
-            if (Check(TokenType.ParenLeft))
-                return FunctionDeclaration(type, name);
 
-            return VariableDeclaration(type, name);
-        }
 
-        default:
-            return Statement();
-        }
+
+
+
+
+
+    #region Statements
+
+    private Statement? Declaration() => Peek().Type switch
+    {
+        TokenType.Type => GenericDeclaration(),
+
+        _ => Statement()
+    };
+
+
+    private Statement GenericDeclaration()
+    {
+        var type = ParseTypeName();
+        var name = ExpectIdentifier();
+
+        if (Check(TokenType.LeftParen))
+            return FunctionDeclaration(type, name);
+
+        return VariableDeclaration(type, name);
     }
 
 
@@ -70,9 +84,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     private Statement VariableDeclaration(TypeName type, Token name)
     {
         Expect(TokenType.Equal, Diagnostic.ParserCatalog.ExpectAssignmentOperator);
-
         var value = Expression();
-
         ExpectEndOfStatement();
 
         return new DeclarationStatement(name, type, value);
@@ -83,31 +95,28 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
     private Statement FunctionDeclaration(TypeName returnType, Token name)
     {
-        Expect(TokenType.ParenLeft, Diagnostic.ParserCatalog.ExpectLeftParen);
+        ExpectLeftParen();
         var parameters = FunctionParameters();
-        Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectRightParen);
+        ExpectRightParen();
 
         var body = Block() as BlockStatement;
 
-        return new FunctionDeclarationStatement(name, returnType, parameters, body!);
+        return new FunctionDeclarationStatement(returnType, name, parameters, body!);
     }
 
 
     private IEnumerable<FunctionParameterDeclaration> FunctionParameters()
     {
-        var parameters = new List<FunctionParameterDeclaration>();
+        if (Check(TokenType.RightParen))
+            return [];
 
-        if (!Check(TokenType.ParenRight))
-            do
-            {
-                var type = ParseTypeName();
-                var name = ExpectIdentifier();
+        return DoWhileComma(() =>
+        {
+            var type = ParseTypeName();
+            var name = ExpectIdentifier();
 
-                parameters.Add(new FunctionParameterDeclaration(name, type));
-            }
-            while (Match(TokenType.Comma));
-
-        return parameters;
+            return new FunctionParameterDeclaration(name, type);
+        });
     }
 
 
@@ -117,15 +126,15 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     {
         switch (Peek().Type)
         {
-        case TokenType.CurlyBraceLeft: return Block();
+        case TokenType.LeftCurlyBrace: return Block();
         case TokenType.KwReturn: return ReturnStatement();
 
-        // some tokens only make sense when together with another,
+        // some tokens only makes sense when together with another,
         // but parser exceptions may break that "together", leaving those
         // tokens without any processing. To avoid unnecessary error messages,
         // some tokens should be ignored:
 
-        case TokenType.CurlyBraceRight:
+        case TokenType.RightCurlyBrace:
             Advance();
 
             if (HasReports) // something already went wrong, ignore
@@ -135,8 +144,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
             throw new UnreachableException();
 
 
-        default:
-            return ExpressionStatement();
+        default: return ExpressionStatement();
         }
     }
 
@@ -173,25 +181,30 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     private Statement Block()
     {
         var block = new List<Statement>();
+        var start = Expect(TokenType.LeftCurlyBrace, Diagnostic.ParserCatalog.ExpectBlock);
 
-        var start = Expect(TokenType.CurlyBraceLeft, Diagnostic.ParserCatalog.ExpectBlock);
-
-        while (!AtEnd() && !Check(TokenType.CurlyBraceRight))
+        while (!AtEnd() && !Check(TokenType.RightCurlyBrace))
             if (Declaration() is { } declaration)
                 block.Add(declaration);
 
-        var end = Expect(TokenType.CurlyBraceRight, Diagnostic.ParserCatalog.UnclosedBlock);
+        var end = Expect(TokenType.RightCurlyBrace, Diagnostic.ParserCatalog.UnclosedBlock);
 
         return new BlockStatement(start, end, block);
     }
 
+    #endregion
 
 
+
+
+
+
+
+
+    #region Expressions
 
     private Expression Expression()
-    {
-        return Assignment();
-    }
+        => Assignment();
 
 
 
@@ -204,7 +217,6 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
         {
             var @operator = Previous();
             var value = Assignment();
-
             expression = new AssignmentExpression(expression, @operator, value);
         }
 
@@ -256,7 +268,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
         {
             var keyword = Previous();
             var type = ParseTypeName();
-            expression = new CastExpression(keyword, expression, type);
+            expression = new CastExpression(expression, keyword, type);
         }
 
         return expression;
@@ -301,15 +313,12 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     {
         var expression = Primary();
 
-        while (Match(TokenType.ParenLeft))
+        while (Match(TokenType.LeftParen))
         {
             var parenLeft = Previous();
-            var arguments = new List<Expression>();
+            var arguments = Arguments();
 
-            if (!Check(TokenType.ParenRight))
-                arguments = Arguments().ToList();
-
-            Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectRightParen);
+            ExpectRightParen();
 
             expression = new CallExpression(parenLeft, expression, arguments);
         }
@@ -318,16 +327,12 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     }
 
 
-    private IEnumerable<Expression> Arguments()
+    private Expression[] Arguments()
     {
-        var expressions = new List<Expression>();
+        if (Check(TokenType.RightParen))
+            return [];
 
-        do
-            expressions.Add(Expression());
-        while (Match(TokenType.Comma));
-
-
-        return expressions;
+        return DoWhileComma(Expression);
     }
 
 
@@ -335,38 +340,38 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
     private Expression Primary()
     {
-        if (Match(TokenType.Value))
-            return ParseLiteral();
-
-        if (Match(TokenType.Ampersand))
-            return new SymbolExpression(ExpectIdentifier(), true);
-
-        if (Match(TokenType.Identifier))
-            return new SymbolExpression(Previous());
-
-        if (Match(TokenType.ParenLeft))
-            return ParseGroupExpression();
+        if (PrimaryOrNull() is { } expression)
+            return expression;
 
         ReportAndThrow(Diagnostic.ParserCatalog.ExpectExpression);
         throw new UnreachableException();
     }
 
 
-    private Expression ParseLiteral()
+    private Expression? PrimaryOrNull() => Peek().Type switch
     {
-        return new LiteralExpression(Previous());
-    }
+        _ when Match(TokenType.Value) => ParseLiteral(),
+        _ when Match(TokenType.Ampersand) => new SymbolExpression(ExpectIdentifier(), true),
+        _ when Match(TokenType.Identifier) => new SymbolExpression(Previous()),
+        _ when Match(TokenType.LeftParen) => ParseGroupExpression(),
+
+        _ => null
+    };
+
+
+    private Expression ParseLiteral()
+        => new LiteralExpression(Previous());
 
 
     private Expression ParseGroupExpression()
     {
-        var leftParen = Previous();
         var expression = Expression();
-
-        Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectRightParen, leftParen);
+        ExpectRightParen();
 
         return new GroupingExpression(expression);
     }
+
+    #endregion
 
 
 
@@ -376,13 +381,8 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
         var baseType = ExpectTypeName();
         Token? pointerSpecifier = null;
 
-        if (Match(TokenType.ParenLeft))
-        {
-            var parameters = ParseFunctionTypeNameParameters();
-            Expect(TokenType.ParenRight, Diagnostic.ParserCatalog.ExpectRightParen);
-
-            return new FunctionTypeName(baseType, parameters.ToArray());
-        }
+        if (Match(TokenType.LeftParen))
+            return ParseFunctionTypeName(baseType);
 
         if (Match(TokenType.Star))
             pointerSpecifier = Previous();
@@ -391,20 +391,28 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     }
 
 
-    private IEnumerable<TypeName> ParseFunctionTypeNameParameters()
+    private TypeName ParseFunctionTypeName(Token baseType)
     {
-        var parameters = new List<TypeName>();
+        var parameters = ParseFunctionTypeNameParameters();
+        ExpectRightParen();
 
-        if (!Check(TokenType.ParenRight))
-            do
-                parameters.Add(ParseTypeName());
-            while (Match(TokenType.Comma));
+        // TODO: use IEnumerable<T> instead of T[] if indexing doesn't matter
+        return new FunctionTypeName(baseType, parameters);
+    }
 
-        return parameters;
+
+    private TypeName[] ParseFunctionTypeNameParameters()
+    {
+        if (Check(TokenType.RightParen))
+            return [];
+
+        return DoWhileComma(ParseTypeName);
     }
 
 
 
+
+    #region Error handling
 
     private void Synchronize()
     {
@@ -415,8 +423,8 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
             switch (Peek().Type)
             {
                 case TokenType.Type:
-                case TokenType.CurlyBraceLeft:
-                case TokenType.CurlyBraceRight:
+                case TokenType.LeftCurlyBrace:
+                case TokenType.RightCurlyBrace:
                 case TokenType.KwReturn:
                     return;
             }
@@ -428,18 +436,11 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
 
 
-    private void Reset()
-    {
-        _statements.Clear();
-        _current = 0;
-    }
-
-
-
-
     [DoesNotReturn]
     public override void ReportAndThrow(Diagnostic.ParserCatalog item, object[]? arguments = null, TokenLocation? location = null)
         => base.ReportAndThrow(item, arguments, location ?? Peek());
+
+
 
 
     private Token Expect(TokenType token, Diagnostic.ParserCatalog item, TokenLocation? location = null)
@@ -462,6 +463,39 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
     private Token ExpectTypeName()
         => Expect(TokenType.Type, Diagnostic.ParserCatalog.ExpectTypeName);
+
+
+    private Token ExpectLeftParen()
+        => Expect(TokenType.LeftParen, Diagnostic.ParserCatalog.ExpectLeftParen);
+
+    private Token ExpectRightParen()
+        => Expect(TokenType.RightParen, Diagnostic.ParserCatalog.ExpectRightParen);
+
+    #endregion
+
+
+
+
+    #region Navigation methods
+
+    private void DoWhileComma(Action action)
+    {
+        do
+            action();
+        while (Match(TokenType.Comma));
+    }
+
+
+    private T[] DoWhileComma<T>(Func<T> func)
+    {
+        var list = new List<T>();
+
+        do
+            list.Add(func());
+        while (Match(TokenType.Comma));
+
+        return list.ToArray();
+    }
 
 
 
@@ -514,4 +548,6 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
     private bool AtEnd()
         => _current >= Tokens.Length;
+
+    #endregion
 }

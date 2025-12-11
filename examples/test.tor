@@ -4,16 +4,14 @@ int sum(int x, int y)
 }
 
 
-void nothing()
+#>void nothing()
 {
-    
-}
+    return;
+}<#
 
 
 int main()
 {
-    int num = nothing();
-
     int(int, int) process = sum;
 
     int number = process(25, 15);

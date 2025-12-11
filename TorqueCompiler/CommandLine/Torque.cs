@@ -32,7 +32,7 @@ public static class Torque
         Failed = true;
 
         foreach (var diagnostic in diagnostics)
-            Console.Error.WriteLine(DiagnosticFormatter.Format(diagnostic));
+            Console.WriteLine(DiagnosticFormatter.Format(diagnostic));
     }
 
 
@@ -124,43 +124,38 @@ public static class Torque
 
     private static bool PrintedAST(IEnumerable<Statement> statements)
     {
-        if (s_settings.PrintAST)
-        {
-            Console.WriteLine(new ASTPrinter().Print(statements));
-            return true;
-        }
+        if (!s_settings.PrintAST)
+            return false;
 
-        return false;
+        Console.WriteLine(new ASTPrinter().Print(statements));
+        return true;
+
     }
 
 
     private static bool PrintedLLVM(string bitCode)
     {
-        if (s_settings.PrintLLVM)
-        {
-            Console.WriteLine(bitCode);
-            return true;
-        }
+        if (!s_settings.PrintLLVM)
+            return false;
 
-        return false;
+        Console.WriteLine(bitCode);
+        return true;
     }
 
 
     private static bool PrintedASM(string bitCode)
     {
-        if (s_settings.PrintASM)
-        {
-            var tempFile = Path.GetTempFileName();
-            Toolchain.Compile(tempFile, bitCode, OutputType.Assembly);
+        if (!s_settings.PrintASM)
+            return false;
 
-            var assembly = File.ReadAllText(tempFile);
-            File.Delete(tempFile);
+        var tempFile = Path.GetTempFileName();
+        Toolchain.Compile(tempFile, bitCode, OutputType.Assembly);
 
-            Console.WriteLine(assembly);
-            return true;
-        }
+        var assembly = File.ReadAllText(tempFile);
+        File.Delete(tempFile);
 
-        return false;
+        Console.WriteLine(assembly);
+        return true;
     }
 
 

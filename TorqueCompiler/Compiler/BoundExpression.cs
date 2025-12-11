@@ -45,6 +45,7 @@ public interface IBoundExpressionProcessor<out T>
 public abstract class BoundExpression(Expression syntax)
 {
     public Expression Syntax { get; } = syntax;
+
     public virtual Type? Type { get; set; }
 
 
@@ -62,6 +63,8 @@ public abstract class BoundExpression(Expression syntax)
 
 public class BoundLiteralExpression(LiteralExpression syntax) : BoundExpression(syntax)
 {
+    public new LiteralExpression Syntax => (base.Syntax as LiteralExpression)!;
+
     public ulong? Value { get; set; }
 
 
@@ -80,6 +83,8 @@ public class BoundLiteralExpression(LiteralExpression syntax) : BoundExpression(
 
 public class BoundBinaryExpression(BinaryExpression syntax, BoundExpression left, BoundExpression right) : BoundExpression(syntax)
 {
+    public new BinaryExpression Syntax => (base.Syntax as BinaryExpression)!;
+
     public BoundExpression Left { get; } = left;
     public BoundExpression Right { get; } = right;
 
@@ -101,7 +106,10 @@ public class BoundBinaryExpression(BinaryExpression syntax, BoundExpression left
 
 public class BoundUnaryExpression(UnaryExpression syntax, BoundExpression expression) : BoundExpression(syntax)
 {
+    public new UnaryExpression Syntax => (base.Syntax as UnaryExpression)!;
+
     public BoundExpression Expression { get; } = expression;
+
     public override Type? Type => Expression.Type;
 
 
@@ -120,6 +128,8 @@ public class BoundUnaryExpression(UnaryExpression syntax, BoundExpression expres
 
 public class BoundGroupingExpression(GroupingExpression syntax, BoundExpression expression) : BoundExpression(syntax)
 {
+    public new GroupingExpression Syntax => (base.Syntax as GroupingExpression)!;
+
     public BoundExpression Expression { get; } = expression;
 
     public override Type? Type => Expression.Type;
@@ -140,10 +150,12 @@ public class BoundGroupingExpression(GroupingExpression syntax, BoundExpression 
 
 public class BoundSymbolExpression(SymbolExpression syntax, VariableSymbol symbol) : BoundExpression(syntax)
 {
-    public VariableSymbol Symbol { get; } = symbol;
-    public bool GetAddress => (Syntax as SymbolExpression)!.GetAddress;
+    public new SymbolExpression Syntax => (base.Syntax as SymbolExpression)!;
 
     public override Type? Type => Symbol.Type;
+
+    public VariableSymbol Symbol { get; } = symbol;
+    public bool GetAddress => Syntax.GetAddress;
 
 
 
@@ -162,6 +174,8 @@ public class BoundSymbolExpression(SymbolExpression syntax, VariableSymbol symbo
 public class BoundAssignmentExpression(AssignmentExpression syntax, BoundAssignmentReferenceExpression reference, BoundExpression value)
     : BoundExpression(syntax)
 {
+    public new AssignmentExpression Syntax => (base.Syntax as AssignmentExpression)!;
+
     public BoundAssignmentReferenceExpression Reference { get; } = reference;
     public BoundExpression Value { get; } = value;
 
@@ -193,6 +207,7 @@ public class BoundAssignmentExpression(AssignmentExpression syntax, BoundAssignm
 public class BoundAssignmentReferenceExpression(Expression syntax, BoundExpression reference) : BoundExpression(syntax)
 {
     public BoundExpression Reference { get; } = reference;
+
     public override Type? Type => Reference.Type;
 
 
@@ -211,9 +226,11 @@ public class BoundAssignmentReferenceExpression(Expression syntax, BoundExpressi
 
 public class BoundPointerAccessExpression(PointerAccessExpression syntax, BoundExpression pointer) : BoundExpression(syntax)
 {
+    public new PointerAccessExpression Syntax => (base.Syntax as PointerAccessExpression)!;
+
     public BoundExpression Pointer { get; } = pointer;
 
-    public override Type Type => Pointer.Type!.BaseType;
+    public override Type? Type => Pointer.Type?.BaseType;
 
 
 
@@ -232,6 +249,8 @@ public class BoundPointerAccessExpression(PointerAccessExpression syntax, BoundE
 public class BoundCallExpression(CallExpression syntax, BoundExpression callee, IEnumerable<BoundExpression> arguments)
     : BoundExpression(syntax)
 {
+    public new CallExpression Syntax => (base.Syntax as CallExpression)!;
+
     public BoundExpression Callee { get; } = callee;
     public IEnumerable<BoundExpression> Arguments { get; } = arguments;
 
@@ -254,6 +273,8 @@ public class BoundCallExpression(CallExpression syntax, BoundExpression callee, 
 
 public class BoundCastExpression(CastExpression syntax, BoundExpression value) : BoundExpression(syntax)
 {
+    public new CastExpression Syntax => (base.Syntax as CastExpression)!;
+
     public BoundExpression Value { get; } = value;
 
 

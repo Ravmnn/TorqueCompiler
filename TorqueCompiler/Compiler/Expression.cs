@@ -230,10 +230,10 @@ public class CallExpression(Token leftParen, Expression callee, IEnumerable<Expr
 
 
 
-public class CastExpression(Token keyword, Expression expression, TypeName type) : Expression
+public class CastExpression(Expression expression, Token keyword, TypeName type) : Expression
 {
-    public Token Keyword { get; } = keyword;
     public Expression Expression { get; } = expression;
+    public Token Keyword { get; } = keyword;
     public TypeName Type { get; } = type;
 
 

@@ -27,6 +27,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
     private readonly LLVMModuleRef _module = LLVMModuleRef.CreateWithName("MainModule");
+
     public LLVMModuleRef Module => _module;
 
     public LLVMBuilderRef Builder { get; } = LLVMBuilderRef.Create(LLVMContextRef.Global);
@@ -37,10 +38,16 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public DebugMetadataGenerator? Debug { get; }
 
 
-    public Scope GlobalScope { get; }
-    public Scope Scope { get; private set; }
-
     public BoundStatement[] Statements { get; }
+
+    public Scope GlobalScope { get; }
+
+    private Scope _scope = null!;
+    public Scope Scope
+    {
+        get => _scope;
+        private set => _scope = value;
+    }
 
 
 
@@ -128,17 +135,346 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    private int SizeOf(LLVMTypeRef type)
-        => type.SizeOfThis(TargetData);
 
 
 
 
-    private static void UnreachableCode()
-        => throw new UnreachableCodeControl();
+    #region Statements
+
+    public void Process(BoundStatement statement)
+    {
+        statement.Process(this);
+    }
 
 
 
+
+    public void ProcessExpression(BoundExpressionStatement statement)
+    {
+        DebugSetLocationTo(statement.Source());
+        Process(statement.Expression);
+        DebugSetLocationTo(null);
+    }
+
+
+
+
+    public void ProcessDeclaration(BoundDeclarationStatement statement)
+    {
+        var symbol = statement.Symbol;
+
+        var name = symbol.Name;
+        var type = symbol.Type!;
+        var llvmType = type.TypeToLLVMType();
+
+        var statementSource = statement.Source();
+
+
+        DebugSetLocationTo(statementSource);
+
+        var reference = Builder.BuildAlloca(llvmType, name);
+        var debugReference = DebugGenerateLocalVariable(name, type, statementSource, reference);
+
+        symbol.SetLLVMProperties(reference, llvmType, debugReference);
+
+        Builder.BuildStore(Process(statement.Value), reference);
+        DebugUpdateLocalVariableValue(name, statementSource);
+
+        DebugSetLocationTo(null);
+    }
+
+
+
+
+    public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement statement)
+    {
+        var symbol = statement.Symbol;
+
+        var functionName = symbol.Name;
+        var functionReturnType = symbol.Type!.ReturnType;
+        var functionLocation = statement.Syntax.Source();
+        var parameters = statement.Symbol.Parameters;
+        var parameterTypes = symbol.Type.ParametersType;
+
+        var llvmFunctionReturnType = functionReturnType.TypeToLLVMType();
+        var llvmParameterTypes = parameterTypes.TypesToLLVMTypes();
+        var llvmFunctionType = LLVMTypeRef.CreateFunction(llvmFunctionReturnType, llvmParameterTypes);
+        var llvmFunctionReference = Module.AddFunction(functionName, llvmFunctionType);
+        var llvmFunctionDebugMetadata = DebugGenerateFunction(llvmFunctionReference, functionName, functionLocation, symbol.Type);
+
+        symbol.SetLLVMProperties(llvmFunctionReference, llvmFunctionType, llvmFunctionDebugMetadata);
+
+
+        var entry = llvmFunctionReference.AppendBasicBlock(FunctionEntryBlockName);
+        Builder.PositionAtEnd(entry);
+
+        DeclareFunctionParameters(llvmFunctionReference, parameters);
+        ProcessFunctionBlock(statement.Body, llvmFunctionDebugMetadata);
+    }
+
+
+    private void DeclareFunctionParameters(LLVMValueRef function, VariableSymbol[] parameters)
+    {
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            var parameter = parameters[i];
+
+            var llvmValue = function.GetParam((uint)i);
+            var llvmType = parameter.Type!.TypeToLLVMType();
+
+            parameter.LLVMReference = Builder.BuildAlloca(llvmType, parameter.Name);
+            parameter.LLVMType = llvmType;
+            // TODO: debug for parameter
+
+            Builder.BuildStore(llvmValue, parameter.LLVMReference.Value);
+        }
+    }
+
+
+
+
+    public void ProcessReturn(BoundReturnStatement statement)
+    {
+        if (statement.Expression is not null)
+        {
+            DebugSetLocationTo(statement.Source());
+            Builder.BuildRet(Process(statement.Expression));
+            DebugSetLocationTo(null);
+        }
+        else
+            Builder.BuildRetVoid();
+
+        UnreachableCode();
+    }
+
+
+
+
+    public void ProcessBlock(BoundBlockStatement statement)
+        => ProcessLexicalBlock(statement);
+
+
+    private void ProcessLexicalBlock(BoundBlockStatement statement)
+        => Scope.ProcessInnerScope(ref _scope, statement.Scope, () =>
+        {
+            DebugGenerateScope(Scope, statement.Source());
+            ProcessBlockWithControl(statement);
+        });
+
+
+    private void ProcessFunctionBlock(BoundBlockStatement statement, LLVMMetadataRef? function)
+        => Scope.ProcessInnerScope(ref _scope, statement.Scope, () =>
+        {
+            DebugGenerateScope(Scope, statement.Source(), function);
+            ProcessBlockWithControl(statement);
+        });
+
+
+    private void ProcessBlockWithControl(BoundBlockStatement statement)
+    {
+        // If a return statement is reached, the subsequent code after the return that is inside the same scope
+        // will never be reached, so everything after it can be safely ignored. Also, LLVM doesn't compile
+        // if it finds any code after a terminator.
+
+        try
+        {
+            foreach (var subStatement in statement.Statements)
+                Process(subStatement);
+        }
+        catch (UnreachableCodeControl)
+        {}
+    }
+
+    #endregion
+
+
+
+
+
+
+
+
+    #region Expressions
+
+    public LLVMValueRef Process(BoundExpression expression)
+        => expression.Process(this);
+
+
+    public IEnumerable<LLVMValueRef> ProcessAll(IEnumerable<BoundExpression> expressions)
+        => expressions.Select(Process).ToArray();
+
+
+
+
+    public LLVMValueRef ProcessLiteral(BoundLiteralExpression expression)
+    {
+        var llvmType = expression.Type!.TypeToLLVMType();
+        var value = expression.Value!.Value;
+
+        var llvmReference = LLVMValueRef.CreateConstInt(llvmType, value);
+
+        return llvmReference;
+    }
+
+
+
+
+    public LLVMValueRef ProcessBinary(BoundBinaryExpression expression)
+    {
+        var left = Process(expression.Right);
+        var right = Process(expression.Left);
+
+        return ProcessBinaryOperation(expression.Syntax.Operator.Type, left, right);
+    }
+
+
+    private LLVMValueRef ProcessBinaryOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right) => @operator switch
+    {
+        TokenType.Plus => Builder.BuildAdd(left, right, "sum"),
+        TokenType.Minus => Builder.BuildSub(left, right, "sub"),
+        TokenType.Star => Builder.BuildMul(left, right, "mult"),
+        TokenType.Slash => Builder.BuildSDiv(left, right, "div"),
+
+        _ => throw new UnreachableException()
+    };
+
+
+
+
+    public LLVMValueRef ProcessUnary(BoundUnaryExpression expression)
+    {
+        var value = Process(expression.Expression);
+        var llvmType = expression.Type!.TypeToLLVMType();
+
+        return ProcessUnaryOperation(expression.Syntax.Operator.Type, llvmType, value);
+    }
+
+
+    private LLVMValueRef ProcessUnaryOperation(TokenType @operator, LLVMTypeRef llvmType, LLVMValueRef value)
+    {
+        var constZero = LLVMValueRef.CreateConstInt(llvmType, 0);
+        var constOne = LLVMValueRef.CreateConstInt(llvmType, 1);
+
+        return @operator switch
+        {
+            TokenType.Minus => Builder.BuildSub(constZero, value, "ineg"), // integer
+            TokenType.Exclamation => Builder.BuildXor(value, constOne, "bneg"), // boolean
+
+            _ => throw new UnreachableException()
+        };
+    }
+
+
+
+
+    public LLVMValueRef ProcessGrouping(BoundGroupingExpression expression)
+        => Process(expression.Expression);
+
+
+    public LLVMValueRef ProcessSymbol(BoundSymbolExpression expression)
+    {
+        var symbol = expression.Symbol;
+
+        var llvmReference = symbol.LLVMReference!.Value;
+        var llvmType = symbol.LLVMType!.Value;
+
+        // Sometimes, we want the symbol memory address instead of its value.
+        if (expression.GetAddress || symbol is FunctionSymbol)
+            return llvmReference;
+
+        return Builder.BuildLoad2(llvmType, llvmReference, "symval");
+    }
+
+
+
+
+    public LLVMValueRef ProcessAssignment(BoundAssignmentExpression expression)
+    {
+        var reference = Process(expression.Reference);
+        var value = Process(expression.Value);
+
+        var result = Builder.BuildStore(value, reference);
+
+        // TODO: remove debug variable value updating and see if variable value tracking still works
+        //DebugUpdateLocalVariableValue(reference, expression.Source());
+
+        return result;
+    }
+
+
+    public LLVMValueRef ProcessAssignmentReference(BoundAssignmentReferenceExpression expression) => expression.Reference switch
+    {
+        BoundSymbolExpression symbol => symbol.Symbol.LLVMReference!.Value, // if it is a symbol, we want its memory address
+        BoundPointerAccessExpression pointer => Process(pointer.Pointer), // if it is a pointer, we want the memory address stored by it
+
+        _ => throw new UnreachableException()
+    };
+
+
+
+
+    public LLVMValueRef ProcessPointerAccess(BoundPointerAccessExpression expression)
+    {
+        var value = Process(expression.Pointer);
+        var llvmType = expression.Type!.TypeToLLVMType();
+
+        return Builder.BuildLoad2(llvmType, value, "ptraccess");
+    }
+
+
+
+
+    public LLVMValueRef ProcessCall(BoundCallExpression expression)
+    {
+        var function = Process(expression.Callee);
+        var arguments = ProcessAll(expression.Arguments).ToArray();
+
+        var functionType = (expression.Callee.Type as FunctionType)!;
+        var llvmFunctionType = functionType.FunctionTypeToLLVMType(false);
+
+        return Builder.BuildCall2(llvmFunctionType, function, arguments, "retval");
+    }
+
+
+
+
+    public LLVMValueRef ProcessCast(BoundCastExpression expression)
+    {
+        var value = Process(expression.Value);
+
+        var valueType = expression.Value.Type!;
+        var toType = expression.Type!;
+
+        var llvmValueType = value.TypeOf;
+        var llvmToType = expression.Type!.TypeToLLVMType();
+
+        var sourceTypeSize = SizeOf(llvmValueType);
+        var targetTypeSize = SizeOf(llvmToType);
+
+
+        return (valueType, toType) switch
+        {
+            _ when !valueType.IsPointer && toType.IsPointer => Builder.BuildIntToPtr(value, llvmToType, "itopcast"), // int to pointer... is this really useful?
+            _ when valueType.IsPointer && !toType.IsPointer => Builder.BuildPtrToInt(value, llvmToType, "ptoicast"), // pointer to int
+            _ when valueType.IsPointer && toType.IsPointer => Builder.BuildPointerCast(value, llvmToType, "ptrcast"), // pointer to another pointer type
+
+            _ when sourceTypeSize < targetTypeSize => Builder.BuildIntCast(value, llvmToType, "incrcast"), // cast to higher
+            _ when sourceTypeSize > targetTypeSize => Builder.BuildTrunc(value, llvmToType, "decrcast"), // cast to lower
+
+            _ => value
+        };
+    }
+
+    #endregion
+
+
+
+
+
+
+
+
+    #region Debug Metadata
 
     private LLVMMetadataRef? DebugSetLocationTo(TokenLocation? location)
     {
@@ -206,319 +542,17 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         scope.DebugMetadata = llvmDebugScopeMetadata;
     }
 
+    #endregion
 
 
 
 
+    private int SizeOf(LLVMTypeRef type)
+        => type.SizeOfThis(TargetData);
 
 
 
-    public void Process(BoundStatement statement)
-    {
-        statement.Process(this);
-    }
 
-
-
-
-    public void ProcessExpression(BoundExpressionStatement statement)
-    {
-        DebugSetLocationTo(statement.Source());
-        Process(statement.Expression);
-        DebugSetLocationTo(null);
-    }
-
-
-
-
-    public void ProcessDeclaration(BoundDeclarationStatement statement)
-    {
-        var symbol = statement.Symbol;
-
-        var name = symbol.Name;
-        var type = symbol.Type!;
-        var llvmType = type.TypeToLLVMType();
-
-        var statementSource = statement.Source();
-
-
-        DebugSetLocationTo(statementSource);
-
-        var reference = Builder.BuildAlloca(llvmType, name);
-        var debugReference = DebugGenerateLocalVariable(name, type, statementSource, reference);
-
-        symbol.LLVMReference = reference;
-        symbol.LLVMType = llvmType;
-        symbol.LLVMDebugMetadata = debugReference;
-
-        Builder.BuildStore(Process(statement.Value), reference);
-        DebugUpdateLocalVariableValue(name, statementSource);
-
-        DebugSetLocationTo(null);
-    }
-
-
-
-
-    public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement statement)
-    {
-        var syntax = (statement.Syntax as FunctionDeclarationStatement)!;
-        var symbol = statement.Symbol;
-
-        var functionName = symbol.Name;
-        var functionReturnType = symbol.Type!.ReturnType;
-        var functionLocation = syntax.Source();
-        var parameters = statement.Symbol.Parameters;
-        var parameterTypes = symbol.Type.ParametersType;
-
-        var llvmParameterTypes = (from parameter in parameterTypes select parameter.TypeToLLVMType()).ToArray();
-        var llvmFunctionType = LLVMTypeRef.CreateFunction(functionReturnType.TypeToLLVMType(), llvmParameterTypes);
-        var llvmFunctionReference = Module.AddFunction(functionName, llvmFunctionType);
-        var llvmFunctionDebugMetadata = DebugGenerateFunction(llvmFunctionReference, functionName, functionLocation, symbol.Type);
-
-        symbol.LLVMReference = llvmFunctionReference;
-        symbol.LLVMType = llvmFunctionType;
-        symbol.LLVMDebugMetadata = llvmFunctionDebugMetadata;
-
-        var entry = llvmFunctionReference.AppendBasicBlock(FunctionEntryBlockName);
-        Builder.PositionAtEnd(entry);
-
-        ProcessFunctionParametersDeclaration(llvmFunctionReference, parameters);
-
-        ProcessScopeBlock(statement.Body, llvmFunctionDebugMetadata);
-    }
-
-
-    private void ProcessFunctionParametersDeclaration(LLVMValueRef function, VariableSymbol[] parameters)
-    {
-        for (var i = 0; i < parameters.Length; i++)
-        {
-            var parameter = parameters[i];
-
-            var llvmValue = function.GetParam((uint)i);
-            var llvmType = parameter.Type!.TypeToLLVMType();
-
-            parameter.LLVMReference = Builder.BuildAlloca(llvmType, parameter.Name);
-            parameter.LLVMType = llvmType;
-            // TODO: debug for parameter
-
-            Builder.BuildStore(llvmValue, parameter.LLVMReference.Value);
-        }
-    }
-
-
-
-
-    public void ProcessReturn(BoundReturnStatement statement)
-    {
-        if (statement.Expression is not null)
-        {
-            DebugSetLocationTo(statement.Source());
-            Builder.BuildRet(Process(statement.Expression));
-            DebugSetLocationTo(null);
-        }
-        else
-            Builder.BuildRetVoid();
-
-        UnreachableCode();
-    }
-
-
-
-
-    public void ProcessBlock(BoundBlockStatement statement)
-        => ProcessScopeBlock(statement);
-
-
-    private void ProcessScopeBlock(BoundBlockStatement statement, LLVMMetadataRef? function = null)
-    {
-        var oldScope = Scope;
-        Scope = statement.Scope;
-
-        DebugGenerateScope(statement.Scope, statement.Source(), function);
-
-        // If a return statement is reached, the subsequent code after the return that is inside the same scope
-        // will never be reached, so everything after it can be safely ignored. Also, LLVM doesn't compile
-        // if it finds any code after a terminator.
-        try
-        {
-            foreach (var subStatement in statement.Statements)
-                Process(subStatement);
-        }
-        catch (UnreachableCodeControl)
-        {}
-
-        Scope = oldScope;
-    }
-
-
-
-
-
-
-
-
-    public LLVMValueRef Process(BoundExpression expression)
-        => expression.Process(this);
-
-
-
-
-    public LLVMValueRef ProcessLiteral(BoundLiteralExpression expression)
-    {
-        var llvmType = expression.Type!.TypeToLLVMType();
-        var value = expression.Value!.Value;
-
-        var llvmReference = LLVMValueRef.CreateConstInt(llvmType, value);
-
-        return llvmReference;
-    }
-
-
-
-
-    public LLVMValueRef ProcessBinary(BoundBinaryExpression expression)
-    {
-        var syntax = (expression.Syntax as BinaryExpression)!;
-
-        var left = Process(expression.Right);
-        var right = Process(expression.Left);
-
-        return syntax.Operator.Type switch
-        {
-            TokenType.Plus => Builder.BuildAdd(left, right, "sum"),
-            TokenType.Minus => Builder.BuildSub(left, right, "sub"),
-            TokenType.Star => Builder.BuildMul(left, right, "mult"),
-            TokenType.Slash => Builder.BuildSDiv(left, right, "div"),
-
-            _ => throw new UnreachableException()
-        };
-    }
-
-
-
-
-    public LLVMValueRef ProcessUnary(BoundUnaryExpression expression)
-    {
-        var syntax = (expression.Syntax as UnaryExpression)!;
-
-        var value = Process(expression.Expression);
-        var llvmType = expression.Type!.TypeToLLVMType();
-
-        return syntax.Operator.Type switch
-        {
-            TokenType.Minus => Builder.BuildSub(LLVMValueRef.CreateConstInt(llvmType, 0), value, "ineg"),
-            TokenType.Exclamation => Builder.BuildXor(value, LLVMValueRef.CreateConstInt(llvmType, 1), "bneg"),
-            _ => throw new UnreachableException()
-        };
-    }
-
-
-
-
-    public LLVMValueRef ProcessGrouping(BoundGroupingExpression expression)
-        => Process(expression.Expression);
-
-
-    public LLVMValueRef ProcessSymbol(BoundSymbolExpression expression)
-    {
-        var symbol = expression.Symbol;
-
-        var llvmReference = symbol.LLVMReference!.Value;
-        var llvmType = symbol.LLVMType!.Value;
-
-        if (expression.GetAddress || symbol is FunctionSymbol)
-            return llvmReference;
-
-        return Builder.BuildLoad2(llvmType, llvmReference, "symval");
-    }
-
-
-
-
-    public LLVMValueRef ProcessAssignment(BoundAssignmentExpression expression)
-    {
-        var reference = Process(expression.Reference);
-        var value = Process(expression.Value);
-
-        var result = Builder.BuildStore(value, reference);
-        //DebugUpdateLocalVariableValue(reference, expression.Source());
-
-        return result;
-    }
-
-
-    public LLVMValueRef ProcessAssignmentReference(BoundAssignmentReferenceExpression expression) => expression.Reference switch
-    {
-        BoundSymbolExpression symbol => symbol.Symbol.LLVMReference!.Value,
-        BoundPointerAccessExpression pointer => Process(pointer.Pointer),
-
-        _ => throw new UnreachableException()
-    };
-
-
-
-
-    public LLVMValueRef ProcessPointerAccess(BoundPointerAccessExpression expression)
-    {
-        var value = Process(expression.Pointer);
-        var llvmType = expression.Type!.TypeToLLVMType();
-
-        return Builder.BuildLoad2(llvmType, value, "ptraccess");
-    }
-
-
-
-
-    public LLVMValueRef ProcessCall(BoundCallExpression expression)
-    {
-        var function = Process(expression.Callee);
-        var arguments = expression.Arguments.Select(Process).ToArray();
-
-        var llvmFunctionType = (expression.Callee.Type as FunctionType)!.FunctionTypeToLLVMType(false);
-
-        return Builder.BuildCall2(llvmFunctionType, function, arguments, "retval");
-    }
-
-
-
-
-    public LLVMValueRef ProcessCast(BoundCastExpression expression)
-    {
-        var value = Process(expression.Value);
-
-        var valueType = expression.Value.Type!;
-        var toType = expression.Type!;
-
-        var llvmValueType = value.TypeOf;
-        var llvmToType = expression.Type!.TypeToLLVMType();
-
-        var sourceTypeSize = SizeOf(llvmValueType);
-        var targetTypeSize = SizeOf(llvmToType);
-
-
-        // int to pointer... is this really useful?
-        if (!valueType.IsPointer && toType.IsPointer)
-            return Builder.BuildIntToPtr(value, llvmToType, "itopcast");
-
-        // pointer to int
-        if (valueType.IsPointer && !toType.IsPointer)
-            return Builder.BuildPtrToInt(value, llvmToType, "ptoicast");
-
-        // pointer to another pointer type
-        if (valueType.IsPointer && toType.IsPointer)
-            return Builder.BuildPointerCast(value, llvmToType, "ptrcast");
-
-
-        // cast to higher
-        if (sourceTypeSize < targetTypeSize)
-            return Builder.BuildIntCast(value, llvmToType, "incrcast");
-
-        // cast to lower
-        if (sourceTypeSize > targetTypeSize)
-            return Builder.BuildTrunc(value, llvmToType, "decrcast");
-
-
-        return value;
-    }
+    private static void UnreachableCode()
+        => throw new UnreachableCodeControl();
 }

@@ -13,7 +13,7 @@ public enum TokenType
 
     Exclamation,
     Plus, Minus, Star, Slash, Equal, Ampersand,
-    ParenLeft, ParenRight, CurlyBraceLeft, CurlyBraceRight,
+    LeftParen, RightParen, LeftCurlyBrace, RightCurlyBrace,
 
     Identifier,
     Value,

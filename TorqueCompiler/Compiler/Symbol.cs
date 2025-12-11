@@ -16,6 +16,16 @@ public abstract class Symbol(string name, TokenLocation location, Scope declarat
     public LLVMValueRef? LLVMReference { get; set; }
     public LLVMTypeRef? LLVMType { get; set; }
     public LLVMMetadataRef? LLVMDebugMetadata { get; set; }
+
+
+
+
+    public void SetLLVMProperties(LLVMValueRef reference, LLVMTypeRef type, LLVMMetadataRef? debugMetadata)
+    {
+        LLVMReference = reference;
+        LLVMType = type;
+        LLVMDebugMetadata = debugMetadata;
+    }
 }
 
 

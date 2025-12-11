@@ -90,6 +90,10 @@ public class FunctionType(Type returnType, Type[] parametersType)
 
 public static class TypeExtensions
 {
+    public static LLVMTypeRef[] TypesToLLVMTypes(this Type[] types)
+        => (from type in types select type.TypeToLLVMType()).ToArray();
+
+
     public static LLVMTypeRef TypeToLLVMType(this Type type)
     {
         var llvmBaseType = type.BaseType.PrimitiveToLLVMType();
@@ -109,6 +113,13 @@ public static class TypeExtensions
         var llvmReturnType = functionType.BaseType.PrimitiveToLLVMType();
         var llvmParametersType = from type in functionType.ParametersType select type.TypeToLLVMType();
         var llvmFunctionType = LLVMTypeRef.CreateFunction(llvmReturnType, llvmParametersType.ToArray());
+
+        // "pointer" determines whether we want a pointer to the function: ptr to "i32 (i32, i32)"
+        // (this is used by a variable to store the function)
+        // or the function type itself: "i32 (i32, i32)"
+        // (this is used by LLVM everytime we want to do any operation with that function, like creating one,
+        // calling one... This works that way now because LLVM uses only opaque pointers, so we have to
+        // store the real type of the pointer somewhere)
 
         return pointer ? LLVMTypeRef.CreatePointer(llvmFunctionType, 0) : llvmFunctionType;
     }

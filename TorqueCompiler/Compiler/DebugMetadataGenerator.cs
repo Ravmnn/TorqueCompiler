@@ -58,10 +58,9 @@ public class DebugMetadataGenerator
 
     private unsafe void InitializeDebugBuilder()
     {
-        if (Compiler.File is null || !Compiler.File.Exists)
-            throw new InvalidOperationException("Debug metadata generator requires a valid compiler file info");
+        ThrowIfInvalidFileInfo();
 
-        var file = Compiler.File.Name;
+        var file = Compiler.File!.Name;
         var directoryPath = Compiler.File.Directory?.FullName ?? "/";
 
         DebugBuilder = LLVM.CreateDIBuilder(Module);
@@ -84,16 +83,24 @@ public class DebugMetadataGenerator
     }
 
 
+    private void ThrowIfInvalidFileInfo()
+    {
+        if (Compiler.File is null || !Compiler.File.Exists)
+            throw new InvalidOperationException("Debug metadata generator requires a valid compiler file info");
+    }
 
 
-    public void FinalizeGenerator() => DebugBuilder.DIBuilderFinalize();
+
+
+    public void FinalizeGenerator()
+        => DebugBuilder.DIBuilderFinalize();
 
 
 
 
     public unsafe LLVMMetadataRef SetLocation(int line, int column)
     {
-        column = Math.Max(1, column);
+        column = Math.Max(1, column); // LLVM uses 1-based column indices
 
         var location = CreateDebugLocation(line, column);
         LLVM.SetCurrentDebugLocation2(Builder, location);
@@ -112,8 +119,7 @@ public class DebugMetadataGenerator
 
     public unsafe LLVMMetadataRef CreateLexicalScope(int line, int column)
     {
-        // this function assumes "TorqueCompiler.Scope" is the new scope to insert debug metadata,
-        // so the scope that encloses the new one (its parent) is "Scope.Parent"
+        // this function assumes "TorqueCompiler.Scope" is the new scope to insert debug metadata
 
         var parentScope = Scope.Parent!.DebugMetadata!.Value;
         var scopeReference = LLVM.DIBuilderCreateLexicalBlock(DebugBuilder, parentScope, File, (uint)line, (uint)column);
