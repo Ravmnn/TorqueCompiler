@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 
@@ -19,7 +18,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
 
-    public string Print(IEnumerable<Statement> statements)
+    public string Print(IReadOnlyList<Statement> statements)
     {
         var builder = new StringBuilder();
 
@@ -45,12 +44,12 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         => $"({Process(expression)})";
 
 
-    private string Stringify(string name, Expression[] expressions)
+    private string Stringify(string name, IReadOnlyList<Expression> expressions)
     {
-        if (expressions.Length == 1)
+        if (expressions.Count == 1)
             return UnaryStringify(name, expressions[0]);
 
-        if (expressions.Length == 2)
+        if (expressions.Count == 2)
             return BinaryStringify(name, expressions[0], expressions[1]);
 
         return MultiOperandStringify(name, expressions);
@@ -65,7 +64,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         => $"({Process(left)} {name} {Process(right)})";
 
 
-    private string MultiOperandStringify(string name, IEnumerable<Expression> expressions)
+    private string MultiOperandStringify(string name, IReadOnlyList<Expression> expressions)
     {
         var builder = new StringBuilder();
 
@@ -148,12 +147,12 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         builder.Append(BeginStatement());
         builder.Append($"{statement.ReturnType} {statement.Name.Lexeme}(");
 
-        var parameters = statement.Parameters.ToArray();
+        var parameters = statement.Parameters;
 
-        for (var i = 0; i < parameters.Length; i++)
+        for (var i = 0; i < parameters.Count; i++)
         {
             var parameter = parameters[i];
-            var atEnd = i + 1 >= parameters.Length;
+            var atEnd = i + 1 >= parameters.Count;
 
             builder.Append($"{parameter.Type} {parameter.Name.Lexeme}{(!atEnd ? ", " : "")}");
         }
@@ -247,12 +246,12 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         builder.Append(Process(expression.Callee));
         builder.Append('(');
 
-        var arguments = expression.Arguments.ToArray();
+        var arguments = expression.Arguments;
 
-        for (var i = 0; i < arguments.Length; i++)
+        for (var i = 0; i < arguments.Count; i++)
         {
             var argument = arguments[i];
-            var atEnd = i + 1 >= arguments.Length;
+            var atEnd = i + 1 >= arguments.Count;
 
             builder.Append($"{Process(argument)}{(!atEnd ? ", " : "")}");
         }

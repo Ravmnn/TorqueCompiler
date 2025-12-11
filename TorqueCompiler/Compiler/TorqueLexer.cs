@@ -19,32 +19,32 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
     private int _end;
 
 
-    public string Source { get; set; } = source;
+    public string Source { get; } = source;
 
 
 
 
-    public override Diagnostic Report(Diagnostic.LexerCatalog item, object[]? arguments = null, TokenLocation? location = null)
-        => base.Report(item, arguments, location ?? GetCurrentLocation());
-
-
-
-
-    public IEnumerable<Token> Tokenize()
+    public IReadOnlyList<Token> Tokenize()
     {
         var tokens = new List<Token>();
         Reset();
 
         while (!AtEnd())
         {
-            _start = _end;
-            _startInLine = _endInLine;
+            NextTokenStart();
 
             if (TokenizeNext() is { } token)
                 tokens.Add(token);
         }
 
         return tokens;
+    }
+
+
+    private void NextTokenStart()
+    {
+        _start = _end;
+        _startInLine = _endInLine;
     }
 
 
@@ -168,6 +168,12 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
         return TokenFromType(TokenType.Value);
     }
+
+
+
+
+    public override Diagnostic Report(Diagnostic.LexerCatalog item, object[]? arguments = null, TokenLocation? location = null)
+        => base.Report(item, arguments, location ?? GetCurrentLocation());
 
 
 

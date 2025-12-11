@@ -246,13 +246,13 @@ public class BoundPointerAccessExpression(PointerAccessExpression syntax, BoundE
 
 
 
-public class BoundCallExpression(CallExpression syntax, BoundExpression callee, IEnumerable<BoundExpression> arguments)
+public class BoundCallExpression(CallExpression syntax, BoundExpression callee, IReadOnlyList<BoundExpression> arguments)
     : BoundExpression(syntax)
 {
     public new CallExpression Syntax => (base.Syntax as CallExpression)!;
 
     public BoundExpression Callee { get; } = callee;
-    public IEnumerable<BoundExpression> Arguments { get; } = arguments;
+    public IReadOnlyList<BoundExpression> Arguments { get; } = arguments;
 
     // the Symbol.Type of a callee is its return type
     public override Type Type => (Callee.Type as FunctionType)!.ReturnType;

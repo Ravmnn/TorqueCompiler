@@ -38,7 +38,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public DebugMetadataGenerator? Debug { get; }
 
 
-    public BoundStatement[] Statements { get; }
+    public IReadOnlyList<BoundStatement> Statements { get; }
 
     public Scope GlobalScope { get; }
 
@@ -52,7 +52,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    public TorqueCompiler(IEnumerable<BoundStatement> statements, Scope globalScope, FileInfo? file = null, bool generateDebugMetadata = false)
+    public TorqueCompiler(IReadOnlyList<BoundStatement> statements, Scope globalScope, FileInfo? file = null, bool generateDebugMetadata = false)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add importing system
@@ -198,7 +198,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         var llvmFunctionReturnType = functionReturnType.TypeToLLVMType();
         var llvmParameterTypes = parameterTypes.TypesToLLVMTypes();
-        var llvmFunctionType = LLVMTypeRef.CreateFunction(llvmFunctionReturnType, llvmParameterTypes);
+        var llvmFunctionType = LLVMTypeRef.CreateFunction(llvmFunctionReturnType, llvmParameterTypes.ToArray());
         var llvmFunctionReference = Module.AddFunction(functionName, llvmFunctionType);
         var llvmFunctionDebugMetadata = DebugGenerateFunction(llvmFunctionReference, functionName, functionLocation, symbol.Type);
 
@@ -213,9 +213,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
 
-    private void DeclareFunctionParameters(LLVMValueRef function, VariableSymbol[] parameters)
+    private void DeclareFunctionParameters(LLVMValueRef function, IReadOnlyList<VariableSymbol> parameters)
     {
-        for (var i = 0; i < parameters.Length; i++)
+        for (var i = 0; i < parameters.Count; i++)
         {
             var parameter = parameters[i];
 
@@ -300,7 +300,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         => expression.Process(this);
 
 
-    public IEnumerable<LLVMValueRef> ProcessAll(IEnumerable<BoundExpression> expressions)
+    public IReadOnlyList<LLVMValueRef> ProcessAll(IReadOnlyList<BoundExpression> expressions)
         => expressions.Select(Process).ToArray();
 
 
@@ -427,12 +427,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMValueRef ProcessCall(BoundCallExpression expression)
     {
         var function = Process(expression.Callee);
-        var arguments = ProcessAll(expression.Arguments).ToArray();
+        var arguments = ProcessAll(expression.Arguments);
 
         var functionType = (expression.Callee.Type as FunctionType)!;
         var llvmFunctionType = functionType.FunctionTypeToLLVMType(false);
 
-        return Builder.BuildCall2(llvmFunctionType, function, arguments, "retval");
+        return Builder.BuildCall2(llvmFunctionType, function, arguments.ToArray(), "retval");
     }
 
 
@@ -519,7 +519,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(string name, TokenLocation location)
     {
         var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
-
         return Debug?.UpdateLocalVariableValue(name, llvmLocation!.Value);
     }
 
@@ -527,7 +526,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(LLVMValueRef reference, TokenLocation location)
     {
         var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
-
         return Debug?.UpdateLocalVariableValue(reference, llvmLocation!.Value);
     }
 

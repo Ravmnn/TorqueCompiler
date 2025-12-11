@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,10 +9,10 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporter<Diagnostic.BinderCatalog>,
+public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticReporter<Diagnostic.BinderCatalog>,
     IExpressionProcessor<BoundExpression>, IStatementProcessor<BoundStatement>
 {
-    public IEnumerable<Statement> Statements { get; } = statements;
+    public IReadOnlyList<Statement> Statements { get; } = statements;
 
 
     private Scope _scope = new Scope();
@@ -24,7 +23,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
     }
 
 
-    public IEnumerable<BoundStatement> Bind()
+    public IReadOnlyList<BoundStatement> Bind()
     {
         Diagnostics.Clear();
 
@@ -40,7 +39,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
         => statement.Process(this);
 
 
-    public IEnumerable<BoundStatement> ProcessAll(IEnumerable<Statement> statements)
+    public IReadOnlyList<BoundStatement> ProcessAll(IReadOnlyList<Statement> statements)
         => statements.Select(Process).ToArray();
 
 
@@ -98,7 +97,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
         => Scope.ProcessInnerScope(ref _scope, () => ProcessBlockToBound(statement));
 
 
-    private BoundStatement ProcessFunctionBlock(BlockStatement statement, IEnumerable<FunctionParameterDeclaration> parameters)
+    private BoundStatement ProcessFunctionBlock(BlockStatement statement, IReadOnlyList<FunctionParameterDeclaration> parameters)
         => Scope.ProcessInnerScope(ref _scope, () =>
         {
             DeclareFunctionParameters(parameters);
@@ -106,7 +105,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
         });
 
 
-    private void DeclareFunctionParameters(IEnumerable<FunctionParameterDeclaration> parameters)
+    private void DeclareFunctionParameters(IReadOnlyList<FunctionParameterDeclaration> parameters)
     {
         foreach (var parameter in parameters)
             Scope.Symbols.Add(new VariableSymbol(parameter.Name, Scope) { IsParameter = true });
@@ -134,7 +133,7 @@ public class TorqueBinder(IEnumerable<Statement> statements) : DiagnosticReporte
         => expression.Process(this);
 
 
-    public IEnumerable<BoundExpression> ProcessAll(IEnumerable<Expression> expressions)
+    public IReadOnlyList<BoundExpression> ProcessAll(IReadOnlyList<Expression> expressions)
         => expressions.Select(Process).ToArray();
 
 

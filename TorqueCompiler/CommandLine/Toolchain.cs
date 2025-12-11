@@ -29,7 +29,7 @@ public static class Toolchain
     }
 
 
-    public static void Link(IEnumerable<string> files, string outputFileName, bool debug = false)
+    public static void Link(IReadOnlyList<string> files, string outputFileName, bool debug = false)
     {
         var filesString = string.Join(' ', files);
         var debugString = debug ? "-O0 -g" : string.Empty;

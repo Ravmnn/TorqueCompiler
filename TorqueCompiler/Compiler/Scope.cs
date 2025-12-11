@@ -58,12 +58,12 @@ public class Scope(Scope? parent = null)
 
 
 
-    public VariableSymbol[] GetLocalParameters()
+    public IReadOnlyList<VariableSymbol> GetLocalParameters()
         => Symbols.FindAll(symbol => symbol is VariableSymbol { IsParameter: true }).Cast<VariableSymbol>().ToArray();
 
 
 
-    
+
     public Symbol GetSymbol(string name)
         => TryGetSymbol(name) ?? throw new InvalidOperationException($"Invalid symbol \"{name}\".");
 
@@ -80,7 +80,7 @@ public class Scope(Scope? parent = null)
             if (symbol.Name == name)
                 return symbol;
 
-        return Parent?.GetSymbol(name);
+        return Parent?.TryGetSymbol(name);
     }
 
 
@@ -90,7 +90,7 @@ public class Scope(Scope? parent = null)
             if (symbol.LLVMReference == reference)
                 return symbol;
 
-        return Parent?.GetSymbol(reference);
+        return Parent?.TryGetSymbol(reference);
     }
 
 

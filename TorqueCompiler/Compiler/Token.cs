@@ -37,7 +37,7 @@ public readonly record struct TokenLocation(int Start, int End, int Line)
 
 public readonly record struct Token(string Lexeme, TokenType Type, TokenLocation Location)
 {
-    public static readonly Dictionary<string, PrimitiveType> Primitives = new Dictionary<string, PrimitiveType>
+    public static readonly IReadOnlyDictionary<string, PrimitiveType> Primitives = new Dictionary<string, PrimitiveType>
     {
         {"void", PrimitiveType.Void},
 
@@ -60,7 +60,7 @@ public readonly record struct Token(string Lexeme, TokenType Type, TokenLocation
 
 
 
-    public static readonly Dictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>
+    public static readonly IReadOnlyDictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>
     {
         {"return", TokenType.KwReturn},
         {"as", TokenType.KwAs}

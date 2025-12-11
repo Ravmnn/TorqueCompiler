@@ -14,7 +14,8 @@ int main()
 {
     int(int, int) process = sum;
 
-    int number = process(25, 15);
+    sum(10 as int64, 5);
+    int number = process(90 as byte, 15);
     int result = process(number, 60);
 
     return 0;

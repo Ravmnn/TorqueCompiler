@@ -92,13 +92,12 @@ public readonly record struct FunctionParameterDeclaration(Token Name, TypeName 
 
 
 
-// TODO: search for IEnumerable<T> that can be replaced to List<T> or T[]
-public class FunctionDeclarationStatement(TypeName returnType, Token name, IEnumerable<FunctionParameterDeclaration> parameters,
+public class FunctionDeclarationStatement(TypeName returnType, Token name, IReadOnlyList<FunctionParameterDeclaration> parameters,
     BlockStatement body) : Statement
 {
     public TypeName ReturnType { get; } = returnType;
     public Token Name { get; } = name;
-    public IEnumerable<FunctionParameterDeclaration> Parameters { get; } = parameters;
+    public IReadOnlyList<FunctionParameterDeclaration> Parameters { get; } = parameters;
     public BlockStatement Body { get; } = body;
 
 
@@ -140,11 +139,11 @@ public class ReturnStatement(Token keyword, Expression? expression = null) : Sta
 
 
 
-public class BlockStatement(Token start, Token end, IEnumerable<Statement> statements) : Statement
+public class BlockStatement(Token start, Token end, IReadOnlyList<Statement> statements) : Statement
 {
     public Token Start { get; } = start;
     public Token End { get; } = end;
-    public IEnumerable<Statement> Statements { get; } = statements;
+    public IReadOnlyList<Statement> Statements { get; } = statements;
 
 
 

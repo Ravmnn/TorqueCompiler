@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using LLVMSharp.Interop;
 
 
@@ -39,6 +41,8 @@ public class VariableSymbol(string name, Type? type, TokenLocation location, Sco
     public bool IsParameter { get; init; }
 
 
+
+
     public VariableSymbol(Token symbol, Scope declarationScope)
         : this(symbol.Lexeme, null, symbol.Location, declarationScope)
     {}
@@ -47,7 +51,7 @@ public class VariableSymbol(string name, Type? type, TokenLocation location, Sco
 
 
 
-public class FunctionSymbol(string name, Type? type, VariableSymbol[] parameters, TokenLocation location, Scope declarationScope)
+public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbol> parameters, TokenLocation location, Scope declarationScope)
     : VariableSymbol(name, type, location, declarationScope)
 {
     public new FunctionType? Type
@@ -56,7 +60,9 @@ public class FunctionSymbol(string name, Type? type, VariableSymbol[] parameters
         set => base.Type = value;
     }
 
-    public VariableSymbol[] Parameters { get; set; } = parameters;
+    public IReadOnlyList<VariableSymbol> Parameters { get; set; } = parameters;
+
+
 
 
     public FunctionSymbol(Token symbol, Scope declarationScope)

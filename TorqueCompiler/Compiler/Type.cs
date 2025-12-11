@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using LLVMSharp.Interop;
@@ -53,12 +54,12 @@ public class Type(PrimitiveType baseType, bool isPointer = false)
 
 
 
-public class FunctionType(Type returnType, Type[] parametersType)
+public class FunctionType(Type returnType, IReadOnlyList<Type> parametersType)
     : Type(returnType.BaseType, true)
 {
     public Type ReturnType => BaseType;
 
-    public Type[] ParametersType { get; } = parametersType;
+    public IReadOnlyList<Type> ParametersType { get; } = parametersType;
 
 
     public override string ToString()
@@ -90,7 +91,7 @@ public class FunctionType(Type returnType, Type[] parametersType)
 
 public static class TypeExtensions
 {
-    public static LLVMTypeRef[] TypesToLLVMTypes(this Type[] types)
+    public static IReadOnlyList<LLVMTypeRef> TypesToLLVMTypes(this IReadOnlyList<Type> types)
         => (from type in types select type.TypeToLLVMType()).ToArray();
 
 
@@ -111,7 +112,7 @@ public static class TypeExtensions
     public static LLVMTypeRef FunctionTypeToLLVMType(this FunctionType functionType, bool pointer = true)
     {
         var llvmReturnType = functionType.BaseType.PrimitiveToLLVMType();
-        var llvmParametersType = from type in functionType.ParametersType select type.TypeToLLVMType();
+        var llvmParametersType = functionType.ParametersType.TypesToLLVMTypes();
         var llvmFunctionType = LLVMTypeRef.CreateFunction(llvmReturnType, llvmParametersType.ToArray());
 
         // "pointer" determines whether we want a pointer to the function: ptr to "i32 (i32, i32)"

@@ -134,11 +134,11 @@ public class BoundReturnStatement(ReturnStatement syntax, BoundExpression? expre
 
 
 
-public class BoundBlockStatement(BlockStatement syntax,  IEnumerable<BoundStatement> statements, Scope scope) : BoundStatement(syntax)
+public class BoundBlockStatement(BlockStatement syntax,  IReadOnlyList<BoundStatement> statements, Scope scope) : BoundStatement(syntax)
 {
     public new BlockStatement Syntax => (base.Syntax as BlockStatement)!;
 
-    public IEnumerable<BoundStatement> Statements { get; } = statements;
+    public IReadOnlyList<BoundStatement> Statements { get; } = statements;
 
     public Scope Scope { get; } = scope;
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 
 
@@ -24,11 +25,10 @@ public class TypeName(Token baseType, Token? pointerSpecifier = null)
 
 
 
-public class FunctionTypeName(Token returnType, TypeName[] parametersType) : TypeName(returnType)
+public class FunctionTypeName(Token returnType, IReadOnlyList<TypeName> parametersType) : TypeName(returnType)
 {
     public Token ReturnType => BaseType;
-
-    public TypeName[] ParametersType { get; } = parametersType;
+    public IReadOnlyList<TypeName> ParametersType { get; } = parametersType;
 
     public override bool IsPointer => true;
 

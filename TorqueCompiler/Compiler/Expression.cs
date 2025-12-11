@@ -206,11 +206,11 @@ public class PointerAccessExpression(Token @operator, Expression pointer) : Expr
 
 
 
-public class CallExpression(Token leftParen, Expression callee, IEnumerable<Expression> arguments) : Expression
+public class CallExpression(Token leftParen, Expression callee, IReadOnlyList<Expression> arguments) : Expression
 {
     public Token LeftParen { get; } = leftParen;
     public Expression Callee { get; } = callee;
-    public IEnumerable<Expression> Arguments { get; } = arguments;
+    public IReadOnlyList<Expression> Arguments { get; } = arguments;
 
 
 

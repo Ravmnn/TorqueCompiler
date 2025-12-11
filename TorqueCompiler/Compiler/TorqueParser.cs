@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 using Torque.Compiler.Diagnostics;
 
@@ -12,18 +11,18 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagnostic.ParserCatalog>
+public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diagnostic.ParserCatalog>
 {
     private readonly List<Statement> _statements = [];
-    private uint _current;
+    private int _current;
 
 
-    public Token[] Tokens { get; set; } = tokens.ToArray();
+    public IReadOnlyList<Token> Tokens { get; } = tokens;
 
 
 
 
-    public IEnumerable<Statement> Parse()
+    public IReadOnlyList<Statement> Parse()
     {
         Reset();
 
@@ -105,7 +104,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     }
 
 
-    private IEnumerable<FunctionParameterDeclaration> FunctionParameters()
+    private IReadOnlyList<FunctionParameterDeclaration> FunctionParameters()
     {
         if (Check(TokenType.RightParen))
             return [];
@@ -327,7 +326,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     }
 
 
-    private Expression[] Arguments()
+    private IReadOnlyList<Expression> Arguments()
     {
         if (Check(TokenType.RightParen))
             return [];
@@ -395,13 +394,12 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     {
         var parameters = ParseFunctionTypeNameParameters();
         ExpectRightParen();
-
-        // TODO: use IEnumerable<T> instead of T[] if indexing doesn't matter
+        
         return new FunctionTypeName(baseType, parameters);
     }
 
 
-    private TypeName[] ParseFunctionTypeNameParameters()
+    private IReadOnlyList<TypeName> ParseFunctionTypeNameParameters()
     {
         if (Check(TokenType.RightParen))
             return [];
@@ -486,7 +484,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
     }
 
 
-    private T[] DoWhileComma<T>(Func<T> func)
+    private IReadOnlyList<T> DoWhileComma<T>(Func<T> func)
     {
         var list = new List<T>();
 
@@ -500,7 +498,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
 
 
-    private bool Match(params IEnumerable<TokenType> tokens)
+    private bool Match(params IReadOnlyList<TokenType> tokens)
     {
         foreach (var token in tokens)
         {
@@ -547,7 +545,7 @@ public class TorqueParser(IEnumerable<Token> tokens) : DiagnosticReporter<Diagno
 
 
     private bool AtEnd()
-        => _current >= Tokens.Length;
+        => _current >= Tokens.Count;
 
     #endregion
 }

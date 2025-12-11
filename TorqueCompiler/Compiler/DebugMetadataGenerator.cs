@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -143,8 +144,8 @@ public class DebugMetadataGenerator
     }
 
 
-    private LLVMMetadataRef CreateSubroutineType(LLVMMetadataRef[] metadataTypeArray)
-        => DebugBuilder.CreateSubroutineType(File, metadataTypeArray, LLVMDIFlags.LLVMDIFlagZero);
+    private LLVMMetadataRef CreateSubroutineType(IReadOnlyList<LLVMMetadataRef> metadataTypeArray)
+        => DebugBuilder.CreateSubroutineType(File, metadataTypeArray.ToArray(), LLVMDIFlags.LLVMDIFlagZero);
 
 
     private LLVMMetadataRef CreateFunction(string name, int lineNumber, LLVMMetadataRef debugFunctionType)
@@ -154,10 +155,9 @@ public class DebugMetadataGenerator
         );
 
 
-    private Type[] CreateFunctionTypeArray(FunctionType type)
+    private IReadOnlyList<Type> CreateFunctionTypeArray(FunctionType type)
     {
         var typeArray = new Type[] { type.ReturnType };
-
         return typeArray.Concat(type.ParametersType).ToArray();
     }
 
@@ -214,11 +214,11 @@ public class DebugMetadataGenerator
 
 
 
-    public LLVMMetadataRef[] TypesToMetadataArray(Type[] types)
+    public IReadOnlyList<LLVMMetadataRef> TypesToMetadataArray(IReadOnlyList<Type> types)
     {
-        var metadataArray = new LLVMMetadataRef[types.Length];
+        var metadataArray = new LLVMMetadataRef[types.Count];
 
-        for (var i = 0; i < types.Length; i++)
+        for (var i = 0; i < types.Count; i++)
             metadataArray[i] = TypeToMetadata(types[i]);
 
         return metadataArray;

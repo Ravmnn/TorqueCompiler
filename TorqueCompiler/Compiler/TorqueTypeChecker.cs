@@ -11,7 +11,7 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
+public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     : DiagnosticReporter<Diagnostic.TypeCheckerCatalog>, IBoundStatementProcessor, IBoundExpressionProcessor<Type>
 {
     public const PrimitiveType DefaultLiteralType = PrimitiveType.Int32;
@@ -22,7 +22,7 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
     private PrimitiveType? _expectedReturnType;
 
 
-    public IEnumerable<BoundStatement> Statements { get; } = statements;
+    public IReadOnlyList<BoundStatement> Statements { get; } = statements;
 
 
     // TODO: add implicit casts
@@ -82,13 +82,13 @@ public class TorqueTypeChecker(IEnumerable<BoundStatement> statements)
     }
 
 
-    private Type[] ParametersTypeFromParametersDeclaration(IEnumerable<FunctionParameterDeclaration> parameters)
+    private IReadOnlyList<Type> ParametersTypeFromParametersDeclaration(IReadOnlyList<FunctionParameterDeclaration> parameters)
         => (from parameter in parameters select TypeFromNonVoidTypeName(parameter.Type)).ToArray();
 
 
-    private void SetFunctionSymbolParametersType(FunctionSymbol symbol, Type[] parametersType)
+    private void SetFunctionSymbolParametersType(FunctionSymbol symbol, IReadOnlyList<Type> parametersType)
     {
-        for (var i = 0; i < parametersType.Length; i++)
+        for (var i = 0; i < parametersType.Count; i++)
             symbol.Parameters[i].Type = parametersType[i];
     }
 

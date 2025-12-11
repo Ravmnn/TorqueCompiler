@@ -24,7 +24,7 @@ public static class Torque
 
 
 
-    public static void LogDiagnostics(IEnumerable<Diagnostic> diagnostics)
+    public static void LogDiagnostics(IReadOnlyList<Diagnostic> diagnostics)
     {
         if (!diagnostics.Any())
             return;
@@ -122,7 +122,7 @@ public static class Torque
 
 
 
-    private static bool PrintedAST(IEnumerable<Statement> statements)
+    private static bool PrintedAST(IReadOnlyList<Statement> statements)
     {
         if (!s_settings.PrintAST)
             return false;
@@ -163,7 +163,7 @@ public static class Torque
 
     public static void Link(LinkCommandSettings settings)
     {
-        var fileNames = from file in settings.Files select file.FullName;
+        var fileNames = (from file in settings.Files select file.FullName).ToArray();
         Toolchain.Link(fileNames, settings.Output, settings.Debug);
     }
 }
