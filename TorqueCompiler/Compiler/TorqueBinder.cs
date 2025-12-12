@@ -23,6 +23,8 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     }
 
 
+
+
     public IReadOnlyList<BoundStatement> Bind()
     {
         Diagnostics.Clear();
@@ -36,7 +38,12 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     #region Statements
 
     public BoundStatement Process(Statement statement)
-        => statement.Process(this);
+    {
+        if (ReportIfNonDeclarationAtFileScope(statement) || ReportIfFunctionDeclarationAtLocalScope(statement))
+            return null!;
+
+        return statement.Process(this);
+    }
 
 
     public IReadOnlyList<BoundStatement> ProcessAll(IReadOnlyList<Statement> statements)
@@ -248,9 +255,34 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
 
 
+    #region Diagnostic Reporting
+
     private void ReportIfMultipleDeclaration(Token symbol)
     {
         if (Scope.SymbolExists(symbol.Lexeme))
             ReportToken(Diagnostic.BinderCatalog.MultipleSymbolDeclaration, symbol);
     }
+
+
+    // TODO: all conditional utility report methods must return boolean
+    private bool ReportIfNonDeclarationAtFileScope(Statement statement)
+    {
+        if (!Scope.IsGlobal || statement is FunctionDeclarationStatement)
+            return false;
+
+        Report(Diagnostic.BinderCatalog.OnlyDeclarationsCanExistInFileScope, location: statement.Source());
+        return true;
+    }
+
+
+    private bool ReportIfFunctionDeclarationAtLocalScope(Statement statement)
+    {
+        if (Scope.IsGlobal || statement is not FunctionDeclarationStatement)
+            return false;
+
+        Report(Diagnostic.BinderCatalog.FunctionsMustBeAtFileScope, location: statement.Source());
+        return true;
+    }
+
+    #endregion
 }

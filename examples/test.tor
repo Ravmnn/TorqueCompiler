@@ -1,24 +1,17 @@
-int sum(int x, int y)
-{
-    return x + y;
-}
-
-
-void nothing()
-{
-    return 10;
-}
-
-
 int main()
 {
-    int(int, int) process = sum;
+    int number1 = 10;
+    int number2 = 55;
+    int result = number1 + number2;
 
-    sum(10 as int64);
-    int number = process(90 as byte, 15);
-    int result = process(number, 60);
+    {
+        bool innerBoolean = true;
+        bool innerBooleanReverse = !innerBoolean;
 
-    result();
+        return 0;
+    }
+
+    int16 unreachable = 123 as int16;
 
     return 0;
 }

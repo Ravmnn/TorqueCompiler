@@ -21,7 +21,7 @@ public enum DiagnosticScope
     Parser,
     Binder,
     TypeChecker,
-    Compiler
+    ControlFlowAnalyzer
 }
 
 
@@ -68,6 +68,7 @@ public readonly partial struct Diagnostic()
         DiagnosticScope.Parser => ParserDiagnostics.ResourceManager.GetString(MessageId)!,
         DiagnosticScope.Binder => BinderDiagnostics.ResourceManager.GetString(MessageId)!,
         DiagnosticScope.TypeChecker => TypeCheckerDiagnostics.ResourceManager.GetString(MessageId)!,
+        DiagnosticScope.ControlFlowAnalyzer => ControlFlowAnalyzerDiagnostics.ResourceManager.GetString(MessageId)!,
 
         _ => throw new InvalidOperationException("Invalid diagnostic scope")
     };

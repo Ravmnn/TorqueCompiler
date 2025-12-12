@@ -40,4 +40,7 @@
     <data name="ArityDiffers" xml:space="preserve">
         <value>Expected "{0}" arguments, but got "{1}"</value>
     </data>
+    <data name="FunctionCannotReturnValue" xml:space="preserve">
+        <value>Function is "void" and cannot return any value</value>
+    </data>
 </root>

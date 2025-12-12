@@ -14,21 +14,21 @@ namespace Torque.Compiler.Diagnostics {
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class TypeCheckerDiagnostics {
+    internal class ControlFlowAnalyzerDiagnostics {
         
         private static System.Resources.ResourceManager resourceMan;
         
         private static System.Globalization.CultureInfo resourceCulture;
         
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal TypeCheckerDiagnostics() {
+        internal ControlFlowAnalyzerDiagnostics() {
         }
         
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.Equals(null, resourceMan)) {
-                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Torque.Compiler.Diagnostics.TypeCheckerDiagnostics", typeof(TypeCheckerDiagnostics).Assembly);
+                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Torque.Compiler.Diagnostics.ControlFlowAnalyzerDiagnostics", typeof(ControlFlowAnalyzerDiagnostics).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -45,45 +45,15 @@ namespace Torque.Compiler.Diagnostics {
             }
         }
         
-        internal static string TypeDiffers {
+        internal static string FunctionMustReturnFromAllPaths {
             get {
-                return ResourceManager.GetString("TypeDiffers", resourceCulture);
+                return ResourceManager.GetString("FunctionMustReturnFromAllPaths", resourceCulture);
             }
         }
         
-        internal static string PointerExpected {
+        internal static string FunctionCannotReturnAValue {
             get {
-                return ResourceManager.GetString("PointerExpected", resourceCulture);
-            }
-        }
-        
-        internal static string CannotUseVoidHere {
-            get {
-                return ResourceManager.GetString("CannotUseVoidHere", resourceCulture);
-            }
-        }
-        
-        internal static string ExpressionDoesNotReturnAnyValue {
-            get {
-                return ResourceManager.GetString("ExpressionDoesNotReturnAnyValue", resourceCulture);
-            }
-        }
-        
-        internal static string CannotCallNonFunction {
-            get {
-                return ResourceManager.GetString("CannotCallNonFunction", resourceCulture);
-            }
-        }
-        
-        internal static string ArityDiffers {
-            get {
-                return ResourceManager.GetString("ArityDiffers", resourceCulture);
-            }
-        }
-        
-        internal static string FunctionCannotReturnValue {
-            get {
-                return ResourceManager.GetString("FunctionCannotReturnValue", resourceCulture);
+                return ResourceManager.GetString("FunctionCannotReturnAValue", resourceCulture);
             }
         }
     }

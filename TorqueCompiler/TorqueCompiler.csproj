@@ -31,6 +31,10 @@
         <Generator>ResXFileCodeGenerator</Generator>
         <LastGenOutput>TypeCheckerDiagnostics.Designer.cs</LastGenOutput>
       </EmbeddedResource>
+      <EmbeddedResource Update="Compiler\Diagnostics\ControlFlowAnalyzerDiagnostics.resx">
+        <Generator>ResXFileCodeGenerator</Generator>
+        <LastGenOutput>ControlFlowDiagnostics.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>
@@ -53,6 +57,11 @@
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>TypeCheckerDiagnostics.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Compiler\Diagnostics\ControlFlowAnalyzerDiagnostics.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>ControlFlowAnalyzerDiagnostics.resx</DependentUpon>
       </Compile>
     </ItemGroup>
 

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 using Torque.Compiler.Diagnostics;
@@ -20,7 +19,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
 
 
-    private PrimitiveType? _expectedReturnType;
+    private Type? _expectedReturnType;
 
 
     public IReadOnlyList<BoundStatement> Statements { get; } = statements;
@@ -98,12 +97,21 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public void ProcessReturn(BoundReturnStatement statement)
     {
-        // TODO: check whether the function expects a return but none occurs
-        // TODO: check whether the function doesn't expect a return, but it occurs ("return;" allowed)
+        // TODO: check whether the function expects a return but none occurs:
+        // we have to check the control flow to correctly detect return issues.
+        // create Control-Flow Analysis (CFA) and Control-Flow Graph (CFG)
 
-        var value = Process(statement.Expression!);
+        // TODO: make that only function declaration can exist in file scope
 
-        ReportIfDiffers(_expectedReturnType!.Value, value, statement.Expression!.Source());
+        ReportIfVoidFunctionReturnsValue(statement);
+
+        if (statement.Expression is null)
+            return;
+
+        var value = Process(statement.Expression);
+
+        if (!_expectedReturnType!.IsVoid)
+            ReportIfDiffers(_expectedReturnType, value, statement.Expression.Source());
     }
 
 
@@ -335,6 +343,13 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
             return;
 
         Report(Diagnostic.TypeCheckerCatalog.ArityDiffers, [expected, got], location);
+    }
+
+
+    private void ReportIfVoidFunctionReturnsValue(BoundReturnStatement statement)
+    {
+        if (_expectedReturnType!.IsVoid && statement.Expression is not null)
+            Report(Diagnostic.TypeCheckerCatalog.FunctionCannotReturnValue, location: statement.Expression!.Source());
     }
 
     #endregion

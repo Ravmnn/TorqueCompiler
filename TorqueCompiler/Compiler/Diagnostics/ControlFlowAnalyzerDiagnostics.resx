@@ -18,26 +18,10 @@
     <resheader name="writer">
         <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
     </resheader>
-
-
-
-
-    <data name="MultipleSymbolDeclaration" xml:space="preserve">
-        <value>Symbol "{0}" has multiple declarations</value>
+    <data name="FunctionMustReturnFromAllPaths" xml:space="preserve">
+        <value>Function is not "void" and must return from all code paths</value>
     </data>
-    <data name="UndeclaredSymbol" xml:space="preserve">
-        <value>Symbol "{0}" has not been declared</value>
-    </data>
-    <data name="SymbolIsNotAValue" xml:space="preserve">
-        <value>Symbol "{0}" is not an expression value</value>
-    </data>
-    <data name="MustBeAssignmentReference" xml:space="preserve">
-        <value>Expected symbol or pointer access expression</value>
-    </data>
-    <data name="OnlyDeclarationsCanExistInFileScope" xml:space="preserve">
-        <value>Only declarations can exist in file scope</value>
-    </data>
-    <data name="FunctionsMustBeAtFileScope" xml:space="preserve">
-        <value>Functions can only be declared at file scope</value>
+    <data name="FunctionCannotReturnAValue" xml:space="preserve">
+        <value>Function is "void" and cannot return a value</value>
     </data>
 </root>

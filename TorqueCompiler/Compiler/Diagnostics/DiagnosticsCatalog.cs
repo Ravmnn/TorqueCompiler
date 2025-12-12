@@ -46,7 +46,9 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.Binder)] MultipleSymbolDeclaration,
         [Item(DiagnosticScope.Binder)] UndeclaredSymbol,
         [Item(DiagnosticScope.Binder)] SymbolIsNotAValue,
-        [Item(DiagnosticScope.Binder)] MustBeAssignmentReference
+        [Item(DiagnosticScope.Binder)] MustBeAssignmentReference,
+        [Item(DiagnosticScope.Binder)] OnlyDeclarationsCanExistInFileScope,
+        [Item(DiagnosticScope.Binder)] FunctionsMustBeAtFileScope
     }
 
 
@@ -57,9 +59,16 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.TypeChecker)] CannotUseVoidHere,
         [Item(DiagnosticScope.TypeChecker)] ExpressionDoesNotReturnAnyValue,
         [Item(DiagnosticScope.TypeChecker)] CannotCallNonFunction,
-        [Item(DiagnosticScope.TypeChecker)] ArityDiffers
+        [Item(DiagnosticScope.TypeChecker)] ArityDiffers,
+        [Item(DiagnosticScope.TypeChecker)] FunctionCannotReturnValue
     }
 
+
+    public enum ControlFlowAnalyzerCatalog
+    {
+        [Item(DiagnosticScope.ControlFlowAnalyzer)] FunctionMustReturnFromAllPaths,
+        [Item(DiagnosticScope.ControlFlowAnalyzer)] FunctionCannotReturnAValue
+    }
 
 
 

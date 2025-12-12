@@ -1,4 +1,5 @@
 // ReSharper disable PossibleMultipleEnumeration
+// ReSharper disable LocalizableElement
 
 
 using System;
@@ -24,20 +25,6 @@ public static class Torque
 
 
 
-    public static void LogDiagnostics(IReadOnlyList<Diagnostic> diagnostics)
-    {
-        if (!diagnostics.Any())
-            return;
-
-        Failed = true;
-
-        foreach (var diagnostic in diagnostics)
-            Console.WriteLine(DiagnosticFormatter.Format(diagnostic));
-    }
-
-
-
-
     public static void Compile(CompileCommandSettings settings)
     {
         try
@@ -54,7 +41,7 @@ public static class Torque
         }
         catch (Exception exception)
         {
-            Console.Error.WriteLine($"Internal Error: {exception}");
+            Console.WriteLine($"Internal Error: {exception}");
         }
     }
 
@@ -95,6 +82,13 @@ public static class Torque
 
         if (Failed)
             return null;
+
+
+        // control flow analysis
+        var functionDeclarations = boundStatements.Cast<BoundFunctionDeclarationStatement>().ToArray();
+        var graphs = new ControlFlowGraphBuilder(functionDeclarations).BuildAll();
+        var analyzer = new ControlFlowAnalyzer(graphs);
+        analyzer.AnalyzeAll();
 
 
         // compile
@@ -165,5 +159,22 @@ public static class Torque
     {
         var fileNames = (from file in settings.Files select file.FullName).ToArray();
         Toolchain.Link(fileNames, settings.Output, settings.Debug);
+    }
+
+
+
+
+    public static void LogDiagnostics(IReadOnlyList<Diagnostic> diagnostics)
+    {
+        if (!diagnostics.Any())
+            return;
+
+        foreach (var diagnostic in diagnostics)
+        {
+            Console.WriteLine(DiagnosticFormatter.Format(diagnostic));
+
+            if (diagnostic.Severity == DiagnosticSeverity.Error)
+                Failed = true;
+        }
     }
 }
