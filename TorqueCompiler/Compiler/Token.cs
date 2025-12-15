@@ -33,7 +33,7 @@ public enum TokenType
 public readonly record struct TokenLocation(int Start, int End, int Line)
 {
     public override string ToString()
-        => $"line {Line}:{Start}-{End}";
+        => $"{Line}:{Start}-{End}";
 }
 
 

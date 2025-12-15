@@ -11,10 +11,10 @@ int main()
     int xlogicAnd3 = (false && get()) as int;
     int xlogicAnd4 = (true && get()) as int;
     
-    int comparison1 = (50 > 49) as int;
+    int comparison1 = (50 > 49)  int;
     int comparison2 = (50 > 50) as int;
     int comparison3 = (50 >= 50) as int;
-    int equality = (50 == 50) as int;
+    int equality = (50 == 50)  int;
     int inequality = (50 != 50) as int;
 
     int logicAnd1 = (true && false) as int;

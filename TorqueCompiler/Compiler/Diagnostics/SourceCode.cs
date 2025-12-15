@@ -8,6 +8,8 @@ public static class SourceCode
     public static string? Source { get; set; }
     public static string[]? SourceLines => Source?.Split('\n');
 
+    public static string? FileName { get; set; }
+
 
 
 

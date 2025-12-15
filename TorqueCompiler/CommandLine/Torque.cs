@@ -32,6 +32,7 @@ public static class Torque
             s_settings = settings;
 
             SourceCode.Source = File.ReadAllText(s_settings.File.FullName);
+            SourceCode.FileName = settings.File.Name;
 
 
             if (CompileToBitCode() is not { } bitCode)
