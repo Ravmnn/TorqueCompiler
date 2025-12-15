@@ -1,16 +1,34 @@
-void get()
+bool get()
 {
-    return 10;
+    return true;
 }
 
 
 int main()
 {
+    int xlogicAnd1 = (true && false) as int;
+    int xlogicAnd2 = (true && true) as int;
+    int xlogicAnd3 = (false && get()) as int;
+    int xlogicAnd4 = (true && get()) as int;
+    
+    int comparison1 = (50 > 49) as int;
+    int comparison2 = (50 > 50) as int;
+    int comparison3 = (50 >= 50) as int;
+    int equality = (50 == 50) as int;
+    int inequality = (50 != 50) as int;
+
+    int logicAnd1 = (true && false) as int;
+    int logicAnd2 = (true && true) as int;
+    int logicAnd3 = (false && get()) as int;
+
+    int logicOr1 = (false || true) as int;
+    int logicOr2 = (!false || true) as int;
+    int logicOr3 = (true || get()) as int;
+    int logicOr4 = (false || get()) as int;
+
     int number1 = 10;
     int number2 = 55;
     int result = number1 + number2;
-
-    int getResult = get();
 
     {
         bool innerBoolean = true;

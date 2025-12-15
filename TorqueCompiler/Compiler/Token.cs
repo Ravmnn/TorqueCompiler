@@ -11,8 +11,12 @@ public enum TokenType
     SemiColon, Colon, Arrow,
     Comma,
 
+    // TODO: create aliases for some of the items here to increase readability:
+    // example: BitwiseOr = Pipe; BitwiseAnd = Ampersand
     Exclamation,
-    Plus, Minus, Star, Slash, Equal, Ampersand,
+    GreaterThan, LessThan, GreaterThanOrEqual, LessThanOrEqual,
+    Equality, Inequality, Ampersand, Pipe, LogicAnd, LogicOr,
+    Plus, Minus, Star, Slash, Equal,
     LeftParen, RightParen, LeftCurlyBrace, RightCurlyBrace,
 
     Identifier,

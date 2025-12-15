@@ -14,6 +14,9 @@ public interface IBoundExpressionProcessor
     void ProcessBinary(BoundBinaryExpression expression);
     void ProcessUnary(BoundUnaryExpression expression);
     void ProcessGrouping(BoundGroupingExpression expression);
+    void ProcessComparison(BoundComparisonExpression expression);
+    void ProcessEquality(BoundEqualityExpression expression);
+    void ProcessLogic(BoundLogicExpression expression);
     void ProcessSymbol(BoundSymbolExpression expression);
     void ProcessAssignment(BoundAssignmentExpression expression);
     void ProcessAssignmentReference(BoundAssignmentReferenceExpression expression);
@@ -31,6 +34,9 @@ public interface IBoundExpressionProcessor<out T>
     T ProcessBinary(BoundBinaryExpression expression);
     T ProcessUnary(BoundUnaryExpression expression);
     T ProcessGrouping(BoundGroupingExpression expression);
+    T ProcessComparison(BoundComparisonExpression expression);
+    T ProcessEquality(BoundEqualityExpression expression);
+    T ProcessLogic(BoundLogicExpression expression);
     T ProcessSymbol(BoundSymbolExpression expression);
     T ProcessAssignment(BoundAssignmentExpression expression);
     T ProcessAssignmentReference(BoundAssignmentReferenceExpression expression);
@@ -143,6 +149,72 @@ public class BoundGroupingExpression(GroupingExpression syntax, BoundExpression 
 
     public override T Process<T>(IBoundExpressionProcessor<T> processor)
         => processor.ProcessGrouping(this);
+}
+
+
+
+
+public class BoundComparisonExpression(ComparisonExpression syntax, BoundExpression left, BoundExpression right) : BoundExpression(syntax)
+{
+    public new ComparisonExpression Syntax => (base.Syntax as ComparisonExpression)!;
+
+    public BoundExpression Left { get; } = left;
+    public BoundExpression Right { get; } = right;
+
+    public override Type Type => PrimitiveType.Bool;
+
+
+
+
+    public override void Process(IBoundExpressionProcessor processor)
+        => processor.ProcessComparison(this);
+
+    public override T Process<T>(IBoundExpressionProcessor<T> processor)
+        => processor.ProcessComparison(this);
+}
+
+
+
+
+public class BoundEqualityExpression(EqualityExpression syntax, BoundExpression left, BoundExpression right) : BoundExpression(syntax)
+{
+    public new EqualityExpression Syntax => (base.Syntax as EqualityExpression)!;
+
+    public BoundExpression Left { get; } = left;
+    public BoundExpression Right { get; } = right;
+
+    public override Type Type => PrimitiveType.Bool;
+
+
+
+
+    public override void Process(IBoundExpressionProcessor processor)
+        => processor.ProcessEquality(this);
+
+    public override T Process<T>(IBoundExpressionProcessor<T> processor)
+        => processor.ProcessEquality(this);
+}
+
+
+
+
+public class BoundLogicExpression(LogicExpression syntax, BoundExpression left, BoundExpression right) : BoundExpression(syntax)
+{
+    public new LogicExpression Syntax => (base.Syntax as LogicExpression)!;
+
+    public BoundExpression Left { get; } = left;
+    public BoundExpression Right { get; } = right;
+
+    public override Type Type => PrimitiveType.Bool;
+
+
+
+
+    public override void Process(IBoundExpressionProcessor processor)
+        => processor.ProcessLogic(this);
+
+    public override T Process<T>(IBoundExpressionProcessor<T> processor)
+        => processor.ProcessLogic(this);
 }
 
 

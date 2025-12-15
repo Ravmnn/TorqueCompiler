@@ -210,13 +210,64 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
     private Expression Assignment()
     {
-        var expression = Term();
+        var expression = Logic();
 
         if (Match(TokenType.Equal))
         {
             var @operator = Previous();
             var value = Assignment();
             expression = new AssignmentExpression(expression, @operator, value);
+        }
+
+        return expression;
+    }
+
+
+
+
+    private Expression Logic()
+    {
+        var expression = Equality();
+
+        if (Match(TokenType.LogicAnd, TokenType.LogicOr))
+        {
+            var @operator = Previous();
+            var value = Equality();
+            expression = new LogicExpression(expression, @operator, value);
+        }
+
+        return expression;
+    }
+
+
+
+
+    private Expression Equality()
+    {
+        var expression = Comparison();
+
+        if (Match(TokenType.Equality, TokenType.Inequality))
+        {
+            var @operator = Previous();
+            var value = Comparison();
+            expression = new EqualityExpression(expression, @operator, value);
+        }
+
+        return expression;
+    }
+
+
+
+
+    private Expression Comparison()
+    {
+        var expression = Term();
+
+        if (Match(TokenType.GreaterThan, TokenType.LessThan, TokenType.GreaterThanOrEqual, TokenType.LessThanOrEqual))
+        {
+            var @operator = Previous();
+            var value = Term();
+            expression = new ComparisonExpression(expression, @operator, value);
         }
 
         return expression;

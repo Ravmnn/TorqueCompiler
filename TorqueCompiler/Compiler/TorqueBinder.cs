@@ -181,6 +181,20 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
 
 
+    public BoundExpression ProcessComparison(ComparisonExpression expression)
+        => new BoundComparisonExpression(expression, Process(expression.Left), Process(expression.Right));
+
+
+    public BoundExpression ProcessEquality(EqualityExpression expression)
+        => new BoundEqualityExpression(expression, Process(expression.Left), Process(expression.Right));
+
+
+    public BoundExpression ProcessLogic(LogicExpression expression)
+        => new BoundLogicExpression(expression, Process(expression.Left), Process(expression.Right));
+
+
+
+
     public BoundExpression ProcessSymbol(SymbolExpression expression)
     {
         var symbol = Scope.TryGetSymbol(expression.Identifier.Lexeme);

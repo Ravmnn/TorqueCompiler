@@ -73,20 +73,23 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
             case '\r':
                 return null;
 
-            case ':': return TokenFromType(TokenType.Colon);
-            case ';': return TokenFromType(TokenType.SemiColon);
-            case ',': return TokenFromType(TokenType.Comma);
-            case '-': return Match('>') ? TokenFromType(TokenType.Arrow) : TokenFromType(TokenType.Minus);
-            case '+': return TokenFromType(TokenType.Plus);
-            case '*': return TokenFromType(TokenType.Star);
-            case '/': return TokenFromType(TokenType.Slash);
-            case '=': return TokenFromType(TokenType.Equal);
-            case '!': return TokenFromType(TokenType.Exclamation);
-            case '&': return TokenFromType(TokenType.Ampersand);
-            case '(': return TokenFromType(TokenType.LeftParen);
-            case ')': return TokenFromType(TokenType.RightParen);
-            case '{': return TokenFromType(TokenType.LeftCurlyBrace);
-            case '}': return TokenFromType(TokenType.RightCurlyBrace);
+            case ':': return TokenFromTokenType(TokenType.Colon);
+            case ';': return TokenFromTokenType(TokenType.SemiColon);
+            case ',': return TokenFromTokenType(TokenType.Comma);
+            case '-': return Match('>') ? TokenFromTokenType(TokenType.Arrow) : TokenFromTokenType(TokenType.Minus);
+            case '+': return TokenFromTokenType(TokenType.Plus);
+            case '*': return TokenFromTokenType(TokenType.Star);
+            case '/': return TokenFromTokenType(TokenType.Slash);
+            case '>': return Match('=') ? TokenFromTokenType(TokenType.GreaterThanOrEqual) : TokenFromTokenType(TokenType.GreaterThan);
+            case '<': return Match('=') ? TokenFromTokenType(TokenType.LessThanOrEqual) : TokenFromTokenType(TokenType.LessThan);
+            case '=': return Match('=') ? TokenFromTokenType(TokenType.Equality) : TokenFromTokenType(TokenType.Equal);
+            case '!': return Match('=') ? TokenFromTokenType(TokenType.Inequality) :TokenFromTokenType(TokenType.Exclamation);
+            case '&': return Match('&') ? TokenFromTokenType(TokenType.LogicAnd) : TokenFromTokenType(TokenType.Ampersand);
+            case '|': return Match('|') ? TokenFromTokenType(TokenType.LogicOr) : TokenFromTokenType(TokenType.Pipe);
+            case '(': return TokenFromTokenType(TokenType.LeftParen);
+            case ')': return TokenFromTokenType(TokenType.RightParen);
+            case '{': return TokenFromTokenType(TokenType.LeftCurlyBrace);
+            case '}': return TokenFromTokenType(TokenType.RightCurlyBrace);
 
             case '#':
                 if (Match('>'))
@@ -152,11 +155,11 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
         return lexeme switch
         {
-            _ when lexeme.IsKeyword() => TokenFromType(Token.Keywords[lexeme]),
-            _ when lexeme.IsType() => TokenFromType(TokenType.Type),
-            _ when lexeme.IsBoolean() => TokenFromType(TokenType.Value),
+            _ when lexeme.IsKeyword() => TokenFromTokenType(Token.Keywords[lexeme]),
+            _ when lexeme.IsType() => TokenFromTokenType(TokenType.Type),
+            _ when lexeme.IsBoolean() => TokenFromTokenType(TokenType.Value),
 
-            _ => TokenFromType(TokenType.Identifier)
+            _ => TokenFromTokenType(TokenType.Identifier)
         };
     }
 
@@ -166,7 +169,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         while (Peek() is { } @char && char.IsAsciiDigit(@char))
             Advance();
 
-        return TokenFromType(TokenType.Value);
+        return TokenFromTokenType(TokenType.Value);
     }
 
 
@@ -178,7 +181,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
 
 
-    private Token TokenFromType(TokenType type)
+    private Token TokenFromTokenType(TokenType type)
         => new Token(GetCurrentTokenLexeme(), type, GetCurrentLocation());
 
 

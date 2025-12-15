@@ -203,6 +203,29 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
 
 
+    public Type ProcessComparison(BoundComparisonExpression expression)
+    {
+        ReportIfDiffers(Process(expression.Left), Process(expression.Right), expression.Right.Source());
+        return expression.Type;
+    }
+
+
+    public Type ProcessEquality(BoundEqualityExpression expression)
+    {
+        ReportIfDiffers(Process(expression.Left), Process(expression.Right), expression.Right.Source());
+        return expression.Type;
+    }
+
+
+    public Type ProcessLogic(BoundLogicExpression expression)
+    {
+        ReportIfDiffers(Process(expression.Left), Process(expression.Right), expression.Right.Source());
+        return expression.Type;
+    }
+
+
+
+
     public Type ProcessSymbol(BoundSymbolExpression expression)
         => expression.Type!;
 

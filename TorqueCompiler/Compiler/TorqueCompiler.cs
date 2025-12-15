@@ -27,7 +27,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
     private readonly LLVMModuleRef _module = LLVMModuleRef.CreateWithName("MainModule");
-
     public LLVMModuleRef Module => _module;
 
     public LLVMBuilderRef Builder { get; } = LLVMBuilderRef.Create(LLVMContextRef.Global);
@@ -36,6 +35,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMTargetDataRef TargetData { get; private set; }
 
     public DebugMetadataGenerator? Debug { get; }
+
+    private LLVMValueRef? _currentFunction;
 
 
     public IReadOnlyList<BoundStatement> Statements { get; }
@@ -202,8 +203,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var entry = llvmFunctionReference.AppendBasicBlock(FunctionEntryBlockName);
         Builder.PositionAtEnd(entry);
 
+        _currentFunction = llvmFunctionReference;
+
         DeclareFunctionParameters(llvmFunctionReference, parameters);
         ProcessFunctionBlock(statement.Body, llvmFunctionDebugMetadata);
+
+        _currentFunction = null;
     }
 
 
@@ -363,6 +368,109 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessGrouping(BoundGroupingExpression expression)
         => Process(expression.Expression);
+
+
+
+
+    public LLVMValueRef ProcessComparison(BoundComparisonExpression expression)
+    {
+        var left = Process(expression.Left);
+        var right = Process(expression.Right);
+
+        var @operator = expression.Syntax.Operator.Type;
+        var isUnsigned = expression.Type.IsUnsigned;
+
+        return ProcessComparisonOperation(@operator, left, right, isUnsigned);
+    }
+
+
+    private LLVMValueRef ProcessComparisonOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right, bool unsigned = false)
+    {
+        var operation = @operator switch
+        {
+            TokenType.GreaterThan => unsigned ? LLVMIntPredicate.LLVMIntUGT : LLVMIntPredicate.LLVMIntSGT,
+            TokenType.LessThan => unsigned ? LLVMIntPredicate.LLVMIntULT : LLVMIntPredicate.LLVMIntSLT,
+            TokenType.GreaterThanOrEqual => unsigned ? LLVMIntPredicate.LLVMIntUGE : LLVMIntPredicate.LLVMIntSGE,
+            TokenType.LessThanOrEqual => unsigned ? LLVMIntPredicate.LLVMIntULT : LLVMIntPredicate.LLVMIntSLE,
+
+            _ => throw new UnreachableException()
+        };
+
+        return Builder.BuildICmp(operation, left, right, "intcmp");
+    }
+
+
+
+
+    public LLVMValueRef ProcessEquality(BoundEqualityExpression expression)
+    {
+        var left = Process(expression.Left);
+        var right = Process(expression.Right);
+
+        return ProcessEqualityOperation(expression.Syntax.Operator.Type, left, right);
+    }
+
+
+    private LLVMValueRef ProcessEqualityOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right)
+    {
+        var operation = @operator switch
+        {
+            TokenType.Equality => LLVMIntPredicate.LLVMIntEQ,
+            TokenType.Inequality => LLVMIntPredicate.LLVMIntNE,
+
+            _ => throw new UnreachableException()
+        };
+
+        return Builder.BuildICmp(operation, left, right, "intcmp");
+    }
+
+
+
+
+    public LLVMValueRef ProcessLogic(BoundLogicExpression expression)
+    {
+        // due to LLVM's SSA system, the use of "phi" is needed to implement a logic expression
+
+        var rhsBlock = _currentFunction!.Value.AppendBasicBlock("rhs");
+        var trueBlock = _currentFunction!.Value.AppendBasicBlock("true");
+        var falseBlock = _currentFunction!.Value.AppendBasicBlock("false");
+        var joinBlock = _currentFunction!.Value.AppendBasicBlock("join");
+
+        var operation = expression.Syntax.Operator.Type;
+        var isLogicAnd = operation == TokenType.LogicAnd;
+
+        if (operation is not TokenType.LogicAnd and not TokenType.LogicOr)
+            throw new UnreachableException();
+
+        var leftThenBlock = isLogicAnd ? rhsBlock : trueBlock;
+        var leftElseBlock = isLogicAnd ? falseBlock : rhsBlock;
+
+
+        Builder.BuildCondBr(Process(expression.Left), leftThenBlock, leftElseBlock);
+
+        Builder.PositionAtEnd(rhsBlock);
+        Builder.BuildCondBr(Process(expression.Right), trueBlock, falseBlock);
+
+        Builder.PositionAtEnd(trueBlock);
+        Builder.BuildBr(joinBlock);
+
+        Builder.PositionAtEnd(falseBlock);
+        Builder.BuildBr(joinBlock);
+
+        Builder.PositionAtEnd(joinBlock);
+
+        var phi = Builder.BuildPhi(LLVMTypeRef.Int1, "logicres");
+        phi.AddIncoming([NewBoolean(true), NewBoolean(false)], [trueBlock, falseBlock], 2);
+
+
+        return phi;
+    }
+
+
+    private static LLVMValueRef NewBoolean(bool value)
+        => LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, value ? 1UL : 0UL);
+
+
 
 
     public LLVMValueRef ProcessSymbol(BoundSymbolExpression expression)

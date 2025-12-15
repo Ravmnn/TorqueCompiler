@@ -213,14 +213,24 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         => expression.Value.Lexeme;
 
 
-
-
     public string ProcessBinary(BinaryExpression expression)
         => Stringify(expression.Operator.Lexeme, [expression.Left, expression.Right]);
 
 
     public string ProcessGrouping(GroupingExpression expression)
         => Parenthesize(expression.Expression);
+
+
+    public string ProcessComparison(ComparisonExpression expression)
+        => BinaryStringify(expression.Operator.Lexeme, expression.Left, expression.Right);
+
+
+    public string ProcessEquality(EqualityExpression expression)
+        => BinaryStringify(expression.Operator.Lexeme, expression.Left, expression.Right);
+
+
+    public string ProcessLogic(LogicExpression expression)
+        => BinaryStringify(expression.Operator.Lexeme, expression.Left, expression.Right);
 
 
     public string ProcessSymbol(SymbolExpression expression)
@@ -260,8 +270,6 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
         return builder.ToString();
     }
-
-
 
 
     public string ProcessCast(CastExpression expression)

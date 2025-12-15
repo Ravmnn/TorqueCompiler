@@ -14,6 +14,9 @@ public interface IExpressionProcessor
     void ProcessBinary(BinaryExpression expression);
     void ProcessUnary(UnaryExpression expression);
     void ProcessGrouping(GroupingExpression expression);
+    void ProcessComparison(ComparisonExpression expression);
+    void ProcessEquality(EqualityExpression expression);
+    void ProcessLogic(LogicExpression expression);
     void ProcessSymbol(SymbolExpression expression);
     void ProcessAssignment(AssignmentExpression expression);
     void ProcessPointerAccess(PointerAccessExpression expression);
@@ -30,12 +33,19 @@ public interface IExpressionProcessor<out T>
     T ProcessBinary(BinaryExpression expression);
     T ProcessUnary(UnaryExpression expression);
     T ProcessGrouping(GroupingExpression expression);
+    T ProcessComparison(ComparisonExpression expression);
+    T ProcessEquality(EqualityExpression expression);
+    T ProcessLogic(LogicExpression expression);
     T ProcessSymbol(SymbolExpression expression);
     T ProcessAssignment(AssignmentExpression expression);
     T ProcessPointerAccess(PointerAccessExpression expression);
     T ProcessCall(CallExpression expression);
     T ProcessCast(CastExpression expression);
 }
+
+// TODO: expression creation is too boilerplate:
+// create base classes for common patterns, like binary expresssions
+// do that for the parser too... common methods to handle binary expressions
 
 
 
@@ -134,6 +144,75 @@ public class GroupingExpression(Expression expression) : Expression
 
 
     public override Token Source() => Expression.Source();
+}
+
+
+
+
+public class ComparisonExpression(Expression left, Token @operator, Expression right) : Expression
+{
+    public Expression Left { get; } = left;
+    public Token Operator { get; } = @operator;
+    public Expression Right { get; } = right;
+
+
+
+
+    public override void Process(IExpressionProcessor processor)
+        => processor.ProcessComparison(this);
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessComparison(this);
+
+
+    public override Token Source()
+        => Operator;
+}
+
+
+
+
+public class EqualityExpression(Expression left, Token @operator, Expression right) : Expression
+{
+    public Expression Left { get; } = left;
+    public Token Operator { get; } = @operator;
+    public Expression Right { get; } = right;
+
+
+
+
+    public override void Process(IExpressionProcessor processor)
+        => processor.ProcessEquality(this);
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessEquality(this);
+
+
+    public override Token Source()
+        => Operator;
+}
+
+
+
+
+public class LogicExpression(Expression left, Token @operator, Expression right) : Expression
+{
+    public Expression Left { get; } = left;
+    public Token Operator { get; } = @operator;
+    public Expression Right { get; } = right;
+
+
+
+
+    public override void Process(IExpressionProcessor processor)
+        => processor.ProcessLogic(this);
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessLogic(this);
+
+
+    public override Token Source()
+        => Operator;
 }
 
 

@@ -10,6 +10,7 @@ namespace Torque.CommandLine;
 
 
 
+// TODO: add file name to reports
 public static class DiagnosticFormatter
 {
     public static string Format(Diagnostic diagnostic)

@@ -57,7 +57,7 @@ public static class PrimitiveTypeExtensions
     {
         PrimitiveType.Void => LLVMTypeRef.Void,
 
-        PrimitiveType.Bool => LLVMTypeRef.Int8,
+        PrimitiveType.Bool => LLVMTypeRef.Int1,
 
         PrimitiveType.Char or PrimitiveType.Int8 or PrimitiveType.UInt8 => LLVMTypeRef.Int8,
         PrimitiveType.Int16 or PrimitiveType.UInt16 => LLVMTypeRef.Int16,

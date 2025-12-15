@@ -21,6 +21,8 @@ public class Type(PrimitiveType baseType, bool isPointer = false)
     public PrimitiveType BaseType { get; } = baseType;
     public bool IsPointer { get; } = isPointer;
     public bool IsVoid => BaseType == PrimitiveType.Void;
+    public bool IsUnsigned => BaseType is PrimitiveType.UInt8 or PrimitiveType.UInt16 or PrimitiveType.UInt32
+                                        or PrimitiveType.UInt64 or PrimitiveType.Char or PrimitiveType.Bool;
 
 
 
@@ -65,6 +67,8 @@ public class FunctionType(Type returnType, IReadOnlyList<Type> parametersType)
     public Type ReturnType => BaseType;
 
     public IReadOnlyList<Type> ParametersType { get; } = parametersType;
+
+
 
 
     public override string ToString()

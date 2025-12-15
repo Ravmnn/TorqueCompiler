@@ -32,6 +32,8 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
         foreach (var function in FunctionDeclarations)
         {
+            ResetBlocks();
+
             Process(function);
             _graphs.Add(_currentGraph!);
         }
@@ -45,8 +47,14 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
     private void Reset()
     {
         _currentGraph = null;
-
         _graphs.Clear();
+
+        ResetBlocks();
+    }
+
+
+    private void ResetBlocks()
+    {
         _blocks.Clear();
         _blockCounter = 0;
 
@@ -56,9 +64,10 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
     private void RemoveEmptyBlocks()
     {
-        foreach (var block in _currentGraph!.Blocks.ToArray())
-            if (block.Statements.Count == 0)
-                _currentGraph!.Blocks.Remove(block);
+        foreach (var graph in _graphs)
+            foreach (var block in graph.Blocks.ToArray())
+                if (block.Statements.Count == 0)
+                    graph.Blocks.Remove(block);
     }
 
 
