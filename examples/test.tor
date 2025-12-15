@@ -1,57 +1,8 @@
-bool get()
-{
-    return true;
-}
-
-
 int main()
 {
-    int xlogicAnd1 = (true && false) as int;
-    int xlogicAnd2 = (true && true) as int;
-    int xlogicAnd3 = (false && get()) as int;
-    int xlogicAnd4 = (true && get()) as int;
-    
-    int comparison1 = (50 > 49) as int;
-    int comparison2 = (50 > 50) as int;
-    int comparison3 = (50 >= 50) as int;
-    int equality = (50 == 50) as int;
-    int inequality = (50 != 50) as int;
+    int x = 10;
+    int y = 45;
+    int z = 123;
 
-    int logicAnd1 = (true && false) as int;
-    int logicAnd2 = (true && true) as int;
-    int logicAnd3 = (false && get()) as int;
-
-    int logicOr1 = (false || true) as int;
-    int logicOr2 = (!false || true) as int;
-    int logicOr3 = (true || get()) as int;
-    int logicOr4 = (false || get()) as int;
-
-    int number1 = 10;
-    int number2 = 55;
-    int result = number1 + number2;
-
-    int x = 1;
-    int y = 2;
-    int z = 3;
-
-    x = y = z = x + y + z + 123;
-
-    bool finalBoolean = !!!!!!!!true;
-
-    int original = 1024;
-    int* ptr = &original;
-    
-    original = 5;
-    *ptr = 7;
-
-    {
-        bool innerBoolean = true;
-        bool innerBooleanReverse = !innerBoolean;
-
-        return 0;
-    }
-
-    int16 unreachable = 123 as int16;
-
-    return 0;
+    return x + y + z;
 }
