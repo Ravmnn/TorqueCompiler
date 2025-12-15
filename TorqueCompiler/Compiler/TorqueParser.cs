@@ -206,108 +206,29 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         => Assignment();
 
 
-
-
     private Expression Assignment()
-    {
-        var expression = Logic();
-
-        if (Match(TokenType.Equal))
-        {
-            var @operator = Previous();
-            var value = Assignment();
-            expression = new AssignmentExpression(expression, @operator, value);
-        }
-
-        return expression;
-    }
-
-
+        => ParseRightAssociativeBinaryLayoutExpression<AssignmentExpression>(Logic, TokenType.Equal);
 
 
     private Expression Logic()
-    {
-        var expression = Equality();
-
-        if (Match(TokenType.LogicAnd, TokenType.LogicOr))
-        {
-            var @operator = Previous();
-            var value = Equality();
-            expression = new LogicExpression(expression, @operator, value);
-        }
-
-        return expression;
-    }
-
-
+        => ParseLeftAssociativeBinaryLayoutExpression<LogicExpression>(Equality, TokenType.LogicAnd, TokenType.LogicOr);
 
 
     private Expression Equality()
-    {
-        var expression = Comparison();
-
-        if (Match(TokenType.Equality, TokenType.Inequality))
-        {
-            var @operator = Previous();
-            var value = Comparison();
-            expression = new EqualityExpression(expression, @operator, value);
-        }
-
-        return expression;
-    }
-
-
+        => ParseLeftAssociativeBinaryLayoutExpression<EqualityExpression>(Comparison, TokenType.Equality, TokenType.Inequality);
 
 
     private Expression Comparison()
-    {
-        var expression = Term();
-
-        if (Match(TokenType.GreaterThan, TokenType.LessThan, TokenType.GreaterThanOrEqual, TokenType.LessThanOrEqual))
-        {
-            var @operator = Previous();
-            var value = Term();
-            expression = new ComparisonExpression(expression, @operator, value);
-        }
-
-        return expression;
-    }
-
-
+        => ParseLeftAssociativeBinaryLayoutExpression<ComparisonExpression>(Term, TokenType.GreaterThan, TokenType.LessThan,
+            TokenType.GreaterThanOrEqual, TokenType.LessThanOrEqual);
 
 
     private Expression Term()
-    {
-        var expression = Factor();
-
-        while (Match(TokenType.Plus, TokenType.Minus))
-        {
-            var @operator = Previous();
-            var right = Factor();
-            expression = new BinaryExpression(expression, @operator, right);
-        }
-
-        return expression;
-    }
-
-
+        => ParseLeftAssociativeBinaryLayoutExpression<BinaryExpression>(Factor, TokenType.Plus, TokenType.Minus);
 
 
     private Expression Factor()
-    {
-        var expression = Cast();
-
-        while (Match(TokenType.Star, TokenType.Slash))
-        {
-            var @operator = Previous();
-            var right = Cast();
-            expression = new BinaryExpression(expression, @operator, right);
-        }
-
-        return expression;
-    }
-
-
+        => ParseLeftAssociativeBinaryLayoutExpression<BinaryExpression>(Cast, TokenType.Star, TokenType.Slash);
 
 
     private Expression Cast()
@@ -325,38 +246,12 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     }
 
 
-
-
     private Expression PointerAccess()
-    {
-        if (Match(TokenType.Star))
-        {
-            var @operator = Previous();
-            var pointer = PointerAccess();
-
-            return new PointerAccessExpression(@operator, pointer);
-        }
-
-        return Unary();
-    }
-
-
+        => ParseRightAssociativeUnaryLayoutExpression<PointerAccessExpression>(Unary, TokenType.Star);
 
 
     private Expression Unary()
-    {
-        if (Match(TokenType.Minus, TokenType.Exclamation))
-        {
-            var @operator = Previous();
-            var expression = Unary();
-
-            return new UnaryExpression(@operator, expression);
-        }
-
-        return Call();
-    }
-
-
+        => ParseRightAssociativeUnaryLayoutExpression<UnaryExpression>(Call, TokenType.Exclamation, TokenType.Minus);
 
 
     private Expression Call()
@@ -384,8 +279,6 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
         return DoWhileComma(Expression);
     }
-
-
 
 
     private Expression Primary()
@@ -422,6 +315,53 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     }
 
     #endregion
+
+
+
+
+    private Expression ParseLeftAssociativeBinaryLayoutExpression<T>(Func<Expression> predecessor, params IReadOnlyList<TokenType> operators)
+        where T : BinaryLayoutExpression, IBinaryLayoutExpressionFactory
+        => ParseAssociativeBinaryLayoutExpression<T>(predecessor, false, operators);
+
+
+    private Expression ParseRightAssociativeBinaryLayoutExpression<T>(Func<Expression> predecessor, params IReadOnlyList<TokenType> operators)
+        where T : BinaryLayoutExpression, IBinaryLayoutExpressionFactory
+        => ParseAssociativeBinaryLayoutExpression<T>(predecessor, true, operators);
+
+
+
+
+    private Expression ParseAssociativeBinaryLayoutExpression<T>(Func<Expression> predecessor, bool rightAssociative = false,
+        params IReadOnlyList<TokenType> operators) where T : BinaryLayoutExpression, IBinaryLayoutExpressionFactory
+    {
+        var expression = predecessor();
+
+        while (Match(operators))
+        {
+            var @operator = Previous();
+            var right = rightAssociative ? ParseAssociativeBinaryLayoutExpression<T>(predecessor, rightAssociative, operators) : predecessor();
+            expression = T.Create(expression, @operator, right);
+        }
+
+        return expression;
+    }
+
+
+
+
+    private Expression ParseRightAssociativeUnaryLayoutExpression<T>(Func<Expression> predecessor, params IReadOnlyList<TokenType> operators)
+        where T : UnaryLayoutExpression, IUnaryLayoutExpressionFactory
+    {
+        if (Match(operators))
+        {
+            var @operator = Previous();
+            var expression = ParseRightAssociativeUnaryLayoutExpression<T>(predecessor, operators);
+
+            return T.Create(@operator, expression);
+        }
+
+        return predecessor();
+    }
 
 
 

@@ -238,7 +238,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessUnary(UnaryExpression expression)
-        => UnaryStringify(expression.Operator.Lexeme, expression.Expression);
+        => UnaryStringify(expression.Operator.Lexeme, expression.Right);
 
 
     public string ProcessAssignment(AssignmentExpression expression)

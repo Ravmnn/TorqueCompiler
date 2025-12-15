@@ -165,7 +165,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundExpression ProcessUnary(UnaryExpression expression)
     {
-        var boundExpression = Process(expression.Expression);
+        var boundExpression = Process(expression.Right);
         return new BoundUnaryExpression(expression, boundExpression);
     }
 

@@ -6,50 +6,6 @@ namespace Torque.Compiler;
 
 
 
-public interface IExpressionProcessor
-{
-    void Process(Expression expression);
-
-    void ProcessLiteral(LiteralExpression expression);
-    void ProcessBinary(BinaryExpression expression);
-    void ProcessUnary(UnaryExpression expression);
-    void ProcessGrouping(GroupingExpression expression);
-    void ProcessComparison(ComparisonExpression expression);
-    void ProcessEquality(EqualityExpression expression);
-    void ProcessLogic(LogicExpression expression);
-    void ProcessSymbol(SymbolExpression expression);
-    void ProcessAssignment(AssignmentExpression expression);
-    void ProcessPointerAccess(PointerAccessExpression expression);
-    void ProcessCall(CallExpression expression);
-    void ProcessCast(CastExpression expression);
-}
-
-
-public interface IExpressionProcessor<out T>
-{
-    T Process(Expression expression);
-
-    T ProcessLiteral(LiteralExpression expression);
-    T ProcessBinary(BinaryExpression expression);
-    T ProcessUnary(UnaryExpression expression);
-    T ProcessGrouping(GroupingExpression expression);
-    T ProcessComparison(ComparisonExpression expression);
-    T ProcessEquality(EqualityExpression expression);
-    T ProcessLogic(LogicExpression expression);
-    T ProcessSymbol(SymbolExpression expression);
-    T ProcessAssignment(AssignmentExpression expression);
-    T ProcessPointerAccess(PointerAccessExpression expression);
-    T ProcessCall(CallExpression expression);
-    T ProcessCast(CastExpression expression);
-}
-
-// TODO: expression creation is too boilerplate:
-// create base classes for common patterns, like binary expresssions
-// do that for the parser too... common methods to handle binary expressions
-
-
-
-
 public abstract class Expression
 {
     public abstract void Process(IExpressionProcessor processor);
@@ -62,16 +18,55 @@ public abstract class Expression
 
 
 
+
+public interface IBinaryLayoutExpressionFactory
+{
+    public static abstract BinaryLayoutExpression Create(Expression left, Token @operator, Expression right);
+}
+
+
+public abstract class BinaryLayoutExpression(Expression left, Token @operator, Expression right) : Expression
+{
+    public Expression Left { get; } = left;
+    public Token Operator { get; } = @operator;
+    public Expression Right { get; } = right;
+
+
+    public override Token Source() => Operator;
+}
+
+
+
+
+public interface IUnaryLayoutExpressionFactory
+{
+    public static abstract UnaryLayoutExpression Create(Token @operator, Expression right);
+}
+
+
+public abstract class UnaryLayoutExpression(Token @operator, Expression right) : Expression
+{
+    public Token Operator { get; } = @operator;
+    public Expression Right { get; } = right;
+
+
+    public override Token Source() => Operator;
+}
+
+
+
+
+
+
+
+
 public class LiteralExpression(Token value) : Expression
 {
     public Token Value { get; } = value;
 
 
-
-
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessLiteral(this);
-
 
     public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessLiteral(this);
@@ -83,46 +78,35 @@ public class LiteralExpression(Token value) : Expression
 
 
 
-public class BinaryExpression(Expression left, Token @operator, Expression right) : Expression
+public class BinaryExpression(Expression left, Token @operator, Expression right)
+    : BinaryLayoutExpression(left, @operator, right), IBinaryLayoutExpressionFactory
 {
-    public Expression Left { get; } = left;
-    public Token Operator { get; } = @operator;
-    public Expression Right { get; } = right;
-
-
-
-
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessBinary(this);
-
 
     public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessBinary(this);
 
 
-    public override Token Source() => Operator;
+    public static BinaryLayoutExpression Create(Expression left, Token @operator, Expression right)
+        => new BinaryExpression(left, @operator, right);
 }
 
 
 
 
-public class UnaryExpression(Token @operator, Expression expression) : Expression
+public class UnaryExpression(Token @operator, Expression expression)
+    : UnaryLayoutExpression(@operator, expression), IUnaryLayoutExpressionFactory
 {
-    public Token Operator { get; } = @operator;
-    public Expression Expression { get; } = expression;
-
-
-
-
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessUnary(this);
-
 
     public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessUnary(this);
 
 
-    public override Token Source() => Operator;
+    public static UnaryLayoutExpression Create(Token @operator, Expression right)
+        => new UnaryExpression(@operator, right);
 }
 
 
@@ -133,11 +117,8 @@ public class GroupingExpression(Expression expression) : Expression
     public Expression Expression { get; } = expression;
 
 
-
-
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessGrouping(this);
-
 
     public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessGrouping(this);
@@ -149,15 +130,9 @@ public class GroupingExpression(Expression expression) : Expression
 
 
 
-public class ComparisonExpression(Expression left, Token @operator, Expression right) : Expression
+public class ComparisonExpression(Expression left, Token @operator, Expression right)
+    : BinaryLayoutExpression(left, @operator, right), IBinaryLayoutExpressionFactory
 {
-    public Expression Left { get; } = left;
-    public Token Operator { get; } = @operator;
-    public Expression Right { get; } = right;
-
-
-
-
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessComparison(this);
 
@@ -165,22 +140,16 @@ public class ComparisonExpression(Expression left, Token @operator, Expression r
         => processor.ProcessComparison(this);
 
 
-    public override Token Source()
-        => Operator;
+    public static BinaryLayoutExpression Create(Expression left, Token @operator, Expression right)
+        => new ComparisonExpression(left, @operator, right);
 }
 
 
 
 
-public class EqualityExpression(Expression left, Token @operator, Expression right) : Expression
+public class EqualityExpression(Expression left, Token @operator, Expression right)
+    : BinaryLayoutExpression(left, @operator, right), IBinaryLayoutExpressionFactory
 {
-    public Expression Left { get; } = left;
-    public Token Operator { get; } = @operator;
-    public Expression Right { get; } = right;
-
-
-
-
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessEquality(this);
 
@@ -188,22 +157,16 @@ public class EqualityExpression(Expression left, Token @operator, Expression rig
         => processor.ProcessEquality(this);
 
 
-    public override Token Source()
-        => Operator;
+    public static BinaryLayoutExpression Create(Expression left, Token @operator, Expression right)
+        => new EqualityExpression(left, @operator, right);
 }
 
 
 
 
-public class LogicExpression(Expression left, Token @operator, Expression right) : Expression
+public class LogicExpression(Expression left, Token @operator, Expression right)
+    : BinaryLayoutExpression(left, @operator, right), IBinaryLayoutExpressionFactory
 {
-    public Expression Left { get; } = left;
-    public Token Operator { get; } = @operator;
-    public Expression Right { get; } = right;
-
-
-
-
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessLogic(this);
 
@@ -211,8 +174,8 @@ public class LogicExpression(Expression left, Token @operator, Expression right)
         => processor.ProcessLogic(this);
 
 
-    public override Token Source()
-        => Operator;
+    public static BinaryLayoutExpression Create(Expression left, Token @operator, Expression right)
+        => new LogicExpression(left, @operator, right);
 }
 
 
@@ -224,11 +187,8 @@ public class SymbolExpression(Token identifier, bool getAddress = false) : Expre
     public bool GetAddress { get; } = getAddress;
 
 
-
-
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessSymbol(this);
-
 
     public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessSymbol(this);
@@ -240,46 +200,42 @@ public class SymbolExpression(Token identifier, bool getAddress = false) : Expre
 
 
 
-public class AssignmentExpression(Expression pointer, Token @operator, Expression value) : Expression
+public class AssignmentExpression(Expression pointer, Token @operator, Expression value)
+    : BinaryLayoutExpression(pointer, @operator, value), IBinaryLayoutExpressionFactory
 {
-    public Expression Pointer { get; } = pointer;
-    public Token Operator { get; } = @operator;
-    public Expression Value { get; } = value;
-
-
+    public Expression Pointer => Left;
+    public Expression Value => Right;
 
 
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessAssignment(this);
 
-
     public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessAssignment(this);
 
 
-    public override Token Source() => Operator;
+    public static BinaryLayoutExpression Create(Expression left, Token @operator, Expression right)
+        => new AssignmentExpression(left, @operator, right);
 }
 
 
 
 
-public class PointerAccessExpression(Token @operator, Expression pointer) : Expression
+public class PointerAccessExpression(Token @operator, Expression pointer)
+    : UnaryLayoutExpression(@operator, pointer), IUnaryLayoutExpressionFactory
 {
-    public Token Operator { get; } = @operator;
-    public Expression Pointer { get; } = pointer;
-
-
+    public Expression Pointer => Right;
 
 
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessPointerAccess(this);
 
-
     public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessPointerAccess(this);
 
 
-    public override Token Source() => Operator;
+    public static UnaryLayoutExpression Create(Token @operator, Expression right)
+        => new PointerAccessExpression(@operator, right);
 }
 
 
@@ -292,11 +248,8 @@ public class CallExpression(Token leftParen, Expression callee, IReadOnlyList<Ex
     public IReadOnlyList<Expression> Arguments { get; } = arguments;
 
 
-
-
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessCall(this);
-
 
     public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessCall(this);
@@ -316,11 +269,8 @@ public class CastExpression(Expression expression, Token keyword, TypeName type)
     public TypeName Type { get; } = type;
 
 
-
-
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessCast(this);
-
 
     public override T Process<T>(IExpressionProcessor<T> processor)
         => processor.ProcessCast(this);

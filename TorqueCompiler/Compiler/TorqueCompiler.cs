@@ -495,9 +495,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var reference = Process(expression.Reference);
         var value = Process(expression.Value);
 
-        var result = Builder.BuildStore(value, reference);
+        Builder.BuildStore(value, reference);
 
-        return result;
+        return value;
     }
 
 

@@ -42,10 +42,6 @@ public class Scope(Scope? parent = null)
 
 
 
-    public static void ProcessInnerScope(ref Scope scope, Action action)
-        => ProcessInnerScope(ref scope, scope, action);
-
-
     public static void ProcessInnerScope(ref Scope scope, Scope newScope, Action action)
     {
         var oldScope = scope;
