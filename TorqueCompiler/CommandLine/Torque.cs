@@ -86,9 +86,14 @@ public static class Torque
 
         // control flow analysis
         var functionDeclarations = boundStatements.Cast<BoundFunctionDeclarationStatement>().ToArray();
-        var graphs = new ControlFlowGraphBuilder(functionDeclarations).BuildAll();
-        var analyzer = new ControlFlowAnalyzer(graphs);
-        analyzer.AnalyzeAll();
+        var graphs = new ControlFlowGraphBuilder(functionDeclarations).Build();
+
+        var controlFlowReporter = new ControlFlowAnalysisReporter(graphs);
+        controlFlowReporter.Report();
+        LogDiagnostics(controlFlowReporter.Diagnostics);
+
+        if (Failed)
+            return null;
 
 
         // compile

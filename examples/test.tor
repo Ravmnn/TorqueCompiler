@@ -1,8 +1,16 @@
+void get()
+{
+    return 10;
+}
+
+
 int main()
 {
     int number1 = 10;
     int number2 = 55;
     int result = number1 + number2;
+
+    int getResult = get();
 
     {
         bool innerBoolean = true;

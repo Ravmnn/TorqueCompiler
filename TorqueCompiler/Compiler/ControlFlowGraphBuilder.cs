@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
 
 
 namespace Torque.Compiler;
@@ -7,91 +7,134 @@ namespace Torque.Compiler;
 
 
 
-public class ControlFlowGraph
+// TODO: when add control flow statements like if and while, change this to support them
+public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationStatement> functionDeclarations) : IBoundStatementProcessor
 {
-    public BasicBlock Entry { get; set; } = null!;
-    public List<BasicBlock> Blocks { get; } = [];
-}
+    private readonly List<ControlFlowGraph> _graphs = [];
+    private ControlFlowGraph? _currentGraph;
 
-
-
-
-public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationStatement> functionDeclarations)
-{
+    private readonly Stack<BasicBlock> _blocks = [];
     private int _blockCounter;
+
+    private bool _reachable = true;
+
+    private BasicBlock CurrentBlock => _blocks.Peek();
 
 
     public IReadOnlyList<BoundFunctionDeclarationStatement> FunctionDeclarations { get; } = functionDeclarations;
 
-    public ControlFlowGraph? ControlFlowGraph { get; private set; }
 
 
 
-
-    public IReadOnlyList<ControlFlowGraph> BuildAll()
-        => (from functionDeclaration in FunctionDeclarations select Build(functionDeclaration)).ToArray();
-
-
-    private ControlFlowGraph Build(BoundFunctionDeclarationStatement functionDeclaration)
+    public IReadOnlyList<ControlFlowGraph> Build()
     {
-        ControlFlowGraph = new ControlFlowGraph();
-        ControlFlowGraph.Entry = NewBlock();
+        Reset();
 
-        BuildBlock(functionDeclaration.Body.Statements, ControlFlowGraph.Entry);
-
-        return ControlFlowGraph;
-    }
-
-
-    private BasicBlock? BuildBlock(IReadOnlyList<BoundStatement> statements, BasicBlock? current)
-    {
-        foreach (var statement in statements)
+        foreach (var function in FunctionDeclarations)
         {
-            switch (statement)
-            {
-                case BoundReturnStatement @return:
-                    current!.Statements.Add(@return);
-                    current = null;
-                    break;
-
-                case BoundBlockStatement block:
-                    current = BuildBlock(block.Statements, current);
-                    break;
-
-                default:
-                    current!.Statements.Add(statement);
-                    break;
-            }
-
-            if (current is null)
-                return null;
+            Process(function);
+            _graphs.Add(_currentGraph!);
         }
 
-        return current;
+        RemoveEmptyBlocks();
+
+        return _graphs;
     }
 
 
-    private BasicBlock? HandleBlock(BoundBlockStatement statement, BasicBlock current)
+    private void Reset()
     {
-        var block = NewBlock();
-        var join = NewBlock();
+        _currentGraph = null;
 
-        current.Successors.Add(block);
+        _graphs.Clear();
+        _blocks.Clear();
+        _blockCounter = 0;
 
-        if (BuildBlock(statement.Statements, block) is null)
-            return null;
-
-        block.Successors.Add(join);
-        return join;
+        _reachable = true;
     }
 
 
+    private void RemoveEmptyBlocks()
+    {
+        foreach (var block in _currentGraph!.Blocks.ToArray())
+            if (block.Statements.Count == 0)
+                _currentGraph!.Blocks.Remove(block);
+    }
+
+
+
+
+    public void Process(BoundStatement statement)
+        => statement.Process(this);
+
+
+
+
+    public void ProcessExpression(BoundExpressionStatement statement)
+        => AddStatementToCurrentBlock(statement);
+
+
+
+
+    public void ProcessDeclaration(BoundDeclarationStatement statement)
+        => AddStatementToCurrentBlock(statement);
+
+
+
+
+    public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement statement)
+    {
+        _currentGraph = new ControlFlowGraph(statement);
+        _currentGraph.Entry = NewBlock();
+        _blocks.Push(_currentGraph.Entry);
+
+        Process(statement.Body);
+    }
+
+
+
+
+    public void ProcessReturn(BoundReturnStatement statement)
+    {
+        AddStatementToCurrentBlock(statement);
+        CurrentBlock.State.HasReturn = true;
+        _reachable = false;
+
+        _blocks.Push(NewBlock());
+    }
+
+
+
+
+    public void ProcessBlock(BoundBlockStatement statement)
+    {
+        foreach (var blockStatement in statement.Statements)
+            Process(blockStatement);
+    }
+
+
+
+
+    private void ProcessNewBlock(Action action)
+    {
+        _blocks.Push(NewBlock());
+        action();
+        _blocks.Pop();
+    }
+
+
+    private void AddStatementToCurrentBlock(BoundStatement statement)
+    {
+        CurrentBlock.Statements.Add(statement);
+    }
 
 
     private BasicBlock NewBlock()
     {
         var block = new BasicBlock($"B{_blockCounter++}");
-        ControlFlowGraph!.Blocks.Add(block);
+        _currentGraph!.Blocks.Add(block);
+
+        block.State.Reachable = _reachable;
 
         return block;
     }

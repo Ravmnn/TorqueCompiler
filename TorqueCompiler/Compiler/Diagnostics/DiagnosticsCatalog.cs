@@ -67,7 +67,8 @@ public readonly partial struct Diagnostic
     public enum ControlFlowAnalyzerCatalog
     {
         [Item(DiagnosticScope.ControlFlowAnalyzer)] FunctionMustReturnFromAllPaths,
-        [Item(DiagnosticScope.ControlFlowAnalyzer)] FunctionCannotReturnAValue
+        [Item(DiagnosticScope.ControlFlowAnalyzer)] FunctionCannotReturnAValue,
+        [Item(DiagnosticScope.ControlFlowAnalyzer, DiagnosticSeverity.Warning)] UnreachableCode
     }
 
 

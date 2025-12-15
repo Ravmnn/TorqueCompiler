@@ -24,4 +24,7 @@
     <data name="FunctionCannotReturnAValue" xml:space="preserve">
         <value>Function is "void" and cannot return a value</value>
     </data>
+    <data name="UnreachableCode" xml:space="preserve">
+        <value>Code from this point is unreachable</value>
+    </data>
 </root>
