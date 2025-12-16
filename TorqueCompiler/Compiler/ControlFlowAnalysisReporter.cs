@@ -34,23 +34,25 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
 
 
 
-    private void ReportIfNonVoidAndDoesNotReturn(FunctionType functionType, ControlFlowGraph graph)
+    private bool ReportIfNonVoidAndDoesNotReturn(FunctionType functionType, ControlFlowGraph graph)
     {
         if (functionType.IsVoid || graph.Conclusion().State.HasReturn)
-            return;
+            return false;
 
         var returnLocation = graph.Conclusion().Statements.LastOrDefault()?.Source() ?? graph.FunctionDeclaration.Source();
         Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionMustReturnFromAllPaths, location: returnLocation.Location);
+        return true;
     }
 
 
-    private void ReportIfVoidAndReturn(FunctionType functionType, ControlFlowGraph graph)
+    private bool ReportIfVoidAndReturn(FunctionType functionType, ControlFlowGraph graph)
     {
         if (!functionType.IsVoid || !graph.Conclusion().State.HasReturn)
-            return;
+            return false;
 
         var returnLocation = graph.Conclusion().Statements.Last().Source();
         Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionCannotReturnAValue, location: returnLocation.Location);
+        return true;
     }
 
 

@@ -1,6 +1,10 @@
+void get()
+{}
+
+
 int main()
 {
-    int x = 10;
+    int x = get() as int;
 
     return 0;
 }

@@ -271,14 +271,16 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     #region Diagnostic Reporting
 
-    private void ReportIfMultipleDeclaration(Token symbol)
+    private bool ReportIfMultipleDeclaration(Token symbol)
     {
-        if (Scope.SymbolExists(symbol.Lexeme))
-            ReportToken(Diagnostic.BinderCatalog.MultipleSymbolDeclaration, symbol);
+        if (!Scope.SymbolExists(symbol.Lexeme))
+            return false;
+
+        ReportToken(Diagnostic.BinderCatalog.MultipleSymbolDeclaration, symbol);
+        return true;
     }
 
 
-    // TODO: all conditional utility report methods must return boolean
     private bool ReportIfNonDeclarationAtFileScope(Statement statement)
     {
         if (!Scope.IsGlobal || statement is FunctionDeclarationStatement)

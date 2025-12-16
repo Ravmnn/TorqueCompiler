@@ -97,12 +97,6 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public void ProcessReturn(BoundReturnStatement statement)
     {
-        // TODO: check whether the function expects a return but none occurs:
-        // we have to check the control flow to correctly detect return issues.
-        // create Control-Flow Analysis (CFA) and Control-Flow Graph (CFG)
-
-        // TODO: make that only function declaration can exist in file scope
-
         ReportIfVoidFunctionReturnsValue(statement);
 
         if (statement.Expression is null)
@@ -326,60 +320,68 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     #region Diagnostic Reporting
 
     // BUG: casting void to any type results in a loop
-    private void ReportIfDiffers(Type expected, Type got, SourceLocation location)
+    private bool ReportIfDiffers(Type expected, Type got, SourceLocation location)
     {
         if (expected == got)
-            return;
+            return false;
 
         if (got.IsVoid)
             Report(Diagnostic.TypeCheckerCatalog.ExpressionDoesNotReturnAnyValue, [], location);
         else
             Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
+
+        return true;
     }
 
 
-    private void ReportIfNotAPointer(Type type, SourceLocation location)
+    private bool ReportIfNotAPointer(Type type, SourceLocation location)
     {
         if (type.IsPointer)
-            return;
+            return false;
 
         Report(Diagnostic.TypeCheckerCatalog.PointerExpected, location: location);
+        return true;
     }
 
 
-    private void ReportIfVoid(Type type, SourceLocation location)
+    private bool ReportIfVoid(Type type, SourceLocation location)
     {
         // Here, although "void" should be reported, it is important to check whether
         // the type is a function type or not, since function types may return void, and
         // that's alright.
 
         if (!type.IsVoid || type is FunctionType)
-            return;
+            return false;
 
         Report(Diagnostic.TypeCheckerCatalog.CannotUseVoidHere, location: location);
+        return true;
     }
 
 
-    private void ReportIfArityDiffers(BoundCallExpression expression)
+    private bool ReportIfArityDiffers(BoundCallExpression expression)
     {
         var functionType = (expression.Callee.Type as FunctionType)!;
-        ReportIfArityDiffers(functionType.ParametersType.Count, expression.Arguments.Count, expression.Location());
+        return ReportIfArityDiffers(functionType.ParametersType.Count, expression.Arguments.Count, expression.Location());
     }
 
 
-    private void ReportIfArityDiffers(int expected, int got, SourceLocation location)
+    private bool ReportIfArityDiffers(int expected, int got, SourceLocation location)
     {
         if (expected == got)
-            return;
+            return false;
 
         Report(Diagnostic.TypeCheckerCatalog.ArityDiffers, [expected, got], location);
+        return true;
     }
 
 
-    private void ReportIfVoidFunctionReturnsValue(BoundReturnStatement statement)
+    private bool ReportIfVoidFunctionReturnsValue(BoundReturnStatement statement)
     {
-        if (_expectedReturnType!.IsVoid && statement.Expression is not null)
-            Report(Diagnostic.TypeCheckerCatalog.FunctionCannotReturnValue, location: statement.Expression!.Location());
+        if (!_expectedReturnType!.IsVoid || statement.Expression is null)
+            return false;
+
+        Report(Diagnostic.TypeCheckerCatalog.FunctionCannotReturnValue, location: statement.Expression!.Location());
+        return true;
     }
 
     #endregion
