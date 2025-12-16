@@ -4,7 +4,8 @@ void get()
 
 int main()
 {
-    int x = get() as int;
+    int x2 = get() as int;
+    *get();
 
     return 0;
 }

@@ -252,7 +252,9 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public Type ProcessPointerAccess(BoundPointerAccessExpression expression)
     {
-        Process(expression.Pointer);
+        var type = Process(expression.Pointer);
+        ReportIfNotAPointer(type, expression.Pointer.Location());
+
         return expression.Type!;
     }
 
@@ -302,7 +304,9 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public Type ProcessCast(BoundCastExpression expression)
     {
-        Process(expression.Value);
+        var type = Process(expression.Value);
+        ReportIfVoidExpression(type, expression.Value.Location());
+
         expression.Type = TypeFromNonVoidTypeName(expression.Syntax.Type);
 
         return expression.Type!;
@@ -319,15 +323,12 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     #region Diagnostic Reporting
 
-    // BUG: casting void to any type results in a loop
     private bool ReportIfDiffers(Type expected, Type got, SourceLocation location)
     {
         if (expected == got)
             return false;
 
-        if (got.IsVoid)
-            Report(Diagnostic.TypeCheckerCatalog.ExpressionDoesNotReturnAnyValue, [], location);
-        else
+        if (!ReportIfVoidExpression(got, location))
             Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
 
         return true;
@@ -344,7 +345,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     }
 
 
-    private bool ReportIfVoid(Type type, SourceLocation location)
+    private bool ReportIfVoidTypeName(Type type, SourceLocation location)
     {
         // Here, although "void" should be reported, it is important to check whether
         // the type is a function type or not, since function types may return void, and
@@ -354,6 +355,16 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
             return false;
 
         Report(Diagnostic.TypeCheckerCatalog.CannotUseVoidHere, location: location);
+        return true;
+    }
+
+
+    private bool ReportIfVoidExpression(Type type, SourceLocation location)
+    {
+        if (!type.IsVoid || type is FunctionType)
+            return false;
+
+        Report(Diagnostic.TypeCheckerCatalog.ExpressionDoesNotReturnAnyValue, location: location);
         return true;
     }
 
@@ -394,7 +405,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     private Type TypeFromNonVoidTypeName(TypeName typeName)
     {
         var type = TypeFromTypeName(typeName);
-        ReportIfVoid(type, typeName.BaseType.Location);
+        ReportIfVoidTypeName(type, typeName.BaseType.Location);
 
         return type;
     }
