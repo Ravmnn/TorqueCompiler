@@ -1,11 +1,9 @@
-void get()
-{}
-
-
 int main()
 {
-    int x2 = get() as int;
-    *get();
+    char letter1 = '\n';
+    char letter2 = '\t';
+    char letter3 = '\e';
+    char converted = 32 as char;
 
     return 0;
 }

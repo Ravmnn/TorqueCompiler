@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -138,14 +137,8 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     {
         var token = expression.Source();
 
-        expression.Type = TypeOfLiteralToken(token); // TODO: add char notation 'char' (converts to number)
-        expression.Value = expression.Type.BaseType switch
-        {
-            PrimitiveType.Bool => token.ValueFromBool(),
-            PrimitiveType.Char => throw new NotImplementedException(),
-
-            _ => token.ValueFromNumber()
-        };
+        expression.Type = TypeOfLiteralToken(token);
+        expression.Value = (ulong)token.Value!;
 
         return expression.Type!;
     }
@@ -154,6 +147,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     private PrimitiveType TypeOfLiteralToken(Token literal) => literal switch
     {
         _ when literal.IsBoolean() => PrimitiveType.Bool,
+        _ when literal.IsChar() => PrimitiveType.Char,
         _ => DefaultLiteralType
     };
 

@@ -56,5 +56,29 @@ namespace Torque.Compiler.Diagnostics {
                 return ResourceManager.GetString("UnclosedMultilineComment", resourceCulture);
             }
         }
+        
+        internal static string SingleCharacterEmpty {
+            get {
+                return ResourceManager.GetString("SingleCharacterEmpty", resourceCulture);
+            }
+        }
+        
+        internal static string UnclosedSingleCharacterString {
+            get {
+                return ResourceManager.GetString("UnclosedSingleCharacterString", resourceCulture);
+            }
+        }
+        
+        internal static string UnknownEscapeSequence {
+            get {
+                return ResourceManager.GetString("UnknownEscapeSequence", resourceCulture);
+            }
+        }
+        
+        internal static string SingleCharacterMoreThanOne {
+            get {
+                return ResourceManager.GetString("SingleCharacterMoreThanOne", resourceCulture);
+            }
+        }
     }
 }

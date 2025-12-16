@@ -411,7 +411,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         {
             switch (Peek().Type)
             {
-                case TokenType.Type:
+                case TokenType.SemiColon:
                 case TokenType.LeftCurlyBrace:
                 case TokenType.RightCurlyBrace:
                 case TokenType.KwReturn:

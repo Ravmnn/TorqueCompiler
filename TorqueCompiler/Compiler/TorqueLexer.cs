@@ -91,6 +91,8 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
             case '{': return TokenFromTokenType(TokenType.LeftCurlyBrace);
             case '}': return TokenFromTokenType(TokenType.RightCurlyBrace);
 
+            case '\'': return Char();
+
             case '#':
                 if (Match('>'))
                     MultilineComment();
@@ -119,11 +121,86 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
 
 
+    private Token Char()
+    {
+        var quoteLocation = GetCurrentLocation();
+        var text = ScanStringText('\'');
+
+        var data = EncodeString(text, quoteLocation);
+        ReportCharErrors(data, quoteLocation);
+
+        return TokenFromTokenType(TokenType.Value, (ulong)data[0]);
+    }
+
+
+    private void ReportCharErrors(IReadOnlyList<byte> data, SourceLocation quoteLocation)
+    {
+        if (data.Count == 0)
+            Report(Diagnostic.LexerCatalog.SingleCharacterEmpty);
+
+        if (AtEnd())
+            Report(Diagnostic.LexerCatalog.UnclosedSingleCharacterString, location: quoteLocation);
+
+        else if (data.Count > 1)
+            Report(Diagnostic.LexerCatalog.SingleCharacterMoreThanOne);
+    }
+
+
+    private string ScanStringText(char delimiter)
+    {
+        var text = string.Empty;
+
+        while (!AtEnd())
+        {
+            if (Peek() == delimiter)
+                break;
+
+            if (Peek() == '\\')
+                text += Advance();
+
+            text += Advance();
+        }
+
+        Advance(); // advance the string delimiter
+        return text;
+    }
+
+
+    private IReadOnlyList<byte> EncodeString(string text, SourceLocation quoteLocation)
+    {
+        var encoder = new StringTokenEncoder(text);
+        var data = encoder.ToASCII();
+        AddStringEncoderDiagnosticsToThis(encoder, quoteLocation);
+
+        return data;
+    }
+
+
+    private void AddStringEncoderDiagnosticsToThis(StringTokenEncoder encoder, SourceLocation stringQuote)
+    {
+        var diagnostics = encoder.Diagnostics;
+
+        for (var i = 0; i < diagnostics.Count; i++)
+        {
+            var diagnostic = diagnostics[i];
+            var location = diagnostic.Location!.Value;
+            diagnostics[i] = diagnostic with { Location = // "+ 1" here is to jump the quote
+                new SourceLocation(stringQuote.Start + location.Start + 1, stringQuote.End + location.End, stringQuote.Line) };
+        }
+
+        Diagnostics.AddRange(diagnostics);
+    }
+
+
+
+
     private void Comment()
     {
         while (Peek() != '\n' && !AtEnd())
             Advance();
     }
+
+
 
 
     private void MultilineComment()
@@ -157,11 +234,13 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         {
             _ when lexeme.IsKeyword() => TokenFromTokenType(Token.Keywords[lexeme]),
             _ when lexeme.IsType() => TokenFromTokenType(TokenType.Type),
-            _ when lexeme.IsBoolean() => TokenFromTokenType(TokenType.Value),
+            _ when lexeme.IsBoolean() => TokenFromTokenType(TokenType.Value, lexeme.ValueFromBool()),
 
             _ => TokenFromTokenType(TokenType.Identifier)
         };
     }
+
+
 
 
     private Token Value()
@@ -169,7 +248,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         while (Peek() is { } @char && char.IsAsciiDigit(@char))
             Advance();
 
-        return TokenFromTokenType(TokenType.Value);
+        return TokenFromTokenType(TokenType.Value, GetCurrentTokenLexeme().ValueFromNumber());
     }
 
 
@@ -181,8 +260,8 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
 
 
-    private Token TokenFromTokenType(TokenType type)
-        => new Token(GetCurrentTokenLexeme(), type, GetCurrentLocation());
+    private Token TokenFromTokenType(TokenType type, object? value = null)
+        => new Token(GetCurrentTokenLexeme(), type, GetCurrentLocation(), value);
 
 
     private SourceLocation GetCurrentLocation()

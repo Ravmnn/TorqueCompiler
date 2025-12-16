@@ -21,14 +21,18 @@ public readonly partial struct Diagnostic
 
     public enum LexerCatalog
     {
-        [Item(DiagnosticScope.Lexer)] UnexpectedToken = 0,
-        [Item(DiagnosticScope.Lexer)] UnclosedMultilineComment
+        [Item(DiagnosticScope.Lexer)] UnexpectedToken,
+        [Item(DiagnosticScope.Lexer)] UnclosedMultilineComment,
+        [Item(DiagnosticScope.Lexer)] SingleCharacterEmpty,
+        [Item(DiagnosticScope.Lexer)] SingleCharacterMoreThanOne,
+        [Item(DiagnosticScope.Lexer)] UnclosedSingleCharacterString,
+        [Item(DiagnosticScope.Lexer)] UnknownEscapeSequence
     }
 
 
     public enum ParserCatalog
     {
-        [Item(DiagnosticScope.Parser)] ExpectBlock = 0,
+        [Item(DiagnosticScope.Parser)] ExpectBlock,
         [Item(DiagnosticScope.Parser)] ExpectSemicolonAfterStatement,
         [Item(DiagnosticScope.Parser)] ExpectExpression,
         [Item(DiagnosticScope.Parser)] ExpectIdentifier,

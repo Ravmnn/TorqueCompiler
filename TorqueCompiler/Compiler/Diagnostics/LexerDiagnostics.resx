@@ -28,4 +28,16 @@
     <data name="UnclosedMultilineComment" xml:space="preserve">
         <value>Multiline comment is not closed</value>
     </data>
+    <data name="SingleCharacterEmpty" xml:space="preserve">
+        <value>Single-character string cannot be empty</value>
+    </data>
+    <data name="UnclosedSingleCharacterString" xml:space="preserve">
+        <value>Single-character string is not closed</value>
+    </data>
+    <data name="UnknownEscapeSequence" xml:space="preserve">
+        <value>Unknown escape sequence</value>
+    </data>
+    <data name="SingleCharacterMoreThanOne" xml:space="preserve">
+        <value>Single-character string must have exactly one character</value>
+    </data>
 </root>

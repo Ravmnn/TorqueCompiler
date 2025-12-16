@@ -30,7 +30,7 @@ public enum TokenType
 
 
 
-public readonly record struct Token(string Lexeme, TokenType Type, SourceLocation Location)
+public readonly record struct Token(string Lexeme, TokenType Type, SourceLocation Location, object? Value = null)
 {
     public static readonly IReadOnlyDictionary<string, PrimitiveType> Primitives = new Dictionary<string, PrimitiveType>
     {
