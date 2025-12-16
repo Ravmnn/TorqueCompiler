@@ -11,13 +11,14 @@ public enum TokenType
     SemiColon, Colon, Arrow,
     Comma,
 
-    // TODO: create aliases for some of the items here to increase readability:
-    // example: BitwiseOr = Pipe; BitwiseAnd = Ampersand
-    Exclamation,
-    GreaterThan, LessThan, GreaterThanOrEqual, LessThanOrEqual,
-    Equality, Inequality, Ampersand, Pipe, LogicAnd, LogicOr,
+    Exclamation, Ampersand, Pipe,
     Plus, Minus, Star, Slash, Equal,
     LeftParen, RightParen, LeftCurlyBrace, RightCurlyBrace,
+    GreaterThan, LessThan,
+
+    // TODO: add bitwise operations &, | and ^ (XOR)
+    GreaterThanOrEqual, LessThanOrEqual,
+    Equality, Inequality, LogicAnd, LogicOr,
 
     Identifier,
     Value,
@@ -29,17 +30,7 @@ public enum TokenType
 
 
 
-// TODO: add support for TokenRange when logging exceptions and stuff like that
-public readonly record struct TokenLocation(int Start, int End, int Line)
-{
-    public override string ToString()
-        => $"{Line}:{Start}-{End}";
-}
-
-
-
-
-public readonly record struct Token(string Lexeme, TokenType Type, TokenLocation Location)
+public readonly record struct Token(string Lexeme, TokenType Type, SourceLocation Location)
 {
     public static readonly IReadOnlyDictionary<string, PrimitiveType> Primitives = new Dictionary<string, PrimitiveType>
     {
@@ -62,8 +53,6 @@ public readonly record struct Token(string Lexeme, TokenType Type, TokenLocation
     };
 
 
-
-
     public static readonly IReadOnlyDictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>
     {
         {"return", TokenType.KwReturn},
@@ -77,7 +66,5 @@ public readonly record struct Token(string Lexeme, TokenType Type, TokenLocation
         => $"\"{Lexeme}\" of type {Type}, at {Location}";
 
 
-
-
-    public static implicit operator TokenLocation(Token token) => token.Location;
+    public static implicit operator SourceLocation(Token token) => token.Location;
 }

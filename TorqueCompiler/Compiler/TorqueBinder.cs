@@ -226,7 +226,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     private BoundAssignmentReferenceExpression ToAssignmentReference(BoundExpression expression)
     {
         if (expression is not BoundSymbolExpression and not BoundPointerAccessExpression)
-            Report(Diagnostic.BinderCatalog.MustBeAssignmentReference, location: expression.Source());
+            Report(Diagnostic.BinderCatalog.MustBeAssignmentReference, location: expression.Location());
 
         return new BoundAssignmentReferenceExpression(expression.Syntax, expression);
     }
@@ -284,7 +284,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         if (!Scope.IsGlobal || statement is FunctionDeclarationStatement)
             return false;
 
-        Report(Diagnostic.BinderCatalog.OnlyDeclarationsCanExistInFileScope, location: statement.Source());
+        Report(Diagnostic.BinderCatalog.OnlyDeclarationsCanExistInFileScope, location: statement.Location());
         return true;
     }
 
@@ -294,7 +294,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         if (Scope.IsGlobal || statement is not FunctionDeclarationStatement)
             return false;
 
-        Report(Diagnostic.BinderCatalog.FunctionsMustBeAtFileScope, location: statement.Source());
+        Report(Diagnostic.BinderCatalog.FunctionsMustBeAtFileScope, location: statement.Location());
         return true;
     }
 

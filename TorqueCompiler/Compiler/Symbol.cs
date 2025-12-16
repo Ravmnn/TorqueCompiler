@@ -8,10 +8,10 @@ namespace Torque.Compiler;
 
 
 
-public abstract class Symbol(string name, TokenLocation location, Scope declarationScope)
+public abstract class Symbol(string name, SourceLocation location, Scope declarationScope)
 {
     public string Name { get; } = name;
-    public TokenLocation Location { get; } = location;
+    public SourceLocation Location { get; } = location;
     public Scope DeclarationScope { get; } = declarationScope;
 
 
@@ -33,7 +33,7 @@ public abstract class Symbol(string name, TokenLocation location, Scope declarat
 
 
 
-public class VariableSymbol(string name, Type? type, TokenLocation location, Scope declarationScope)
+public class VariableSymbol(string name, Type? type, SourceLocation location, Scope declarationScope)
     : Symbol(name, location, declarationScope)
 {
     public Type? Type { get; set; } = type;
@@ -51,7 +51,7 @@ public class VariableSymbol(string name, Type? type, TokenLocation location, Sco
 
 
 
-public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbol> parameters, TokenLocation location, Scope declarationScope)
+public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbol> parameters, SourceLocation location, Scope declarationScope)
     : VariableSymbol(name, type, location, declarationScope)
 {
     public new FunctionType? Type

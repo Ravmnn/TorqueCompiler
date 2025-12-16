@@ -20,6 +20,7 @@ public abstract class BoundExpression(Expression syntax)
 
 
     public Token Source() => Syntax.Source();
+    public SourceLocation Location() => Syntax.Location();
 }
 
 

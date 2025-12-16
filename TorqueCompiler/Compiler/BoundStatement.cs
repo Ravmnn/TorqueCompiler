@@ -19,6 +19,7 @@ public abstract class BoundStatement(Statement syntax)
 
 
     public Token Source() => Syntax.Source();
+    public SourceLocation Location() => Syntax.Location();
 }
 
 

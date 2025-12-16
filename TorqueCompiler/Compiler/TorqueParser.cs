@@ -86,7 +86,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         var value = Expression();
         ExpectEndOfStatement();
 
-        return new DeclarationStatement(name, type, value);
+        return new DeclarationStatement(type, name, value);
     }
 
 
@@ -262,10 +262,9 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         {
             var parenLeft = Previous();
             var arguments = Arguments();
+            var parenRight = ExpectRightParen();
 
-            ExpectRightParen();
-
-            expression = new CallExpression(parenLeft, expression, arguments);
+            expression = new CallExpression(expression, parenLeft, arguments, parenRight);
         }
 
         return expression;
@@ -294,8 +293,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     private Expression? PrimaryOrNull() => Peek().Type switch
     {
         _ when Match(TokenType.Value) => ParseLiteral(),
-        _ when Match(TokenType.Ampersand) => new SymbolExpression(ExpectIdentifier(), true),
-        _ when Match(TokenType.Identifier) => new SymbolExpression(Previous()),
+        _ when Match(TokenType.Ampersand) => new SymbolExpression(Previous(), ExpectIdentifier()),
+        _ when Match(TokenType.Identifier) => new SymbolExpression(null, Previous()),
         _ when Match(TokenType.LeftParen) => ParseGroupExpression(),
 
         _ => null
@@ -308,10 +307,11 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
     private Expression ParseGroupExpression()
     {
+        var leftParen = Previous();
         var expression = Expression();
-        ExpectRightParen();
+        var rightParen = ExpectRightParen();
 
-        return new GroupingExpression(expression);
+        return new GroupingExpression(leftParen, expression, rightParen);
     }
 
     #endregion
@@ -426,13 +426,13 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
     [DoesNotReturn]
-    public override void ReportAndThrow(Diagnostic.ParserCatalog item, IReadOnlyList<object>? arguments = null, TokenLocation? location = null)
-        => base.ReportAndThrow(item, arguments, location ?? Peek());
+    public override void ReportAndThrow(Diagnostic.ParserCatalog item, IReadOnlyList<object>? arguments = null, SourceLocation? location = null)
+        => base.ReportAndThrow(item, arguments, location ?? Peek().Location);
 
 
 
 
-    private Token Expect(TokenType token, Diagnostic.ParserCatalog item, TokenLocation? location = null)
+    private Token Expect(TokenType token, Diagnostic.ParserCatalog item, SourceLocation? location = null)
     {
         if (Check(token))
             return Advance();

@@ -62,7 +62,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var valueType = Process(statement.Value);
 
         statement.Symbol.Type = symbolType;
-        ReportIfDiffers(symbolType, valueType, statement.Value.Source());
+        ReportIfDiffers(symbolType, valueType, statement.Value.Location());
     }
 
 
@@ -111,7 +111,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var value = Process(statement.Expression);
 
         if (!_expectedReturnType!.IsVoid)
-            ReportIfDiffers(_expectedReturnType, value, statement.Expression.Source());
+            ReportIfDiffers(_expectedReturnType, value, statement.Expression.Location());
     }
 
 
@@ -171,7 +171,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var leftType = Process(expression.Left);
         var rightType = Process(expression.Right);
 
-        ReportIfDiffers(leftType, rightType, expression.Right.Source());
+        ReportIfDiffers(leftType, rightType, expression.Right.Location());
 
         return expression.Type!;
     }
@@ -186,7 +186,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         switch (expression.Syntax.Operator.Type)
         {
             case TokenType.Minus: break;
-            case TokenType.Exclamation: ReportIfDiffers(PrimitiveType.Bool, type, expression.Source()); break;
+            case TokenType.Exclamation: ReportIfDiffers(PrimitiveType.Bool, type, expression.Location()); break;
 
             default: throw new UnreachableException();
         }
@@ -205,21 +205,23 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public Type ProcessComparison(BoundComparisonExpression expression)
     {
-        ReportIfDiffers(Process(expression.Left), Process(expression.Right), expression.Right.Source());
+        ReportIfDiffers(Process(expression.Left), Process(expression.Right), expression.Right.Location());
         return expression.Type;
     }
 
 
     public Type ProcessEquality(BoundEqualityExpression expression)
     {
-        ReportIfDiffers(Process(expression.Left), Process(expression.Right), expression.Right.Source());
+        ReportIfDiffers(Process(expression.Left), Process(expression.Right), expression.Right.Location());
         return expression.Type;
     }
 
 
     public Type ProcessLogic(BoundLogicExpression expression)
     {
-        ReportIfDiffers(Process(expression.Left), Process(expression.Right), expression.Right.Source());
+        ReportIfDiffers(Process(expression.Left), PrimitiveType.Bool, expression.Right.Location());
+        ReportIfDiffers(Process(expression.Right), PrimitiveType.Bool, expression.Right.Location());
+
         return expression.Type;
     }
 
@@ -242,7 +244,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var referenceType = Process(expression.Reference);
         var valueType = Process(expression.Value);
 
-        ReportIfDiffers(referenceType, valueType, expression.Value.Source());
+        ReportIfDiffers(referenceType, valueType, expression.Value.Location());
 
         return expression.Type!;
     }
@@ -284,7 +286,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     {
         if (calleeType is not FunctionType functionType)
         {
-            Report(Diagnostic.TypeCheckerCatalog.CannotCallNonFunction, location: expression.Source());
+            Report(Diagnostic.TypeCheckerCatalog.CannotCallNonFunction, location: expression.Location());
             return;
         }
 
@@ -298,7 +300,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var parametersType = functionType.ParametersType;
 
         for (var i = 0; i < parametersType.Count && i < arguments.Count; i++)
-            ReportIfDiffers(parametersType[i], arguments[i].Type!, arguments[i].Source());
+            ReportIfDiffers(parametersType[i], arguments[i].Type!, arguments[i].Location());
     }
 
 
@@ -324,7 +326,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     #region Diagnostic Reporting
 
     // BUG: casting void to any type results in a loop
-    private void ReportIfDiffers(Type expected, Type got, TokenLocation location)
+    private void ReportIfDiffers(Type expected, Type got, SourceLocation location)
     {
         if (expected == got)
             return;
@@ -336,7 +338,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     }
 
 
-    private void ReportIfNotAPointer(Type type, TokenLocation location)
+    private void ReportIfNotAPointer(Type type, SourceLocation location)
     {
         if (type.IsPointer)
             return;
@@ -345,7 +347,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     }
 
 
-    private void ReportIfVoid(Type type, TokenLocation location)
+    private void ReportIfVoid(Type type, SourceLocation location)
     {
         // Here, although "void" should be reported, it is important to check whether
         // the type is a function type or not, since function types may return void, and
@@ -361,11 +363,11 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     private void ReportIfArityDiffers(BoundCallExpression expression)
     {
         var functionType = (expression.Callee.Type as FunctionType)!;
-        ReportIfArityDiffers(functionType.ParametersType.Count, expression.Arguments.Count, expression.Source());
+        ReportIfArityDiffers(functionType.ParametersType.Count, expression.Arguments.Count, expression.Location());
     }
 
 
-    private void ReportIfArityDiffers(int expected, int got, TokenLocation location)
+    private void ReportIfArityDiffers(int expected, int got, SourceLocation location)
     {
         if (expected == got)
             return;
@@ -377,7 +379,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     private void ReportIfVoidFunctionReturnsValue(BoundReturnStatement statement)
     {
         if (_expectedReturnType!.IsVoid && statement.Expression is not null)
-            Report(Diagnostic.TypeCheckerCatalog.FunctionCannotReturnValue, location: statement.Expression!.Source());
+            Report(Diagnostic.TypeCheckerCatalog.FunctionCannotReturnValue, location: statement.Expression!.Location());
     }
 
     #endregion
@@ -390,7 +392,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     private Type TypeFromNonVoidTypeName(TypeName typeName)
     {
         var type = TypeFromTypeName(typeName);
-        ReportIfVoid(type, typeName.BaseType);
+        ReportIfVoid(type, typeName.BaseType.Location);
 
         return type;
     }

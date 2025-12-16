@@ -13,6 +13,7 @@ public abstract class Expression
 
 
     public abstract Token Source();
+    public abstract SourceLocation Location();
 }
 
 
@@ -33,6 +34,8 @@ public abstract class BinaryLayoutExpression(Expression left, Token @operator, E
 
 
     public override Token Source() => Operator;
+    public override SourceLocation Location()
+        => new SourceLocation(Left.Location(), Right.Location());
 }
 
 
@@ -51,6 +54,8 @@ public abstract class UnaryLayoutExpression(Token @operator, Expression right) :
 
 
     public override Token Source() => Operator;
+    public override SourceLocation Location()
+        => new SourceLocation(Operator.Location, Right.Location());
 }
 
 
@@ -73,6 +78,7 @@ public class LiteralExpression(Token value) : Expression
 
 
     public override Token Source() => Value;
+    public override SourceLocation Location() => Source().Location;
 }
 
 
@@ -112,9 +118,11 @@ public class UnaryExpression(Token @operator, Expression expression)
 
 
 
-public class GroupingExpression(Expression expression) : Expression
+public class GroupingExpression(Token leftParen, Expression expression, Token rightParen) : Expression
 {
+    public Token LeftParen { get; } = leftParen;
     public Expression Expression { get; } = expression;
+    public Token RightParen { get; } = rightParen;
 
 
     public override void Process(IExpressionProcessor processor)
@@ -125,6 +133,8 @@ public class GroupingExpression(Expression expression) : Expression
 
 
     public override Token Source() => Expression.Source();
+    public override SourceLocation Location()
+        => new SourceLocation(LeftParen.Location, RightParen.Location);
 }
 
 
@@ -181,10 +191,12 @@ public class LogicExpression(Expression left, Token @operator, Expression right)
 
 
 
-public class SymbolExpression(Token identifier, bool getAddress = false) : Expression
+public class SymbolExpression(Token? addressOperator, Token identifier) : Expression
 {
+    public Token? AddressOperator { get; } = addressOperator;
     public Token Identifier { get; } = identifier;
-    public bool GetAddress { get; } = getAddress;
+
+    public bool GetAddress => AddressOperator is not null;
 
 
     public override void Process(IExpressionProcessor processor)
@@ -195,6 +207,9 @@ public class SymbolExpression(Token identifier, bool getAddress = false) : Expre
 
 
     public override Token Source() => Identifier;
+
+    public override SourceLocation Location()
+        => GetAddress ? new SourceLocation(AddressOperator!.Value.Location, Identifier.Location) : Identifier.Location;
 }
 
 
@@ -241,11 +256,12 @@ public class PointerAccessExpression(Token @operator, Expression pointer)
 
 
 
-public class CallExpression(Token leftParen, Expression callee, IReadOnlyList<Expression> arguments) : Expression
+public class CallExpression(Expression callee, Token leftParen, IReadOnlyList<Expression> arguments, Token rightParen) : Expression
 {
-    public Token LeftParen { get; } = leftParen;
     public Expression Callee { get; } = callee;
+    public Token LeftParen { get; } = leftParen;
     public IReadOnlyList<Expression> Arguments { get; } = arguments;
+    public Token RightParen { get; } = rightParen;
 
 
     public override void Process(IExpressionProcessor processor)
@@ -256,6 +272,8 @@ public class CallExpression(Token leftParen, Expression callee, IReadOnlyList<Ex
 
 
     public override Token Source() => LeftParen;
+    public override SourceLocation Location()
+        => new SourceLocation(Callee.Location(), RightParen.Location);
 }
 
 
@@ -277,4 +295,7 @@ public class CastExpression(Expression expression, Token keyword, TypeName type)
 
 
     public override Token Source() => Keyword;
+
+    public override SourceLocation Location()
+        => new SourceLocation(Expression.Location(), Type.BaseType.Location);
 }

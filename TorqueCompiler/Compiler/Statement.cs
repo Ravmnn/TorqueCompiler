@@ -13,6 +13,7 @@ public abstract class Statement
 
 
     public abstract Token Source();
+    public abstract SourceLocation Location();
 }
 
 
@@ -34,15 +35,16 @@ public class ExpressionStatement(Expression expression) : Statement
 
 
     public override Token Source() => Expression.Source();
+    public override SourceLocation Location() => Expression.Location();
 }
 
 
 
 
-public class DeclarationStatement(Token name, TypeName type, Expression value) : Statement
+public class DeclarationStatement(TypeName type, Token name, Expression value) : Statement
 {
-    public Token Name { get; } = name;
     public TypeName Type { get; } = type;
+    public Token Name { get; } = name;
     public Expression Value { get; } = value;
 
 
@@ -57,6 +59,8 @@ public class DeclarationStatement(Token name, TypeName type, Expression value) :
 
 
     public override Token Source() => Name;
+    public override SourceLocation Location()
+        => new SourceLocation(Type.BaseType.Location, Value.Location());
 }
 
 
@@ -86,6 +90,9 @@ public class FunctionDeclarationStatement(TypeName returnType, Token name, IRead
 
 
     public override Token Source() => Name;
+
+    public override SourceLocation Location()
+        => new SourceLocation(ReturnType.BaseType.Location, Name.Location);
 }
 
 
@@ -108,6 +115,9 @@ public class ReturnStatement(Token keyword, Expression? expression = null) : Sta
 
 
     public override Token Source() => Keyword;
+
+    public override SourceLocation Location()
+        => Expression is not null ? new SourceLocation(Keyword.Location, Expression.Location()) : Keyword.Location;
 }
 
 
@@ -131,4 +141,5 @@ public class BlockStatement(Token start, Token end, IReadOnlyList<Statement> sta
 
 
     public override Token Source() => Start;
+    public override SourceLocation Location() => Start.Location;
 }

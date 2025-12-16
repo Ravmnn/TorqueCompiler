@@ -175,7 +175,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
 
 
-    public override Diagnostic Report(Diagnostic.LexerCatalog item, IReadOnlyList<object>? arguments = null, TokenLocation? location = null)
+    public override Diagnostic Report(Diagnostic.LexerCatalog item, IReadOnlyList<object>? arguments = null, SourceLocation? location = null)
         => base.Report(item, arguments, location ?? GetCurrentLocation());
 
 
@@ -185,8 +185,8 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         => new Token(GetCurrentTokenLexeme(), type, GetCurrentLocation());
 
 
-    private TokenLocation GetCurrentLocation()
-        => new TokenLocation(_startInLine, _endInLine, _line);
+    private SourceLocation GetCurrentLocation()
+        => new SourceLocation(_startInLine, _endInLine, _line);
 
 
     private string GetCurrentTokenLexeme()

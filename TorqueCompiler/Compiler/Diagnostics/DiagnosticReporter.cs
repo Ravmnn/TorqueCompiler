@@ -20,7 +20,7 @@ public abstract class DiagnosticReporter<T> where T : Enum
 
 
 
-    public virtual Diagnostic Report(T item, IReadOnlyList<object>? arguments = null, TokenLocation? location = null)
+    public virtual Diagnostic Report(T item, IReadOnlyList<object>? arguments = null, SourceLocation? location = null)
     {
         var diagnostic = Diagnostic.FromCatalog<T>(Convert.ToInt32(item), arguments, location);
         Diagnostics.Add(diagnostic);
@@ -43,7 +43,7 @@ public abstract class DiagnosticReporter<T> where T : Enum
 
 
     [DoesNotReturn]
-    public virtual void ReportAndThrow(T item, IReadOnlyList<object>? arguments = null, TokenLocation? location = null)
+    public virtual void ReportAndThrow(T item, IReadOnlyList<object>? arguments = null, SourceLocation? location = null)
     {
         var diagnostic = Report(item, arguments, location);
         throw new DiagnosticException(diagnostic);

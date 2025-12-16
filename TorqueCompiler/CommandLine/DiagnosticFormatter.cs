@@ -31,7 +31,7 @@ public static class DiagnosticFormatter
 
 
 
-    public static string GenerateCodePeek(TokenLocation location)
+    public static string GenerateCodePeek(SourceLocation location)
     {
         var codeLine = SourceCode.GetLine(location.Line);
         var indicator = GenerateCodePeekIndicator(location);
@@ -40,7 +40,7 @@ public static class DiagnosticFormatter
     }
 
 
-    public static string GenerateCodePeekIndicator(TokenLocation location)
+    public static string GenerateCodePeekIndicator(SourceLocation location)
     {
         var indicatorString = new StringBuilder();
 
