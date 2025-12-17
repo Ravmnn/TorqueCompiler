@@ -163,7 +163,7 @@ public static class Torque
 
     public static void Link(LinkCommandSettings settings)
     {
-        var fileNames = (from file in settings.Files select file.FullName).ToArray();
+        var fileNames = settings.Files.Select(file => file.FullName).ToArray();
         Toolchain.Link(fileNames, settings.Output, settings.Debug);
     }
 

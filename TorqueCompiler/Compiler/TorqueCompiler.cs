@@ -60,7 +60,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         // TODO: add arrays
         // TODO: add floats
-        // TODO: make infinite indirection pointers? (T****...) or limit to double? (T**)
 
         // TODO: make this user's choice (command line options)
         const string Triple = "x86_64-pc-linux-gnu";

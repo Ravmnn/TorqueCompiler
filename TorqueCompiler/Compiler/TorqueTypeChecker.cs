@@ -82,7 +82,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
 
     private IReadOnlyList<Type> ParametersTypeFromParametersDeclaration(IReadOnlyList<FunctionParameterDeclaration> parameters)
-        => (from parameter in parameters select TypeFromNonVoidTypeName(parameter.Type)).ToArray();
+        => parameters.Select(parameter => TypeFromNonVoidTypeName(parameter.Type)).ToArray();
 
 
     private void SetFunctionSymbolParametersType(FunctionSymbol symbol, IReadOnlyList<Type> parametersType)
@@ -425,8 +425,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     private FunctionType FunctionTypeFromTypeName(FunctionTypeName typeName)
     {
-        // TODO: prefer LINQ method chain over this syntax, because the first one is more compact and more readable most of the times
-        var parametersType = (from parameter in typeName.ParametersType select TypeFromTypeName(parameter)).ToArray();
+        var parametersType = typeName.ParametersType.Select(TypeFromTypeName).ToArray();
         var returnType = TypeFromTypeName(typeName.ReturnType);
 
         return new FunctionType(returnType, parametersType);

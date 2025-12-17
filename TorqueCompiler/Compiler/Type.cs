@@ -1,4 +1,3 @@
-// TODO: make type infinite recursive
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -146,7 +145,7 @@ public class FunctionType(Type returnType, IReadOnlyList<Type> parametersType) :
 public static class TypeExtensions
 {
     public static IReadOnlyList<LLVMTypeRef> TypesToLLVMTypes(this IReadOnlyList<Type> types)
-        => (from type in types select type.TypeToLLVMType()).ToArray();
+        => types.Select(type => type.TypeToLLVMType()).ToArray();
 
 
     public static LLVMTypeRef TypeToLLVMType(this Type type) => type switch
