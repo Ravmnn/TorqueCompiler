@@ -187,7 +187,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var functionName = symbol.Name;
         var functionReturnType = symbol.Type!.ReturnType;
         var functionLocation = statement.Location();
-        var parameters = statement.Symbol.Parameters;
         var parameterTypes = symbol.Type.ParametersType;
 
         var llvmFunctionReturnType = functionReturnType.TypeToLLVMType();
@@ -262,7 +261,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private void ProcessFunctionBlock(BoundBlockStatement statement, FunctionSymbol function)
         => Scope.ProcessInnerScope(ref _scope, statement.Scope, () =>
         {
-            DebugGenerateScope(Scope, statement.Location(), function.LLVMDebugMetadata!.Value);
+            DebugGenerateScope(Scope, statement.Location(), function.LLVMDebugMetadata);
             DeclareFunctionParameters(function.LLVMReference!.Value, function.Parameters);
             ProcessBlockWithControl(statement);
         });
@@ -333,6 +332,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         TokenType.Star => Builder.BuildMul(left, right, "mult"),
         TokenType.Slash => Builder.BuildSDiv(left, right, "div"),
 
+        // TODO: use ArgumentException everywhere
         _ => throw new UnreachableException()
     };
 
@@ -377,20 +377,20 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var right = Process(expression.Right);
 
         var @operator = expression.Syntax.Operator.Type;
-        var isUnsigned = expression.Type.IsUnsigned;
+        var isSigned = expression.Type.IsSigned;
 
-        return ProcessComparisonOperation(@operator, left, right, isUnsigned);
+        return ProcessComparisonOperation(@operator, left, right, isSigned);
     }
 
 
-    private LLVMValueRef ProcessComparisonOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right, bool unsigned = false)
+    private LLVMValueRef ProcessComparisonOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right, bool signed = false)
     {
         var operation = @operator switch
         {
-            TokenType.GreaterThan => unsigned ? LLVMIntPredicate.LLVMIntUGT : LLVMIntPredicate.LLVMIntSGT,
-            TokenType.LessThan => unsigned ? LLVMIntPredicate.LLVMIntULT : LLVMIntPredicate.LLVMIntSLT,
-            TokenType.GreaterThanOrEqual => unsigned ? LLVMIntPredicate.LLVMIntUGE : LLVMIntPredicate.LLVMIntSGE,
-            TokenType.LessThanOrEqual => unsigned ? LLVMIntPredicate.LLVMIntULT : LLVMIntPredicate.LLVMIntSLE,
+            TokenType.GreaterThan => !signed ? LLVMIntPredicate.LLVMIntUGT : LLVMIntPredicate.LLVMIntSGT,
+            TokenType.LessThan => !signed ? LLVMIntPredicate.LLVMIntULT : LLVMIntPredicate.LLVMIntSLT,
+            TokenType.GreaterThanOrEqual => !signed ? LLVMIntPredicate.LLVMIntUGE : LLVMIntPredicate.LLVMIntSGE,
+            TokenType.LessThanOrEqual => !signed ? LLVMIntPredicate.LLVMIntULT : LLVMIntPredicate.LLVMIntSLE,
 
             _ => throw new UnreachableException()
         };
@@ -525,7 +525,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMValueRef ProcessCall(BoundCallExpression expression)
     {
         var function = Process(expression.Callee);
-        var arguments = ProcessAll(expression.Arguments);
+        var arguments = ProcessAll(expression.Arguments.AsReadOnly());
 
         var functionType = (expression.Callee.Type as FunctionType)!;
         var llvmFunctionType = functionType.FunctionTypeToLLVMType(false);
@@ -540,24 +540,53 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         var value = Process(expression.Value);
 
-        var valueType = expression.Value.Type!;
-        var toType = expression.Type!;
+        var from = expression.Value.Type!;
+        var to = expression.Type!;
 
-        var llvmValueType = value.TypeOf;
-        var llvmToType = expression.Type!.TypeToLLVMType();
-
-        var sourceTypeSize = SizeOf(llvmValueType);
-        var targetTypeSize = SizeOf(llvmToType);
+        return Cast(from, to, value);
+    }
 
 
-        return (valueType, toType) switch
+
+
+    public LLVMValueRef ProcessImplicitCast(BoundImplicitCastExpression expression)
+    {
+        var value = Process(expression.Value);
+
+        var from = expression.Value.Type!;
+        var to = expression.Type!;
+
+        return Cast(from, to, value);
+    }
+
+    #endregion
+
+
+
+
+
+
+
+
+    #region Generation Methods
+
+    private LLVMValueRef Cast(Type from, Type to, LLVMValueRef value)
+    {
+        var llvmFrom = from.TypeToLLVMType();
+        var llvmTo = to.TypeToLLVMType();
+
+        var sourceTypeSize = SizeOf(llvmFrom);
+        var targetTypeSize = SizeOf(llvmTo);
+
+
+        return (valueType: from, toType: to) switch
         {
-            _ when !valueType.IsPointer && toType.IsPointer => Builder.BuildIntToPtr(value, llvmToType, "itopcast"), // int to pointer... is this really useful?
-            _ when valueType.IsPointer && !toType.IsPointer => Builder.BuildPtrToInt(value, llvmToType, "ptoicast"), // pointer to int
-            _ when valueType.IsPointer && toType.IsPointer => Builder.BuildPointerCast(value, llvmToType, "ptrcast"), // pointer to another pointer type
+            _ when !from.IsPointer && to.IsPointer => Builder.BuildIntToPtr(value, llvmTo, "itopcast"), // int to pointer... is this really useful?
+            _ when from.IsPointer && !to.IsPointer => Builder.BuildPtrToInt(value, llvmTo, "ptoicast"), // pointer to int
+            _ when from.IsPointer && to.IsPointer => Builder.BuildPointerCast(value, llvmTo, "ptrcast"), // pointer to another pointer type
 
-            _ when sourceTypeSize < targetTypeSize => Builder.BuildIntCast(value, llvmToType, "incrcast"), // cast to higher
-            _ when sourceTypeSize > targetTypeSize => Builder.BuildTrunc(value, llvmToType, "decrcast"), // cast to lower
+            _ when sourceTypeSize < targetTypeSize => Builder.BuildIntCast(value, llvmTo, "incrcast"), // cast to higher
+            _ when sourceTypeSize > targetTypeSize => Builder.BuildTrunc(value, llvmTo, "decrcast"), // cast to lower
 
             _ => value
         };
@@ -659,7 +688,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
     private int SizeOf(LLVMTypeRef type)
-        => type.SizeOfThis(TargetData);
+        => type.SizeOfThisInMemory(TargetData);
 
 
 

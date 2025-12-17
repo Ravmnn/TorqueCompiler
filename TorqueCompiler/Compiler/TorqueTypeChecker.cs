@@ -10,6 +10,10 @@ namespace Torque.Compiler;
 
 
 
+// TODO: add type checker enum ImplicitCastMode and its matching command line option:
+// None: implicit casts are disabled
+// Safe: only safe casts are performed (lower => higher, signed <=> signed, unsigned <=> unsigned)
+// All: all possible casts are performed (lower <=> higher, signed <=> unsigned)
 public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     : DiagnosticReporter<Diagnostic.TypeCheckerCatalog>, IBoundStatementProcessor, IBoundExpressionProcessor<Type>
 {
@@ -24,7 +28,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     public IReadOnlyList<BoundStatement> Statements { get; } = statements;
 
 
-    // TODO: add implicit casts
+
 
     public void Check()
     {
@@ -58,10 +62,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     public void ProcessDeclaration(BoundDeclarationStatement statement)
     {
         var symbolType = TypeFromNonVoidTypeName(statement.Syntax.Type);
-        var valueType = Process(statement.Value);
+        Process(statement.Value);
 
         statement.Symbol.Type = symbolType;
-        ReportIfDiffers(symbolType, valueType, statement.Value.Location());
+        statement.Value = ImplicitCastOrReport(symbolType, statement.Value, statement.Value.Location());
     }
 
 
@@ -96,15 +100,13 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public void ProcessReturn(BoundReturnStatement statement)
     {
-        ReportIfVoidFunctionReturnsValue(statement);
-
         if (statement.Expression is null)
             return;
 
-        var value = Process(statement.Expression);
+        Process(statement.Expression);
 
         if (!_expectedReturnType!.IsVoid)
-            ReportIfDiffers(_expectedReturnType, value, statement.Expression.Location());
+            statement.Expression = ImplicitCastOrReport(_expectedReturnType, statement.Expression, statement.Expression.Location());
     }
 
 
@@ -157,9 +159,9 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     public Type ProcessBinary(BoundBinaryExpression expression)
     {
         var leftType = Process(expression.Left);
-        var rightType = Process(expression.Right);
+        Process(expression.Right);
 
-        ReportIfDiffers(leftType, rightType, expression.Right.Location());
+        expression.Right = ImplicitCastOrReport(leftType, expression.Right, expression.Right.Location());
 
         return expression.Type!;
     }
@@ -169,12 +171,14 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public Type ProcessUnary(BoundUnaryExpression expression)
     {
-        var type = Process(expression.Expression);
+        Process(expression.Expression);
 
         switch (expression.Syntax.Operator.Type)
         {
             case TokenType.Minus: break;
-            case TokenType.Exclamation: ReportIfDiffers(PrimitiveType.Bool, type, expression.Location()); break;
+            case TokenType.Exclamation:
+                expression.Expression = ImplicitCastOrReport(PrimitiveType.Bool, expression.Expression, expression.Location());
+                break;
 
             default: throw new UnreachableException();
         }
@@ -193,22 +197,34 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public Type ProcessComparison(BoundComparisonExpression expression)
     {
-        ReportIfDiffers(Process(expression.Left), Process(expression.Right), expression.Right.Location());
+        // TODO: when compound types are supported, check that the expression here is a primitive (compounds cannot be compared, same for equality)
+
+        var leftType = Process(expression.Left);
+        Process(expression.Right);
+
+        expression.Right = ImplicitCastOrReport(leftType, expression.Right, expression.Right.Location());
         return expression.Type;
     }
 
 
     public Type ProcessEquality(BoundEqualityExpression expression)
     {
-        ReportIfDiffers(Process(expression.Left), Process(expression.Right), expression.Right.Location());
+        var leftType = Process(expression.Left);
+        Process(expression.Right);
+
+        expression.Right = ImplicitCastOrReport(leftType, expression.Right, expression.Right.Location());
+
         return expression.Type;
     }
 
 
     public Type ProcessLogic(BoundLogicExpression expression)
     {
-        ReportIfDiffers(Process(expression.Left), PrimitiveType.Bool, expression.Right.Location());
-        ReportIfDiffers(Process(expression.Right), PrimitiveType.Bool, expression.Right.Location());
+        Process(expression.Left);
+        Process(expression.Right);
+
+        expression.Left = ImplicitCastOrReport(PrimitiveType.Bool, expression.Left, expression.Right.Location());
+        expression.Right = ImplicitCastOrReport(PrimitiveType.Bool, expression.Right, expression.Right.Location());
 
         return expression.Type;
     }
@@ -220,14 +236,14 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         => expression.Type;
 
 
-    
+
 
     public Type ProcessAssignment(BoundAssignmentExpression expression)
     {
         var referenceType = Process(expression.Reference);
-        var valueType = Process(expression.Value);
+        Process(expression.Value);
 
-        ReportIfDiffers(referenceType, valueType, expression.Value.Location());
+        expression.Value = ImplicitCastOrReport(referenceType, expression.Value, expression.Value.Location());
 
         return expression.Type!;
     }
@@ -280,12 +296,12 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     }
 
 
-    private void MatchArgumentsTypeWithFunctionType(IReadOnlyList<BoundExpression> arguments, FunctionType functionType)
+    private void MatchArgumentsTypeWithFunctionType(IList<BoundExpression> arguments, FunctionType functionType)
     {
         var parametersType = functionType.ParametersType;
 
         for (var i = 0; i < parametersType.Count && i < arguments.Count; i++)
-            ReportIfDiffers(parametersType[i], arguments[i].Type!, arguments[i].Location());
+            arguments[i] = ImplicitCastOrReport(parametersType[i], arguments[i], arguments[i].Location());
     }
 
 
@@ -301,6 +317,12 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         return expression.Type!;
     }
 
+
+
+
+    public Type ProcessImplicitCast(BoundImplicitCastExpression expression)
+        => throw new UnreachableException();
+
     #endregion
 
 
@@ -312,15 +334,23 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     #region Diagnostic Reporting
 
-    private bool ReportIfDiffers(Type expected, Type got, SourceLocation location)
+    private BoundExpression ImplicitCastOrReport(Type expected, BoundExpression expression, SourceLocation location)
     {
+        // here, "expression" should already have been processed (typed)
+
+        var got = expression.Type!;
+        var gotLiteral = expression is BoundLiteralExpression;
+
         if (expected == got)
-            return false;
+            return expression;
+
+        if (TryImplicitCast(got, expected, gotLiteral) is { } type)
+            return new BoundImplicitCastExpression(expression, type);
 
         if (!ReportIfVoidExpression(got, location))
             Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
 
-        return true;
+        return expression;
     }
 
 
@@ -374,13 +404,40 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         return true;
     }
 
+    #endregion
 
-    private bool ReportIfVoidFunctionReturnsValue(BoundReturnStatement statement)
+
+
+
+    #region Implicit Casting
+
+    private Type? TryImplicitCast(Type from, Type to, bool gotLiteral = false)
     {
-        if (!_expectedReturnType!.IsVoid || statement.Expression is null)
+        if (!CanImplicitCast(from, to, gotLiteral))
+            return null;
+
+        return to;
+    }
+
+
+    private bool CanImplicitCast(Type from, Type to, bool gotLiteral = false)
+    {
+        if (from == to)
+            return true;
+
+        if (!from.IsBase || !to.IsBase)
             return false;
 
-        Report(Diagnostic.TypeCheckerCatalog.FunctionCannotReturnValue, location: statement.Expression!.Location());
+        // if the value is a literal (char included), implicit cast can be forced
+        if (gotLiteral)
+            return true;
+
+        if (from.IsSigned != to.IsSigned)
+            return false;
+
+        if (from.Base.Type.SizeOfThisInBits() > to.Base.Type.SizeOfThisInBits())
+            return false;
+
         return true;
     }
 

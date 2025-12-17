@@ -1,7 +1,13 @@
 using System.Collections.Generic;
+using System.Linq;
 
 
 namespace Torque.Compiler;
+
+
+
+
+// class members of type BoundExpression must be settable because the TypeChecker may insert an implicit cast there
 
 
 
@@ -50,8 +56,8 @@ public class BoundBinaryExpression(BinaryExpression syntax, BoundExpression left
 {
     public new BinaryExpression Syntax => (base.Syntax as BinaryExpression)!;
 
-    public BoundExpression Left { get; } = left;
-    public BoundExpression Right { get; } = right;
+    public BoundExpression Left { get; set; } = left;
+    public BoundExpression Right { get; set; } = right;
 
     public override Type? Type => Left.Type;
 
@@ -73,7 +79,7 @@ public class BoundUnaryExpression(UnaryExpression syntax, BoundExpression expres
 {
     public new UnaryExpression Syntax => (base.Syntax as UnaryExpression)!;
 
-    public BoundExpression Expression { get; } = expression;
+    public BoundExpression Expression { get; set; } = expression;
 
     public override Type? Type => Expression.Type;
 
@@ -95,7 +101,7 @@ public class BoundGroupingExpression(GroupingExpression syntax, BoundExpression 
 {
     public new GroupingExpression Syntax => (base.Syntax as GroupingExpression)!;
 
-    public BoundExpression Expression { get; } = expression;
+    public BoundExpression Expression { get; set; } = expression;
 
     public override Type? Type => Expression.Type;
 
@@ -117,8 +123,8 @@ public class BoundComparisonExpression(ComparisonExpression syntax, BoundExpress
 {
     public new ComparisonExpression Syntax => (base.Syntax as ComparisonExpression)!;
 
-    public BoundExpression Left { get; } = left;
-    public BoundExpression Right { get; } = right;
+    public BoundExpression Left { get; set; } = left;
+    public BoundExpression Right { get; set; } = right;
 
     public override Type Type => PrimitiveType.Bool;
 
@@ -139,8 +145,8 @@ public class BoundEqualityExpression(EqualityExpression syntax, BoundExpression 
 {
     public new EqualityExpression Syntax => (base.Syntax as EqualityExpression)!;
 
-    public BoundExpression Left { get; } = left;
-    public BoundExpression Right { get; } = right;
+    public BoundExpression Left { get; set; } = left;
+    public BoundExpression Right { get; set; } = right;
 
     public override Type Type => PrimitiveType.Bool;
 
@@ -161,8 +167,8 @@ public class BoundLogicExpression(LogicExpression syntax, BoundExpression left, 
 {
     public new LogicExpression Syntax => (base.Syntax as LogicExpression)!;
 
-    public BoundExpression Left { get; } = left;
-    public BoundExpression Right { get; } = right;
+    public BoundExpression Left { get; set; } = left;
+    public BoundExpression Right { get; set; } = right;
 
     public override Type Type => PrimitiveType.Bool;
 
@@ -207,8 +213,8 @@ public class BoundAssignmentExpression(AssignmentExpression syntax, BoundAssignm
 {
     public new AssignmentExpression Syntax => (base.Syntax as AssignmentExpression)!;
 
-    public BoundAssignmentReferenceExpression Reference { get; } = reference;
-    public BoundExpression Value { get; } = value;
+    public BoundAssignmentReferenceExpression Reference { get; set; } = reference;
+    public BoundExpression Value { get; set; } = value;
 
     public override Type? Type => Reference.Type;
 
@@ -237,7 +243,7 @@ public class BoundAssignmentExpression(AssignmentExpression syntax, BoundAssignm
 
 public class BoundAssignmentReferenceExpression(Expression syntax, BoundExpression reference) : BoundExpression(syntax)
 {
-    public BoundExpression Reference { get; } = reference;
+    public BoundExpression Reference { get; set; } = reference;
 
     public override Type? Type => Reference.Type;
 
@@ -259,7 +265,7 @@ public class BoundPointerAccessExpression(PointerAccessExpression syntax, BoundE
 {
     public new PointerAccessExpression Syntax => (base.Syntax as PointerAccessExpression)!;
 
-    public BoundExpression Pointer { get; } = pointer;
+    public BoundExpression Pointer { get; set; } = pointer;
 
     public override Type Type => (Pointer.Type as PointerType)!.Type;
 
@@ -282,10 +288,9 @@ public class BoundCallExpression(CallExpression syntax, BoundExpression callee, 
 {
     public new CallExpression Syntax => (base.Syntax as CallExpression)!;
 
-    public BoundExpression Callee { get; } = callee;
-    public IReadOnlyList<BoundExpression> Arguments { get; } = arguments;
+    public BoundExpression Callee { get; set; } = callee;
+    public IList<BoundExpression> Arguments { get; } = arguments.ToList();
 
-    // the Symbol.Type of a callee is its return type
     public override Type? Type => (Callee.Type as FunctionType)?.ReturnType;
 
 
@@ -306,7 +311,7 @@ public class BoundCastExpression(CastExpression syntax, BoundExpression value) :
 {
     public new CastExpression Syntax => (base.Syntax as CastExpression)!;
 
-    public BoundExpression Value { get; } = value;
+    public BoundExpression Value { get; set; } = value;
 
 
 
@@ -317,4 +322,23 @@ public class BoundCastExpression(CastExpression syntax, BoundExpression value) :
 
     public override T Process<T>(IBoundExpressionProcessor<T> processor)
         => processor.ProcessCast(this);
+}
+
+
+
+
+public class BoundImplicitCastExpression(BoundExpression value, Type type) : BoundExpression(value.Syntax)
+{
+    public BoundExpression Value { get; } = value;
+    public override Type? Type { get; set; } = type;
+
+
+
+
+    public override void Process(IBoundExpressionProcessor processor)
+        => processor.ProcessImplicitCast(this);
+
+
+    public override T Process<T>(IBoundExpressionProcessor<T> processor)
+        => processor.ProcessImplicitCast(this);
 }

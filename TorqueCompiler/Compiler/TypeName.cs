@@ -13,6 +13,7 @@ public abstract class TypeName
 
 
     public bool IsVoid => Base.TypeToken.Lexeme == "void";
+    public bool IsBase => this is BaseTypeName;
     public bool IsPointer => this is PointerTypeName;
     public bool IsFunction => this is FunctionTypeName;
 

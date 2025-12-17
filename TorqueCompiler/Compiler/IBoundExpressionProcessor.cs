@@ -20,6 +20,8 @@ public interface IBoundExpressionProcessor
     void ProcessPointerAccess(BoundPointerAccessExpression expression);
     void ProcessCall(BoundCallExpression expression);
     void ProcessCast(BoundCastExpression expression);
+
+    void ProcessImplicitCast(BoundImplicitCastExpression expression);
 }
 
 
@@ -40,4 +42,6 @@ public interface IBoundExpressionProcessor<out T>
     T ProcessPointerAccess(BoundPointerAccessExpression expression);
     T ProcessCall(BoundCallExpression expression);
     T ProcessCast(BoundCastExpression expression);
+
+    T ProcessImplicitCast(BoundImplicitCastExpression expression);
 }

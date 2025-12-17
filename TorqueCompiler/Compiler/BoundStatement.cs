@@ -49,7 +49,7 @@ public class BoundDeclarationStatement(DeclarationStatement syntax, VariableSymb
 {
     public new DeclarationStatement Syntax => (base.Syntax as DeclarationStatement)!;
 
-    public BoundExpression Value { get; } = value;
+    public BoundExpression Value { get; set; } = value;
 
     public VariableSymbol Symbol { get; } = symbol;
 
@@ -94,7 +94,7 @@ public class BoundReturnStatement(ReturnStatement syntax, BoundExpression? expre
 {
     public new ReturnStatement Syntax => (base.Syntax as ReturnStatement)!;
 
-    public BoundExpression? Expression { get; } = expression;
+    public BoundExpression? Expression { get; set; } = expression;
 
 
 

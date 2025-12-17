@@ -1,39 +1,14 @@
-int** invalidPtr()
+void get()
 {
-    int value = 37;
-    int* ptr = &value;
-
-    return &ptr;
-}
-
-
-int sum(int* p1, int* p2)
-{
-    int v1 = *p1;
-    int v2 = *p2;
-
-    return v1 + v2;
+    return 10;
 }
 
 
 int main()
 {
-    int original = 123;
-    int* ptr1 = &original;
-    int** ptr2 = &ptr1;
-    int*** ptr3 = &ptr2;
-
-    ***ptr3 = 321;
-
-    int result = original;
-
-    int**() function = invalidPtr;
-    int** functionResult = function();
-
-    int value1 = 25;
-    int value2 = 32;
-
-    int sumResult = sum(&value1, &value2);
+    byte value = 258;
+    uint other = value;
+    int8 other2 = value as int8;
 
     return 0;
 }

@@ -17,8 +17,8 @@ public static class DebugMetadataTypeEncodings
     public const int Address = 1;
     public const int Boolean = 2;
     public const int Float = 4;
-    public const int IntSigned = 5;
-    public const int IntUnsigned = 7;
+    public const int SignedInt = 5;
+    public const int UnsignedInt = 7;
     public const int SignedChar = 6;
     public const int UnsignedChar = 8;
     public const int UTF = 16;
@@ -170,7 +170,7 @@ public class DebugMetadataGenerator
     public unsafe LLVMMetadataRef GenerateLocalVariable(string name, Type type, int lineNumber, LLVMValueRef alloca, LLVMMetadataRef location)
     {
         var typeMetadata = TypeToMetadata(type);
-        var sizeInBits = (uint)type.SizeOfThis(TargetData) * 8;
+        var sizeInBits = (uint)type.SizeOfThisInMemory(TargetData) * 8;
 
         var debugReference = CreateAutoVariable(name, lineNumber, typeMetadata, sizeInBits);
         DeclareLocalVariable(alloca, debugReference, location);
@@ -254,7 +254,7 @@ public class DebugMetadataGenerator
         var name = type.ToString();
 
         var sbyteName = StringToSBytePtr(name);
-        var sizeInBits = type.SizeOfThis(TargetData) * 8;
+        var sizeInBits = type.SizeOfThisInMemory(TargetData) * 8;
         var encoding = GetEncodingFromType(type);
 
         return LLVM.DIBuilderCreateBasicType(DebugBuilder, sbyteName, (uint)name.Length, (ulong)sizeInBits, (uint)encoding, LLVMDIFlags.LLVMDIFlagZero);
@@ -267,8 +267,8 @@ public class DebugMetadataGenerator
 
         PrimitiveType.Bool => DebugMetadataTypeEncodings.Boolean,
         PrimitiveType.Char => DebugMetadataTypeEncodings.UnsignedChar,
-        PrimitiveType.UInt8 or PrimitiveType.UInt16 or PrimitiveType.UInt32 or PrimitiveType.UInt64 => DebugMetadataTypeEncodings.IntUnsigned,
-        PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 => DebugMetadataTypeEncodings.IntSigned,
+        PrimitiveType.UInt8 or PrimitiveType.UInt16 or PrimitiveType.UInt32 or PrimitiveType.UInt64 => DebugMetadataTypeEncodings.UnsignedInt,
+        PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 => DebugMetadataTypeEncodings.SignedInt,
 
         _ => DebugMetadataTypeEncodings.Void
     };

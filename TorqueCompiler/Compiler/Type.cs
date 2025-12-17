@@ -22,8 +22,9 @@ public abstract class Type
 
 
     public bool IsVoid => Base.Type == PrimitiveType.Void;
-    public bool IsUnsigned => Base.Type is PrimitiveType.UInt8 or PrimitiveType.UInt16 or PrimitiveType.UInt32
-                                        or PrimitiveType.UInt64 or PrimitiveType.Char or PrimitiveType.Bool;
+    public bool IsSigned => Base.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64;
+
+    public bool IsBase => this is BaseType;
     public bool IsPointer => this is PointerType;
     public bool IsFunction => this is FunctionType;
 
@@ -181,9 +182,6 @@ public static class TypeExtensions
 
 
 
-    public static int SizeOfThis(this Type type, LLVMTargetDataRef targetData) => type switch
-    {
-        _ when type.IsVoid => 0,
-        _ => (int)targetData.ABISizeOfType(type.TypeToLLVMType())
-    };
+    public static int SizeOfThisInMemory(this Type type, LLVMTargetDataRef targetData)
+        => (int)targetData.ABISizeOfType(type.TypeToLLVMType());
 }
