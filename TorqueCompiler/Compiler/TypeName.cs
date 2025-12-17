@@ -7,30 +7,60 @@ namespace Torque.Compiler;
 
 
 
-public class TypeName(Token baseType, Token? pointerSpecifier = null)
+public abstract class TypeName
 {
-    public Token BaseType { get; } = baseType;
-    public Token? PointerSpecifier { get; } = pointerSpecifier;
+    public abstract BaseTypeName Base { get; }
 
-    public virtual bool IsPointer => PointerSpecifier is not null;
-    public bool IsVoid => BaseType.Lexeme == "void";
+
+    public bool IsVoid => Base.TypeToken.Lexeme == "void";
+    public bool IsPointer => this is PointerTypeName;
+    public bool IsFunction => this is FunctionTypeName;
 
 
 
 
     public override string ToString()
-        => $"{BaseType.Lexeme}{(IsPointer ? "*" : "")}";
+        => Base.TypeToken.Lexeme;
 }
 
 
 
 
-public class FunctionTypeName(Token returnType, IReadOnlyList<TypeName> parametersType) : TypeName(returnType)
+public class BaseTypeName(Token typeToken) : TypeName
 {
-    public Token ReturnType => BaseType;
-    public IReadOnlyList<TypeName> ParametersType { get; } = parametersType;
+    public override BaseTypeName Base => this;
 
-    public override bool IsPointer => true;
+
+    public Token TypeToken { get; } = typeToken;
+}
+
+
+
+
+public class PointerTypeName(TypeName type, Token? pointerSpecifier = null) : TypeName
+{
+    public override BaseTypeName Base => Type.Base;
+
+
+    public TypeName Type { get; } = type;
+
+    public Token? PointerSpecifier { get; } = pointerSpecifier;
+
+
+
+
+    public override string ToString()
+        => $"{Type}*";
+}
+
+
+
+
+public class FunctionTypeName(TypeName returnType, IReadOnlyList<TypeName> parametersType)
+    : PointerTypeName(returnType)
+{
+    public TypeName ReturnType => Type;
+    public IReadOnlyList<TypeName> ParametersType { get; } = parametersType;
 
 
 
@@ -40,6 +70,6 @@ public class FunctionTypeName(Token returnType, IReadOnlyList<TypeName> paramete
         var parameterTypesString = ParametersType.Select(parameter => parameter.ToString());
         var parameters = string.Join(", ", parameterTypesString);
 
-        return $"{(IsVoid ? "void" : ReturnType.Lexeme)}({parameters})";
+        return $"{(IsVoid ? "void" : ReturnType)}({parameters})";
     }
 }

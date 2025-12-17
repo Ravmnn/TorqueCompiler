@@ -218,10 +218,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public Type ProcessSymbol(BoundSymbolExpression expression)
     {
-        if (expression.Type is { } type and not FunctionType && !type.IsPointer)
-            return new Type(type, expression.GetAddress);
-
-        return expression.Type!;
+        return expression.GetAddress ? new PointerType(expression.Type!) : expression.Type!;
     }
 
 
@@ -249,7 +246,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var type = Process(expression.Pointer);
         ReportIfNotAPointer(type, expression.Pointer.Location());
 
-        return expression.Type!;
+        return expression.Type;
     }
 
 
@@ -399,27 +396,40 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     private Type TypeFromNonVoidTypeName(TypeName typeName)
     {
         var type = TypeFromTypeName(typeName);
-        ReportIfVoidTypeName(type, typeName.BaseType.Location);
+        ReportIfVoidTypeName(type, typeName.Base.TypeToken.Location);
 
         return type;
     }
 
 
+
+
     private Type TypeFromTypeName(TypeName typeName) => typeName switch
     {
-        FunctionTypeName function => FunctionTypeFromTypeName(function),
-        _ => RawTypeFromTypeName(typeName)
+        BaseTypeName baseTypeName => TypeFromBaseTypeName(baseTypeName),
+
+        FunctionTypeName functionTypeName => FunctionTypeFromTypeName(functionTypeName),
+        PointerTypeName pointerTypeName => TypeFromPointerTypeName(pointerTypeName),
+
+        _ => throw new UnreachableException()
     };
 
 
-    private Type RawTypeFromTypeName(TypeName typeName)
-        => new Type(typeName.BaseType.TokenToPrimitive(), typeName.IsPointer);
+    private BaseType TypeFromBaseTypeName(BaseTypeName typeName)
+        => new BaseType(typeName.Base.TypeToken.TokenToPrimitive());
+
+
+    private PointerType TypeFromPointerTypeName(PointerTypeName pointerTypeName)
+        => new PointerType(TypeFromTypeName(pointerTypeName.Type));
 
 
     private FunctionType FunctionTypeFromTypeName(FunctionTypeName typeName)
     {
-        var parameters = (from parameter in typeName.ParametersType select TypeFromTypeName(parameter)).ToArray();
-        return new FunctionType(typeName.ReturnType.TokenToPrimitive(), parameters);
+        // TODO: prefer LINQ method chain over this syntax, because the first one is more compact and more readable most of the times
+        var parametersType = (from parameter in typeName.ParametersType select TypeFromTypeName(parameter)).ToArray();
+        var returnType = TypeFromTypeName(typeName.ReturnType);
+
+        return new FunctionType(returnType, parametersType);
     }
 
     #endregion

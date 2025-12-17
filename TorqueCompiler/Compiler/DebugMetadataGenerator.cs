@@ -14,12 +14,15 @@ namespace Torque.Compiler;
 public static class DebugMetadataTypeEncodings
 {
     public const int Void = 0;
+    public const int Address = 1;
     public const int Boolean = 2;
     public const int Float = 4;
-    public const int Signed = 5;
-    public const int Unsigned = 7;
+    public const int IntSigned = 5;
+    public const int IntUnsigned = 7;
+    public const int SignedChar = 6;
     public const int UnsignedChar = 8;
     public const int UTF = 16;
+    public const int ASCII = 18;
 }
 
 
@@ -227,10 +230,7 @@ public class DebugMetadataGenerator
 
     public unsafe LLVMMetadataRef TypeToMetadata(Type type)
     {
-        var name = Token.Primitives.First(primitive => primitive.Value == type.BaseType).Key;
-
-        if (type.IsPointer)
-            name += "*";
+        var name = type.ToString();
 
         var sbyteName = StringToSBytePtr(name);
         var sizeInBits = type.SizeOfThis(TargetData) * 8;
@@ -240,14 +240,14 @@ public class DebugMetadataGenerator
     }
 
 
-    private int GetEncodingFromType(Type type) => type.BaseType switch
+    private int GetEncodingFromType(Type type) => type.Base.Type switch
     {
-        _ when type.IsPointer => DebugMetadataTypeEncodings.Unsigned,
+        _ when type.IsPointer || type.IsFunction => DebugMetadataTypeEncodings.Address,
 
         PrimitiveType.Bool => DebugMetadataTypeEncodings.Boolean,
         PrimitiveType.Char => DebugMetadataTypeEncodings.UnsignedChar,
-        PrimitiveType.UInt8 or PrimitiveType.UInt16 or PrimitiveType.UInt32 or PrimitiveType.UInt64 => DebugMetadataTypeEncodings.Unsigned,
-        PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 => DebugMetadataTypeEncodings.Signed,
+        PrimitiveType.UInt8 or PrimitiveType.UInt16 or PrimitiveType.UInt32 or PrimitiveType.UInt64 => DebugMetadataTypeEncodings.IntUnsigned,
+        PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 => DebugMetadataTypeEncodings.IntSigned,
 
         _ => DebugMetadataTypeEncodings.Void
     };

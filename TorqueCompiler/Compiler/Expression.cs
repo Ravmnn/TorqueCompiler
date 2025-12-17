@@ -297,5 +297,5 @@ public class CastExpression(Expression expression, Token keyword, TypeName type)
     public override Token Source() => Keyword;
 
     public override SourceLocation Location()
-        => new SourceLocation(Expression.Location(), Type.BaseType.Location);
+        => new SourceLocation(Expression.Location(), Type.Base.TypeToken.Location);
 }

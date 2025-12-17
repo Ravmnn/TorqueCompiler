@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-
+using System.Reflection.Metadata;
 using Torque.Compiler.Diagnostics;
 
 
@@ -366,27 +366,38 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
 
-    private TypeName ParseTypeName()
+    private TypeName ParseTypeName(bool recursive = true)
     {
-        var baseType = ExpectTypeName();
-        Token? pointerSpecifier = null;
+        var baseType = recursive ? ParseTypeName(false) : new BaseTypeName(ExpectTypeName());
 
         if (Match(TokenType.LeftParen))
             return ParseFunctionTypeName(baseType);
 
         if (Match(TokenType.Star))
-            pointerSpecifier = Previous();
+            return ParsePointerTypeName(baseType);
 
-        return new TypeName(baseType, pointerSpecifier);
+        return baseType;
     }
 
 
-    private TypeName ParseFunctionTypeName(Token baseType)
+    private TypeName ParsePointerTypeName(TypeName type)
+    {
+        var pointerSpecifier = Previous();
+        var typeName = new PointerTypeName(type, pointerSpecifier);
+
+        while (Match(TokenType.Star))
+            typeName = new PointerTypeName(typeName, pointerSpecifier);
+
+        return typeName;
+    }
+
+
+    private TypeName ParseFunctionTypeName(TypeName type)
     {
         var parameters = ParseFunctionTypeNameParameters();
         ExpectRightParen();
 
-        return new FunctionTypeName(baseType, parameters);
+        return new FunctionTypeName(type, parameters);
     }
 
 
@@ -395,7 +406,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         if (Check(TokenType.RightParen))
             return [];
 
-        return DoWhileComma(ParseTypeName);
+        return DoWhileComma(() => ParseTypeName());
     }
 
 

@@ -60,7 +60,7 @@ public class DeclarationStatement(TypeName type, Token name, Expression value) :
 
     public override Token Source() => Name;
     public override SourceLocation Location()
-        => new SourceLocation(Type.BaseType.Location, Value.Location());
+        => new SourceLocation(Type.Base.TypeToken.Location, Value.Location());
 }
 
 
@@ -92,7 +92,7 @@ public class FunctionDeclarationStatement(TypeName returnType, Token name, IRead
     public override Token Source() => Name;
 
     public override SourceLocation Location()
-        => new SourceLocation(ReturnType.BaseType.Location, Name.Location);
+        => new SourceLocation(ReturnType.Base.TypeToken.Location, Name.Location);
 }
 
 

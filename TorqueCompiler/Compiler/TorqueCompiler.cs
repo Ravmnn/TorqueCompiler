@@ -58,6 +58,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add importing system
 
+        // TODO: add arrays
         // TODO: add floats
         // TODO: make infinite indirection pointers? (T****...) or limit to double? (T**)
 
