@@ -203,10 +203,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         Builder.PositionAtEnd(entry);
 
         _currentFunction = llvmFunctionReference;
-
-        DeclareFunctionParameters(llvmFunctionReference, parameters);
-        ProcessFunctionBlock(statement.Body, llvmFunctionDebugMetadata);
-
+        ProcessFunctionBlock(statement.Body, symbol);
         _currentFunction = null;
     }
 
@@ -217,14 +214,16 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         {
             var parameter = parameters[i];
 
+            var type = parameter.Type!;
+
             var llvmValue = function.GetParam((uint)i);
-            var llvmType = parameter.Type!.TypeToLLVMType();
+            var llvmType = type.TypeToLLVMType();
+            var llvmReference = Builder.BuildAlloca(llvmType, parameter.Name);
+            var llvmDebugMetadata = DebugGenerateParameter(parameter.Name, i + 1, type, parameter.Location, llvmReference);
 
-            parameter.LLVMReference = Builder.BuildAlloca(llvmType, parameter.Name);
-            parameter.LLVMType = llvmType;
-            // TODO: debug for parameter
+            parameter.SetLLVMProperties(llvmReference, llvmType, llvmDebugMetadata);
 
-            Builder.BuildStore(llvmValue, parameter.LLVMReference.Value);
+            Builder.BuildStore(llvmValue, llvmReference);
         }
     }
 
@@ -260,10 +259,11 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         });
 
 
-    private void ProcessFunctionBlock(BoundBlockStatement statement, LLVMMetadataRef? function)
+    private void ProcessFunctionBlock(BoundBlockStatement statement, FunctionSymbol function)
         => Scope.ProcessInnerScope(ref _scope, statement.Scope, () =>
         {
-            DebugGenerateScope(Scope, statement.Location(), function);
+            DebugGenerateScope(Scope, statement.Location(), function.LLVMDebugMetadata!.Value);
+            DeclareFunctionParameters(function.LLVMReference!.Value, function.Parameters);
             ProcessBlockWithControl(statement);
         });
 
@@ -602,13 +602,25 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    private LLVMMetadataRef? DebugGenerateLocalVariable(string name, Type type, Token statementSource, LLVMValueRef alloca)
+    private LLVMMetadataRef? DebugGenerateLocalVariable(string name, Type type, SourceLocation location, LLVMValueRef alloca)
     {
-        var location = statementSource.Location;
         var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
 
         if (llvmLocation is not null)
             return Debug?.GenerateLocalVariable(name, type, location.Line, alloca, llvmLocation.Value);
+
+        return null;
+    }
+
+
+
+
+    private LLVMMetadataRef? DebugGenerateParameter(string name, int index, Type type, SourceLocation location, LLVMValueRef alloca)
+    {
+        var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
+
+        if (llvmLocation is not null)
+            return Debug?.GenerateParameter(name, type, location.Line, index, alloca, llvmLocation.Value);
 
         return null;
     }

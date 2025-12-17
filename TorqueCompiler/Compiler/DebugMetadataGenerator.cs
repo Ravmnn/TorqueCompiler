@@ -173,7 +173,6 @@ public class DebugMetadataGenerator
         var sizeInBits = (uint)type.SizeOfThis(TargetData) * 8;
 
         var debugReference = CreateAutoVariable(name, lineNumber, typeMetadata, sizeInBits);
-
         DeclareLocalVariable(alloca, debugReference, location);
 
         return debugReference;
@@ -185,6 +184,28 @@ public class DebugMetadataGenerator
             DebugBuilder, Scope.DebugMetadata!.Value, StringToSBytePtr(name), (uint)name.Length, File,
             (uint)lineNumber, typeMetadata, 0, LLVMDIFlags.LLVMDIFlagZero, sizeInBits
         );
+
+
+
+
+    public unsafe LLVMMetadataRef GenerateParameter(string name, Type type, int lineNumber, int index, LLVMValueRef alloca, LLVMMetadataRef location)
+    {
+        var typeMetadata = TypeToMetadata(type);
+
+        var debugReference = CreateParameterVariable(name, lineNumber, index, typeMetadata);
+        DeclareLocalVariable(alloca, debugReference, location);
+
+        return debugReference;
+    }
+
+
+    private unsafe LLVMOpaqueMetadata* CreateParameterVariable(string name, int lineNumber, int index, LLVMMetadataRef typeMetadata)
+        => LLVM.DIBuilderCreateParameterVariable(
+            DebugBuilder, Scope.DebugMetadata!.Value, StringToSBytePtr(name), (uint)name.Length, (uint)index, File,
+            (uint)lineNumber, typeMetadata, 0, LLVMDIFlags.LLVMDIFlagZero
+        );
+
+
 
 
     private unsafe LLVMDbgRecordRef DeclareLocalVariable(LLVMValueRef alloca, LLVMMetadataRef variable, LLVMMetadataRef location)

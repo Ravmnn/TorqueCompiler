@@ -7,6 +7,15 @@ int** invalidPtr()
 }
 
 
+int sum(int* p1, int* p2)
+{
+    int v1 = *p1;
+    int v2 = *p2;
+
+    return v1 + v2;
+}
+
+
 int main()
 {
     int original = 123;
@@ -20,6 +29,11 @@ int main()
 
     int**() function = invalidPtr;
     int** functionResult = function();
+
+    int value1 = 25;
+    int value2 = 32;
+
+    int sumResult = sum(&value1, &value2);
 
     return 0;
 }

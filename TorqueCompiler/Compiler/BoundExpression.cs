@@ -183,7 +183,7 @@ public class BoundSymbolExpression(SymbolExpression syntax, VariableSymbol symbo
 {
     public new SymbolExpression Syntax => (base.Syntax as SymbolExpression)!;
 
-    public override Type? Type => Symbol.Type;
+    public override Type Type => GetAddress ? new PointerType(Symbol.Type!) : Symbol.Type!;
 
     public VariableSymbol Symbol { get; } = symbol;
     public bool GetAddress => Syntax.GetAddress;

@@ -217,12 +217,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
 
     public Type ProcessSymbol(BoundSymbolExpression expression)
-    {
-        return expression.GetAddress ? new PointerType(expression.Type!) : expression.Type!;
-    }
+        => expression.Type;
 
 
-
+    
 
     public Type ProcessAssignment(BoundAssignmentExpression expression)
     {
