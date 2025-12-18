@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Torque.Compiler;
 
 
@@ -17,9 +19,15 @@ public static class TokenExtensions
     public static bool IsChar(this string token)
         => token.StartsWith('\'') && token.EndsWith('\'');
 
+    public static bool IsFloat(this string token)
+        => token.Contains('.');
 
-    public static ulong ValueFromNumber(this string token)
+
+    public static ulong ValueFromInteger(this string token)
         => ulong.Parse(token);
+
+    public static double ValueFromFloat(this string token)
+        => double.Parse(token, CultureInfo.InvariantCulture);
 
     public static ulong ValueFromBool(this string token)
         => token == "true" ? 1UL : 0UL;
@@ -38,4 +46,7 @@ public static class TokenExtensions
 
     public static bool IsChar(this Token token)
         => token.Lexeme.IsChar();
+
+    public static bool IsFloat(this Token token)
+        => token.Lexeme.IsFloat();
 }

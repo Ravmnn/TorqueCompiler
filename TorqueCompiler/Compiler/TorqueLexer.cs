@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using Torque.Compiler.Diagnostics;
 
 
@@ -112,7 +112,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
             return Identifier();
 
         if (char.IsAsciiDigit(character))
-            return Value();
+            return Number();
 
         Report(Diagnostic.LexerCatalog.UnexpectedToken);
         return null;
@@ -148,21 +148,30 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
     private string ScanStringText(char delimiter)
     {
-        var text = string.Empty;
+        AdvanceString(delimiter);
 
+        var text = GetCurrentTokenLexeme();
+        text = text.Remove(0, 1);
+        text = text.Remove(text.Length - 1, 1);
+
+        return text;
+    }
+
+
+    private void AdvanceString(char delimiter)
+    {
         while (!AtEnd())
         {
             if (Peek() == delimiter)
                 break;
 
             if (Peek() == '\\')
-                text += Advance();
+                Advance();
 
-            text += Advance();
+            Advance();
         }
 
         Advance(); // advance the string delimiter
-        return text;
     }
 
 
@@ -194,7 +203,9 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
 
 
-    private void Comment()
+    private void Comment() => AdvanceComment();
+
+    private void AdvanceComment()
     {
         while (Peek() != '\n' && !AtEnd())
             Advance();
@@ -206,9 +217,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
     private void MultilineComment()
     {
         var startLocation = GetCurrentLocation();
-
-        while (Peek() != '<' && PeekNext() != '#' && !AtEnd())
-            Advance();
+        AdvanceMultilineComment();
 
         if (AtEnd())
         {
@@ -221,12 +230,18 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
     }
 
 
+    private void AdvanceMultilineComment()
+    {
+        while (Peek() != '<' && PeekNext() != '#' && !AtEnd())
+            Advance();
+    }
+
+
 
 
     private Token Identifier()
     {
-        while (Peek() is { } @char && char.IsAsciiLetterOrDigit(@char))
-            Advance();
+        AdvanceIdentifier();
 
         var lexeme = GetCurrentTokenLexeme();
 
@@ -241,15 +256,54 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
     }
 
 
-
-
-    private Token Value()
+    private void AdvanceIdentifier()
     {
-        while (Peek() is { } @char && char.IsAsciiDigit(@char))
+        while (Peek() is { } @char && char.IsAsciiLetterOrDigit(@char))
             Advance();
-
-        return TokenFromTokenType(TokenType.Value, GetCurrentTokenLexeme().ValueFromNumber());
     }
+
+
+
+
+    private Token Number()
+    {
+        AdvanceWhileDigit();
+
+        var lexeme = GetCurrentTokenLexeme();
+        var isFloat = lexeme.Contains('.');
+
+        if (lexeme.Count(character => character == '.') > 1)
+            Report(Diagnostic.LexerCatalog.MoreThanOneDotInFloatNumber);
+
+        object? value;
+
+        // don't use ternary operator or any other expression, as they implicitly convert the value to "double"
+        if (isFloat)
+            value = lexeme.ValueFromFloat();
+        else
+            value = lexeme.ValueFromInteger();
+
+        return TokenFromTokenType(TokenType.Value, value);
+    }
+
+
+    private void AdvanceWhileDigit()
+    {
+        while (Peek() is { } character)
+        {
+            if (!char.IsAsciiDigit(character) && character != '.')
+                break;
+
+            if (character == '.' && !IsNextDigit())
+                break;
+
+            Advance();
+        }
+    }
+
+
+    private bool IsNextDigit()
+        => PeekNext() is { } next && char.IsAsciiDigit(next);
 
 
 
@@ -274,6 +328,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
 
 
+    // TODO: don't return null
     private char? Advance()
     {
         if (AtEnd())
@@ -299,7 +354,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
 
     private char? PeekNext()
-        => AtEnd() ? null : Source[_end];
+        => AtEnd() ? null : Source[_end + 1];
 
 
     private bool Match(char character)

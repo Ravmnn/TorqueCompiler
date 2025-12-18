@@ -59,7 +59,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add importing system
 
         // TODO: add arrays
-        // TODO: add floats
 
         // TODO: make this user's choice (command line options)
         const string Triple = "x86_64-pc-linux-gnu";
@@ -305,10 +304,17 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessLiteral(BoundLiteralExpression expression)
     {
-        var llvmType = expression.Type!.TypeToLLVMType();
-        var value = expression.Value!.Value;
+        var type = expression.Type!;
+        var llvmType = type.TypeToLLVMType();
+        var value = expression.Value!;
 
-        var llvmReference = LLVMValueRef.CreateConstInt(llvmType, value);
+        var llvmReference = type.Base.Type switch
+        {
+            _ when type.IsInteger => LLVMValueRef.CreateConstInt(llvmType, (ulong)value),
+            _ when type.IsFloat => LLVMValueRef.CreateConstReal(llvmType, (double)value),
+
+            _ => throw new UnreachableException()
+        };
 
         return llvmReference;
     }
@@ -321,18 +327,37 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var left = Process(expression.Right);
         var right = Process(expression.Left);
 
-        return ProcessBinaryOperation(expression.Syntax.Operator.Type, left, right);
+        var leftType = expression.Left.Type!;
+
+        return leftType switch
+        {
+            _ when !leftType.IsFloat => ProcessIntegerBinaryOperation(expression.Syntax.Operator.Type, left, right, leftType.IsSigned),
+            _ when leftType.IsFloat => ProcessFloatBinaryOperation(expression.Syntax.Operator.Type, left, right),
+
+            _ => throw new UnreachableException()
+        };
     }
 
 
-    private LLVMValueRef ProcessBinaryOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right) => @operator switch
+    private LLVMValueRef ProcessIntegerBinaryOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right, bool isSigned = true) => @operator switch
     {
-        TokenType.Plus => Builder.BuildAdd(left, right, "sum"),
-        TokenType.Minus => Builder.BuildSub(left, right, "sub"),
-        TokenType.Star => Builder.BuildMul(left, right, "mult"),
-        TokenType.Slash => Builder.BuildSDiv(left, right, "div"),
+        TokenType.Plus => Builder.BuildAdd(left, right, "isum"),
+        TokenType.Minus => Builder.BuildSub(left, right, "isub"),
+        TokenType.Star => Builder.BuildMul(left, right, "imult"),
+        TokenType.Slash when isSigned => Builder.BuildSDiv(left, right, "sdiv"),
+        TokenType.Slash when !isSigned => Builder.BuildUDiv(left, right, "udiv"),
 
-        // TODO: use ArgumentException everywhere
+        _ => throw new UnreachableException() // TODO: use UnreachableException everywhere in cases like this
+    };
+
+
+    private LLVMValueRef ProcessFloatBinaryOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right) => @operator switch
+    {
+        TokenType.Plus => Builder.BuildFAdd(left, right, "fsum"),
+        TokenType.Minus => Builder.BuildFSub(left, right, "fsub"),
+        TokenType.Star => Builder.BuildFMul(left, right, "fmult"),
+        TokenType.Slash => Builder.BuildFDiv(left, right, "fdiv"),
+
         _ => throw new UnreachableException()
     };
 
@@ -342,24 +367,40 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMValueRef ProcessUnary(BoundUnaryExpression expression)
     {
         var value = Process(expression.Expression);
-        var llvmType = expression.Type!.TypeToLLVMType();
+        var type = expression.Type!;
+        var llvmType = type.TypeToLLVMType();
 
-        return ProcessUnaryOperation(expression.Syntax.Operator.Type, llvmType, value);
-    }
+        var operation = expression.Syntax.Operator.Type;
 
-
-    private LLVMValueRef ProcessUnaryOperation(TokenType @operator, LLVMTypeRef llvmType, LLVMValueRef value)
-    {
-        var constZero = LLVMValueRef.CreateConstInt(llvmType, 0);
-        var constOne = LLVMValueRef.CreateConstInt(llvmType, 1);
-
-        return @operator switch
+        return operation switch
         {
-            TokenType.Minus => Builder.BuildSub(constZero, value, "ineg"), // integer
-            TokenType.Exclamation => Builder.BuildXor(value, constOne, "bneg"), // boolean
+            TokenType.Minus when !type.IsFloat => ProcessIntegerNegateOperation(llvmType, value),
+            TokenType.Minus when type.IsFloat => ProcessFloatNegateOperation(llvmType, value),
+            TokenType.Exclamation => ProcessBooleanNegateOperation(llvmType, value),
 
             _ => throw new UnreachableException()
         };
+    }
+
+
+    private LLVMValueRef ProcessIntegerNegateOperation(LLVMTypeRef llvmType, LLVMValueRef value)
+    {
+        var constIntZero = LLVMValueRef.CreateConstInt(llvmType, 0);
+        return Builder.BuildSub(constIntZero, value, "ineg");
+    }
+
+
+    private LLVMValueRef ProcessFloatNegateOperation(LLVMTypeRef llvmType, LLVMValueRef value)
+    {
+        var constFloatZero = LLVMValueRef.CreateConstReal(llvmType, 0);
+        return Builder.BuildFSub(constFloatZero, value, "fneg");
+    }
+
+
+    private LLVMValueRef ProcessBooleanNegateOperation(LLVMTypeRef llvmType, LLVMValueRef value)
+    {
+        var constIntOne = LLVMValueRef.CreateConstInt(llvmType, 1);
+        return Builder.BuildXor(value, constIntOne, "bneg");
     }
 
 
@@ -376,14 +417,22 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var left = Process(expression.Left);
         var right = Process(expression.Right);
 
+        var leftType = expression.Left.Type!;
+
         var @operator = expression.Syntax.Operator.Type;
         var isSigned = expression.Type.IsSigned;
 
-        return ProcessComparisonOperation(@operator, left, right, isSigned);
+        return leftType switch
+        {
+            _ when !leftType.IsFloat => ProcessIntegerComparisonOperation(@operator, left, right, isSigned),
+            _ when leftType.IsFloat => ProcessFloatComparisonOperation(@operator, left, right),
+
+            _ => throw new UnreachableException()
+        };
     }
 
 
-    private LLVMValueRef ProcessComparisonOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right, bool signed = false)
+    private LLVMValueRef ProcessIntegerComparisonOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right, bool signed = false)
     {
         var operation = @operator switch
         {
@@ -399,6 +448,22 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
 
+    private LLVMValueRef ProcessFloatComparisonOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right)
+    {
+        var operation = @operator switch
+        {
+            TokenType.GreaterThan => LLVMRealPredicate.LLVMRealOGT,
+            TokenType.LessThan => LLVMRealPredicate.LLVMRealOLT,
+            TokenType.GreaterThanOrEqual => LLVMRealPredicate.LLVMRealOGE,
+            TokenType.LessThanOrEqual => LLVMRealPredicate.LLVMRealOLE,
+
+            _ => throw new UnreachableException()
+        };
+
+        return Builder.BuildFCmp(operation, left, right, "fpcmp");
+    }
+
+
 
 
     public LLVMValueRef ProcessEquality(BoundEqualityExpression expression)
@@ -406,11 +471,19 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var left = Process(expression.Left);
         var right = Process(expression.Right);
 
-        return ProcessEqualityOperation(expression.Syntax.Operator.Type, left, right);
+        var leftType = expression.Left.Type!;
+
+        return leftType switch
+        {
+            _ when !leftType.IsFloat => ProcessIntegerEqualityOperation(expression.Syntax.Operator.Type, left, right),
+            _ when leftType.IsFloat => ProcessFloatEqualityOperation(expression.Syntax.Operator.Type, left, right),
+
+            _ => throw new UnreachableException()
+        };
     }
 
 
-    private LLVMValueRef ProcessEqualityOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right)
+    private LLVMValueRef ProcessIntegerEqualityOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right)
     {
         var operation = @operator switch
         {
@@ -421,6 +494,20 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         };
 
         return Builder.BuildICmp(operation, left, right, "intcmp");
+    }
+
+
+    private LLVMValueRef ProcessFloatEqualityOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right)
+    {
+        var operation = @operator switch
+        {
+            TokenType.Equality => LLVMRealPredicate.LLVMRealOEQ,
+            TokenType.Inequality => LLVMRealPredicate.LLVMRealONE,
+
+            _ => throw new UnreachableException()
+        };
+
+        return Builder.BuildFCmp(operation, left, right, "fpcmp");
     }
 
 
@@ -441,8 +528,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         if (operation is not TokenType.LogicAnd and not TokenType.LogicOr)
             throw new UnreachableException();
 
-        var leftThenBlock = isLogicAnd ? rhsBlock : trueBlock;
-        var leftElseBlock = isLogicAnd ? falseBlock : rhsBlock;
+        var leftThenBlock = isLogicAnd ? rhsBlock : trueBlock; // where to go if operation is "and" and left operand is true
+        var leftElseBlock = isLogicAnd ? falseBlock : rhsBlock; // where to go if operation is "and" and left operand if false
 
 
         Builder.BuildCondBr(Process(expression.Left), leftThenBlock, leftElseBlock);
@@ -578,17 +665,21 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var sourceTypeSize = SizeOf(llvmFrom);
         var targetTypeSize = SizeOf(llvmTo);
 
-
         return (valueType: from, toType: to) switch
         {
             _ when !from.IsPointer && to.IsPointer => Builder.BuildIntToPtr(value, llvmTo, "itopcast"), // int to pointer... is this really useful?
             _ when from.IsPointer && !to.IsPointer => Builder.BuildPtrToInt(value, llvmTo, "ptoicast"), // pointer to int
             _ when from.IsPointer && to.IsPointer => Builder.BuildPointerCast(value, llvmTo, "ptrcast"), // pointer to another pointer type
 
-            _ when sourceTypeSize < targetTypeSize => Builder.BuildIntCast(value, llvmTo, "incrcast"), // cast to higher
-            _ when sourceTypeSize > targetTypeSize => Builder.BuildTrunc(value, llvmTo, "decrcast"), // cast to lower
+            _ when from.IsFloat && !to.IsFloat && to.IsSigned => Builder.BuildFPToSI(value, llvmTo, "fptoint"), // float to int
+            _ when from.IsFloat && !to.IsFloat && !to.IsSigned => Builder.BuildFPToUI(value, llvmTo, "fptouint"), // float to uint
+            _ when !from.IsFloat && to.IsFloat && from.IsSigned => Builder.BuildSIToFP(value, llvmTo, "inttofp"), // int to float
+            _ when !from.IsFloat && to.IsFloat && !from.IsSigned => Builder.BuildUIToFP(value, llvmTo, "uinttofp"), // uint to float
+            _ when from.IsFloat && to.IsFloat => Builder.BuildFPCast(value, llvmTo, "fpcast"), // float to another float type
 
-            _ => value
+            _ when sourceTypeSize != targetTypeSize => Builder.BuildIntCast(value, llvmTo, "intcast"), // integer to another integer type
+
+            _ => value // source type is the same as target type
         };
     }
 

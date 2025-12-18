@@ -23,7 +23,8 @@ public enum ImplicitCastMode
 public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     : DiagnosticReporter<Diagnostic.TypeCheckerCatalog>, IBoundStatementProcessor, IBoundExpressionProcessor<Type>
 {
-    public const PrimitiveType DefaultLiteralType = PrimitiveType.Int32;
+    public const PrimitiveType DefaultLiteralIntegerType = PrimitiveType.Int32;
+    public const PrimitiveType DefaultLiteralFloatType = PrimitiveType.Float32;
 
 
 
@@ -148,7 +149,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var token = expression.Source();
 
         expression.Type = TypeOfLiteralToken(token);
-        expression.Value = (ulong)token.Value!;
+        expression.Value = token.Value;
 
         return expression.Type!;
     }
@@ -158,7 +159,8 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     {
         _ when literal.IsBoolean() => PrimitiveType.Bool,
         _ when literal.IsChar() => PrimitiveType.Char,
-        _ => DefaultLiteralType
+        _ when literal.IsFloat() => DefaultLiteralFloatType,
+        _ => DefaultLiteralIntegerType
     };
 
 
@@ -439,6 +441,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var sameTypes = from == to;
         var bothBase = from.IsBase || to.IsBase;
         var signDiffers = from.IsSigned != to.IsSigned;
+        var floatToInt = from.IsFloat && !to.IsFloat; // float to int may result in loss of data
         var sourceBigger = from.Base.Type.SizeOfThisInBits() > to.Base.Type.SizeOfThisInBits();
 
         if (sameTypes)
@@ -451,7 +454,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         if (allCasts || gotLiteral)
             return true;
 
-        if (signDiffers || sourceBigger)
+        if (signDiffers || floatToInt || sourceBigger)
             return false;
 
         return true;

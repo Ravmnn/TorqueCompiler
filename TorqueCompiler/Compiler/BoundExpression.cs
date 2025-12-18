@@ -36,7 +36,7 @@ public class BoundLiteralExpression(LiteralExpression syntax) : BoundExpression(
 {
     public new LiteralExpression Syntax => (base.Syntax as LiteralExpression)!;
 
-    public ulong? Value { get; set; }
+    public object? Value { get; set; }
 
 
 

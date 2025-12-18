@@ -269,6 +269,7 @@ public class DebugMetadataGenerator
         PrimitiveType.Char => DebugMetadataTypeEncodings.UnsignedChar,
         PrimitiveType.UInt8 or PrimitiveType.UInt16 or PrimitiveType.UInt32 or PrimitiveType.UInt64 => DebugMetadataTypeEncodings.UnsignedInt,
         PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 => DebugMetadataTypeEncodings.SignedInt,
+        PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64 => DebugMetadataTypeEncodings.Float,
 
         _ => DebugMetadataTypeEncodings.Void
     };

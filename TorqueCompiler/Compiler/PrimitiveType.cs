@@ -14,14 +14,17 @@ public enum PrimitiveType
     Void,
     Bool,
     Char,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
     UInt8,
     UInt16,
     UInt32,
     UInt64,
-    Int8,
-    Int16,
-    Int32,
-    Int64
+    Float16,
+    Float32,
+    Float64
 }
 
 
@@ -63,6 +66,9 @@ public static class PrimitiveTypeExtensions
         PrimitiveType.Int16 or PrimitiveType.UInt16 => LLVMTypeRef.Int16,
         PrimitiveType.Int32 or PrimitiveType.UInt32 => LLVMTypeRef.Int32,
         PrimitiveType.Int64 or PrimitiveType.UInt64 => LLVMTypeRef.Int64,
+        PrimitiveType.Float16 => LLVMTypeRef.Half,
+        PrimitiveType.Float32 => LLVMTypeRef.Float,
+        PrimitiveType.Float64 => LLVMTypeRef.Double,
 
         _ => throw new ArgumentException("Invalid primitive type.")
     };
@@ -83,9 +89,9 @@ public static class PrimitiveTypeExtensions
         PrimitiveType.Void => 0,
         PrimitiveType.Bool => 1,
         PrimitiveType.Char or PrimitiveType.Int8 or PrimitiveType.UInt8 => 8,
-        PrimitiveType.Int16 or PrimitiveType.UInt16 => 16,
-        PrimitiveType.Int32 or PrimitiveType.UInt32 => 32,
-        PrimitiveType.Int64 or PrimitiveType.UInt64 => 64,
+        PrimitiveType.Int16 or PrimitiveType.UInt16 or PrimitiveType.Float16 => 16,
+        PrimitiveType.Int32 or PrimitiveType.UInt32 or PrimitiveType.Float32 => 32,
+        PrimitiveType.Int64 or PrimitiveType.UInt64 or PrimitiveType.Float64 => 64,
 
         _ => throw new ArgumentException("Invalid primitive type")
     };

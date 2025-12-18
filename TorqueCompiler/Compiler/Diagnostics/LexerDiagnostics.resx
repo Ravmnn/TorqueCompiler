@@ -40,4 +40,7 @@
     <data name="SingleCharacterMoreThanOne" xml:space="preserve">
         <value>Single-character string must have exactly one character</value>
     </data>
+    <data name="MoreThanOneDotInFloatNumber" xml:space="preserve">
+        <value>A float number cannot have more than one decimal specifier</value>
+    </data>
 </root>

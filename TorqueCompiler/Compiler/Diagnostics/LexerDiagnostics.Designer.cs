@@ -80,5 +80,11 @@ namespace Torque.Compiler.Diagnostics {
                 return ResourceManager.GetString("SingleCharacterMoreThanOne", resourceCulture);
             }
         }
+        
+        internal static string MoreThanOneDotInFloatNumber {
+            get {
+                return ResourceManager.GetString("MoreThanOneDotInFloatNumber", resourceCulture);
+            }
+        }
     }
 }

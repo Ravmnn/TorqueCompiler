@@ -26,7 +26,8 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.Lexer)] SingleCharacterEmpty,
         [Item(DiagnosticScope.Lexer)] SingleCharacterMoreThanOne,
         [Item(DiagnosticScope.Lexer)] UnclosedSingleCharacterString,
-        [Item(DiagnosticScope.Lexer)] UnknownEscapeSequence
+        [Item(DiagnosticScope.Lexer)] UnknownEscapeSequence,
+        [Item(DiagnosticScope.Lexer)] MoreThanOneDotInFloatNumber
     }
 
 
