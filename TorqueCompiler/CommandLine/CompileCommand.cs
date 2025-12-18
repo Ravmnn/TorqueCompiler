@@ -9,6 +9,7 @@ using System.Threading;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
+using Torque.Compiler;
 
 
 namespace Torque.CommandLine;
@@ -32,6 +33,7 @@ public class CompileCommandSettings : CommandSettings
 
     [CommandOption("-O|--output-type")]
     [Description("The kind of output the compiler should generate")]
+    [DefaultValue(OutputType.Object)]
     public OutputType OutputType { get; init; }
 
 
@@ -57,6 +59,14 @@ public class CompileCommandSettings : CommandSettings
     [CommandOption("--print-asm")]
     [Description("Print Assembly and quit")]
     public bool PrintASM { get; init; }
+
+
+
+
+    [CommandOption("--implicit-casts")]
+    [Description("Defines which implicit casts can be performed")]
+    [DefaultValue(ImplicitCastMode.Safe)]
+    public ImplicitCastMode ImplicitCasts { get; init; }
 
 
 

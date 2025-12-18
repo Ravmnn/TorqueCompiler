@@ -10,10 +10,16 @@ namespace Torque.Compiler;
 
 
 
-// TODO: add type checker enum ImplicitCastMode and its matching command line option:
-// None: implicit casts are disabled
-// Safe: only safe casts are performed (lower => higher, signed <=> signed, unsigned <=> unsigned)
-// All: all possible casts are performed (lower <=> higher, signed <=> unsigned)
+public enum ImplicitCastMode
+{
+    None, // implicit casts are disabled
+    Safe, // only safe casts are performed (lower => higher, signed <=> signed, unsigned <=> unsigned)
+    All   // all possible casts are performed (lower <=> higher, signed <=> unsigned)
+}
+
+
+
+
 public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     : DiagnosticReporter<Diagnostic.TypeCheckerCatalog>, IBoundStatementProcessor, IBoundExpressionProcessor<Type>
 {
@@ -26,6 +32,8 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
 
     public IReadOnlyList<BoundStatement> Statements { get; } = statements;
+
+    public ImplicitCastMode ImplicitCastMode { get; set; } = ImplicitCastMode.Safe;
 
 
 
@@ -422,20 +430,28 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     private bool CanImplicitCast(Type from, Type to, bool gotLiteral = false)
     {
-        if (from == to)
+        var allCasts = ImplicitCastMode == ImplicitCastMode.All;
+        var noCasts = ImplicitCastMode == ImplicitCastMode.None;
+
+        if (noCasts)
+            return false;
+
+        var sameTypes = from == to;
+        var bothBase = from.IsBase || to.IsBase;
+        var signDiffers = from.IsSigned != to.IsSigned;
+        var sourceBigger = from.Base.Type.SizeOfThisInBits() > to.Base.Type.SizeOfThisInBits();
+
+        if (sameTypes)
             return true;
 
-        if (!from.IsBase || !to.IsBase)
+        if (!bothBase)
             return false;
 
         // if the value is a literal (char included), implicit cast can be forced
-        if (gotLiteral)
+        if (allCasts || gotLiteral)
             return true;
 
-        if (from.IsSigned != to.IsSigned)
-            return false;
-
-        if (from.Base.Type.SizeOfThisInBits() > to.Base.Type.SizeOfThisInBits())
+        if (signDiffers || sourceBigger)
             return false;
 
         return true;

@@ -1,14 +1,17 @@
-void get()
-{
-    return 10;
-}
-
-
 int main()
 {
     byte value = 258;
     uint other = value;
     int8 other2 = value as int8;
+
+    int64 higher = 10000;
+    int16 lower = higher;
+
+    char ch = 32;
+    int ich = ch;
+
+    int signed = -50;
+    uint unsigned = signed;
 
     return 0;
 }

@@ -77,7 +77,7 @@ public static class Torque
 
 
         // type check
-        var typeChecker = new TorqueTypeChecker(boundStatements);
+        var typeChecker = new TorqueTypeChecker(boundStatements) { ImplicitCastMode = s_settings.ImplicitCasts };
         typeChecker.Check();
         LogDiagnostics(typeChecker.Diagnostics);
 
