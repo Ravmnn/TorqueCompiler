@@ -1,0 +1,15 @@
+package Geometry;
+
+
+# same package ^, same package definitions (functions, structures, interfaces...)
+# no need to "unpack Geometry" in order to access "Vector"
+
+
+
+
+int main()
+{
+    var position = Vector { x: 10, y: 20, z: 1 };
+
+    return 0;
+}

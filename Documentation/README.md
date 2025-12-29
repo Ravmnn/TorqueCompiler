@@ -1,0 +1,3 @@
+This documentation, besides describing all current supported features of the language, is also a development guide to planned features of the Torque language. So the documentation mixes supported features with non-supported ones. In order to help you indentify which features indeed exists, a mark ***sketch*** will be used to tag the planned features.
+
+This documentation will not deeply approach well-known concepts like general control-flow instructions, variables, functions, structures, etc.
