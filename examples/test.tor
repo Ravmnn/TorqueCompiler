@@ -1,6 +1,6 @@
 int main()
 {
-    float64 returnValue = -1.024;
+    ptrsize pointer = 99999999;
 
-    return returnValue as int;
+    return 0;
 }

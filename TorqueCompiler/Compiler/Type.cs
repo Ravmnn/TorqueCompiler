@@ -1,12 +1,31 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-
-using LLVMSharp.Interop;
 
 
 namespace Torque.Compiler;
+
+
+
+
+public enum PrimitiveType
+{
+    Void,
+    PtrSize,
+    Bool,
+    Char,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    Float16,
+    Float32,
+    Float64
+}
 
 
 
@@ -143,50 +162,4 @@ public class FunctionType(Type returnType, IReadOnlyList<Type> parametersType) :
 
     public override int GetHashCode()
         => HashCode.Combine((int)Base.Type, ParametersType);
-}
-
-
-
-
-public static class TypeExtensions
-{
-    public static IReadOnlyList<LLVMTypeRef> TypesToLLVMTypes(this IReadOnlyList<Type> types)
-        => types.Select(type => type.TypeToLLVMType()).ToArray();
-
-
-    public static LLVMTypeRef TypeToLLVMType(this Type type) => type switch
-    {
-        BaseType baseType => baseType.Type.PrimitiveToLLVMType(),
-        PointerType pointerType => PointerTypeToLLVMType(pointerType),
-        FunctionType functionType => FunctionTypeToLLVMType(functionType),
-
-        _ => throw new UnreachableException()
-    };
-
-
-    public static LLVMTypeRef PointerTypeToLLVMType(this PointerType pointerType)
-        => LLVMTypeRef.CreatePointer(pointerType.Type.TypeToLLVMType(), 0);
-
-
-    public static LLVMTypeRef FunctionTypeToLLVMType(this FunctionType functionType, bool pointer = true)
-    {
-        var llvmReturnType = functionType.ReturnType.TypeToLLVMType();
-        var llvmParametersType = functionType.ParametersType.TypesToLLVMTypes();
-        var llvmFunctionType = LLVMTypeRef.CreateFunction(llvmReturnType, llvmParametersType.ToArray());
-
-        // "pointer" determines whether we want a pointer to the function: ptr to "i32 (i32, i32)"
-        // (this is used by a variable to store the function)
-        // or the function type itself: "i32 (i32, i32)"
-        // (this is used by LLVM everytime we want to do any operation with that function, like creating one,
-        // calling one... This works that way now because LLVM uses only opaque pointers, so we have to
-        // store the real type of the pointer somewhere)
-
-        return pointer ? LLVMTypeRef.CreatePointer(llvmFunctionType, 0) : llvmFunctionType;
-    }
-
-
-
-
-    public static int SizeOfThisInMemory(this Type type, LLVMTargetDataRef targetData)
-        => (int)targetData.ABISizeOfType(type.TypeToLLVMType());
 }

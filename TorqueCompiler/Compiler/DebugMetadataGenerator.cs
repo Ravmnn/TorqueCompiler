@@ -39,7 +39,7 @@ public class DebugMetadataGenerator
 
    public LLVMModuleRef Module => Compiler.Module;
    public LLVMBuilderRef Builder => Compiler.Builder;
-   public LLVMTargetDataRef TargetData => Compiler.TargetData;
+   public LLVMTargetDataRef TargetData => Compiler.DataLayout;
 
 
    public Scope GlobalScope => Compiler.GlobalScope;
@@ -158,7 +158,7 @@ public class DebugMetadataGenerator
         );
 
 
-    private IReadOnlyList<Type> CreateFunctionTypeArray(FunctionType type)
+    private static IReadOnlyList<Type> CreateFunctionTypeArray(FunctionType type)
     {
         var typeArray = new Type[] { type.ReturnType };
         return typeArray.Concat(type.ParametersType).ToArray();
@@ -169,8 +169,10 @@ public class DebugMetadataGenerator
 
     public unsafe LLVMMetadataRef GenerateLocalVariable(string name, Type type, int lineNumber, LLVMValueRef alloca, LLVMMetadataRef location)
     {
+        const int BitsInOneByte = 8;
+
         var typeMetadata = TypeToMetadata(type);
-        var sizeInBits = (uint)type.SizeOfThisInMemory(TargetData) * 8;
+        var sizeInBits = (uint)type.SizeOfThisInMemory(TargetData) * BitsInOneByte;
 
         var debugReference = CreateAutoVariable(name, lineNumber, typeMetadata, sizeInBits);
         DeclareLocalVariable(alloca, debugReference, location);
@@ -261,9 +263,11 @@ public class DebugMetadataGenerator
     }
 
 
-    private int GetEncodingFromType(Type type) => type.Base.Type switch
+    private static int GetEncodingFromType(Type type) => type.Base.Type switch
     {
         _ when type.IsPointer || type.IsFunction => DebugMetadataTypeEncodings.Address,
+
+        PrimitiveType.PtrSize => DebugMetadataTypeEncodings.UnsignedInt,
 
         PrimitiveType.Bool => DebugMetadataTypeEncodings.Boolean,
         PrimitiveType.Char => DebugMetadataTypeEncodings.UnsignedChar,
@@ -277,6 +281,6 @@ public class DebugMetadataGenerator
 
 
 
-    private unsafe sbyte* StringToSBytePtr(string source)
+    private static unsafe sbyte* StringToSBytePtr(string source)
         => (sbyte*)Marshal.StringToHGlobalAnsi(source);
 }

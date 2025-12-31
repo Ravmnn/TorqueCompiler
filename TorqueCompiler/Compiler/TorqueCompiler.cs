@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 
 using LLVMSharp.Interop;
 
@@ -31,8 +30,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMBuilderRef Builder { get; } = LLVMBuilderRef.Create(LLVMContextRef.Global);
 
-    public LLVMTargetMachineRef TargetMachine { get; private set; }
-    public LLVMTargetDataRef TargetData { get; private set; }
+    public TargetMachine TargetMachine { get; }
+    public LLVMTargetDataRef DataLayout => TargetMachine.DataLayout;
 
     public DebugMetadataGenerator? Debug { get; }
 
@@ -47,7 +46,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public Scope Scope
     {
         get => _scope;
-        private set => _scope = value;
+        private init => _scope = value;
     }
 
 
@@ -60,11 +59,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         // TODO: add arrays
 
-        // TODO: make this user's choice (command line options)
-        const string Triple = "x86_64-pc-linux-gnu";
-
-        InitializeTargetMachine(Triple);
-        SetupModuleTargetProperties(Triple);
+        TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
+        _module.Target = TargetMachine.Triple;
+        _module.DataLayout = TargetMachine.StringDataLayout;
 
         File = file;
 
@@ -76,33 +73,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             Debug = new DebugMetadataGenerator(this);
 
         Statements = statements.ToArray();
-    }
-
-
-    private void InitializeTargetMachine(string triple)
-    {
-        LLVM.InitializeNativeTarget();
-        LLVM.InitializeNativeAsmPrinter();
-
-        if (!LLVMTargetRef.TryGetTargetFromTriple(triple, out var target, out _))
-            throw new InvalidOperationException("LLVM doesn't support this target.");
-
-        TargetMachine = target.CreateTargetMachine(
-            triple, "generic", "",
-            LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault, LLVMRelocMode.LLVMRelocPIC,
-            LLVMCodeModel.LLVMCodeModelDefault
-        );
-    }
-
-
-    private unsafe void SetupModuleTargetProperties(string triple)
-    {
-        TargetData = TargetMachine.CreateTargetDataLayout();
-
-        _module.Target = triple;
-
-        var ptr = LLVM.CopyStringRepOfTargetData(TargetData);
-        _module.DataLayout = Marshal.PtrToStringAnsi((IntPtr)ptr) ?? throw new InvalidOperationException("Couldn't create data layout.");
     }
 
 
@@ -779,7 +749,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
     private int SizeOf(LLVMTypeRef type)
-        => type.SizeOfThisInMemory(TargetData);
+        => type.SizeOfThisInMemory(DataLayout);
 
 
 

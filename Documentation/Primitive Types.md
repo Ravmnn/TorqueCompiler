@@ -31,7 +31,7 @@ image, audio, binary files, etc.
 - `int`: `int32`
 - `uint`: `uint32`
 - `float`: `float32`
-- ***sketch*** `half`: `float16`
-- ***sketch*** `double`: `float64`
+- ***(sketch)*** `half`: `float16`
+- ***(sketch)*** `double`: `float64`
 
 Using the aliases above or not can be decided by the programmer.

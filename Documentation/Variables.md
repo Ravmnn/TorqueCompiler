@@ -9,9 +9,9 @@ int result = number1 + number2;
 ```
 
 
-You can optionally omit the variable type by using `let` (***sketch***) instead, making the compiler to automatically infer the type from the initial value. This feature is only allowed for function-scope variables (those that aren't fields, parameters, etc).
+You can optionally omit the variable type by using `let` ***(sketch)*** instead, making the compiler to automatically infer the type from the initial value. This feature is only allowed for function-scope variables (those that aren't fields, parameters, etc).
 
-By default, variables are mutable, but in many cases, making them immutable is required or at least recommended. You can use `fixed` (***sketch***) to achieve that. `fixed` makes the variable to be fixed to its initial value, meaning reassignment is not allowed.
+By default, variables are mutable, but in many cases, making them immutable is required or at least recommended. You can use `fixed` ***(sketch)*** to achieve that. `fixed` makes the variable to be fixed to its initial value, meaning reassignment is not allowed.
 
 ```
 fixed float constant = 3.14159;

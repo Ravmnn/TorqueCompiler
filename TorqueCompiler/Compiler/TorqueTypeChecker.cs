@@ -442,7 +442,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var bothBase = from.IsBase || to.IsBase;
         var signDiffers = from.IsSigned != to.IsSigned;
         var floatToInt = from.IsFloat && !to.IsFloat; // float to int may result in loss of data
-        var sourceBigger = from.Base.Type.SizeOfThisInBits() > to.Base.Type.SizeOfThisInBits();
+        var sourceBigger = from.Base.Type.SizeOfThisInMemory() > to.Base.Type.SizeOfThisInMemory();
 
         if (sameTypes)
             return true;
