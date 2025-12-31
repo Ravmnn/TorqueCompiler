@@ -1,0 +1,25 @@
+package Geometry;
+
+
+
+
+struct Color
+{
+    uint8 red;
+    uint8 green;
+    uint8 blue;
+    uint8 alpha;
+}
+
+
+implement Color
+{
+    static Color new(uint8 red, uint8, green, uint8 blue, uint8 alpha = 255)
+        => Color { red, green, blue, alpha };
+
+    
+    static Color white() => new(255, 255, 255);
+    static Color red() => new(255, 0, 0);
+    static Color green() => new(0, 255, 0);
+    static Color blue() => new(0, 0, 255);
+}

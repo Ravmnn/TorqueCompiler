@@ -9,3 +9,9 @@ struct Vector
     float y;
     float z;
 }
+
+
+implement Vector
+{
+    static Vector new(float x, float y, float z = 1) => Vector { x, y, z };
+}

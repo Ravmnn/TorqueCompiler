@@ -9,7 +9,10 @@ package Geometry;
 
 int main()
 {
-    var position = Vector { x: 10, y: 20, z: 1 };
+    let squareVertices = Vertex[4] { ... };
+    let square = Mesh::new(squareVertices);
+
+    
 
     return 0;
 }

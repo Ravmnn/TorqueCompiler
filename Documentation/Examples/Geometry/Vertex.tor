@@ -1,0 +1,30 @@
+package Geometry;
+
+
+
+
+struct Vertex
+{
+    Color color;
+    Vector position;
+}
+
+
+implement Vertex
+{
+    static Vertex new(Vector position, Color color) => Vertex { position, color };
+}
+
+
+
+
+struct Mesh
+{
+    Vertex[] vertices;
+}
+
+
+implement Mesh
+{
+    static Mesh new(Vertex[] vertices) => Vertex { vertices };
+}
