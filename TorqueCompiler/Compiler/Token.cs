@@ -34,6 +34,8 @@ public readonly record struct Token(string Lexeme, TokenType Type, SourceLocatio
 {
     public static readonly IReadOnlyDictionary<string, PrimitiveType> Primitives = new Dictionary<string, PrimitiveType>
     {
+        {"let", PrimitiveType.Auto},
+
         {"void", PrimitiveType.Void},
 
         {"bool", PrimitiveType.Bool},

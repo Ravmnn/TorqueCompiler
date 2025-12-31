@@ -70,8 +70,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public void ProcessDeclaration(BoundDeclarationStatement statement)
     {
-        var symbolType = TypeFromNonVoidTypeName(statement.Syntax.Type);
-        Process(statement.Value);
+        var typeSyntax = statement.Syntax.Type;
+
+        var valueType = Process(statement.Value);
+        var symbolType = typeSyntax.IsAuto ? valueType : TypeFromNonVoidTypeName(typeSyntax);
 
         statement.Symbol.Type = symbolType;
         statement.Value = ImplicitCastOrReport(symbolType, statement.Value, statement.Value.Location());

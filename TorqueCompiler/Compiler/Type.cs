@@ -10,6 +10,8 @@ namespace Torque.Compiler;
 
 public enum PrimitiveType
 {
+    Auto,
+
     Void,
     PtrSize,
     Bool,

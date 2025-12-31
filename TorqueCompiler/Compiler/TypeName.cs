@@ -12,6 +12,7 @@ public abstract class TypeName
     public abstract BaseTypeName Base { get; }
 
 
+    public bool IsAuto => Base.TypeToken.Lexeme == "let";
     public bool IsVoid => Base.TypeToken.Lexeme == "void";
     public bool IsBase => this is BaseTypeName;
     public bool IsPointer => this is PointerTypeName;

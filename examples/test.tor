@@ -1,6 +1,13 @@
 int main()
 {
-    ptrsize pointer = 99999999;
+    let boolean = true;
+    let number1 = 25;
+    let number2 = 25 as byte;
+    let number3 = 2500 as int64;
+
+    let character = '\t';
+
+    let pointerToCharacter = &character;
 
     return 0;
 }
