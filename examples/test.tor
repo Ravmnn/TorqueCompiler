@@ -1,13 +1,8 @@
 int main()
 {
-    let boolean = true;
-    let number1 = 25;
-    let number2 = 25 as byte;
-    let number3 = 2500 as int64;
-
-    let character = '\t';
-
-    let pointerToCharacter = &character;
+    int[] numbers = int[6] { 50, 20, 100, 95, 123, 1 };
+    let first = numbers[0];
+    let last = numbers[5];
 
     return 0;
 }

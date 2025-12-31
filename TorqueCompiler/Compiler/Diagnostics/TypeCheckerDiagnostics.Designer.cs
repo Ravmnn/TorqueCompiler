@@ -86,5 +86,11 @@ namespace Torque.Compiler.Diagnostics {
                 return ResourceManager.GetString("FunctionCannotReturnValue", resourceCulture);
             }
         }
+        
+        internal static string CannotUseLetHere {
+            get {
+                return ResourceManager.GetString("CannotUseLetHere", resourceCulture);
+            }
+        }
     }
 }

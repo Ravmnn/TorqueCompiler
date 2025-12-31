@@ -42,6 +42,7 @@ public abstract class Type
     public abstract BaseType Base { get; }
 
 
+    public bool IsAuto => Base.Type == PrimitiveType.Auto;
     public bool IsVoid => Base.Type == PrimitiveType.Void;
 
     public bool IsSigned => Base.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 || IsFloat;

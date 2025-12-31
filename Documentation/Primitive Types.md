@@ -7,7 +7,7 @@ Torque has a bunch of embedded primitive types, most of them being variations of
 - `uint16`: Unsigned integer of 16 bits (2 bytes)
 - `uint32`: Unsigned integer of 32 bits (4 bytes)
 - `uint64`: Unsigned integer of 64 bits (8 bytes)
-- ***sketch*** `ptrsize`: Unsigned integer of size equal to any pointer, 32 bits in 32-bit architectures and 64 bits in 64-bit ones.
+- `ptrsize`: Unsigned integer of size equal to any pointer, 32 bits in 32-bit architectures and 64 bits in 64-bit ones.
 
 Floating point types are also supported:
 - `float16`: Floating point number of 16 bits (2 bytes)
@@ -31,7 +31,7 @@ image, audio, binary files, etc.
 - `int`: `int32`
 - `uint`: `uint32`
 - `float`: `float32`
-- ***(sketch)*** `half`: `float16`
-- ***(sketch)*** `double`: `float64`
+- `half`: `float16`
+- `double`: `float64`
 
 Using the aliases above or not can be decided by the programmer.

@@ -72,6 +72,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     {
         var typeSyntax = statement.Syntax.Type;
 
+        // the use of "let" is only allowed for function-scope variables
         var valueType = Process(statement.Value);
         var symbolType = typeSyntax.IsAuto ? valueType : TypeFromNonVoidTypeName(typeSyntax);
 
@@ -442,11 +443,9 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
         var sameTypes = from == to;
         var bothBase = from.IsBase || to.IsBase;
-        var signDiffers = from.IsSigned != to.IsSigned;
-        var floatToInt = from.IsFloat && !to.IsFloat; // float to int may result in loss of data
-        var sourceBigger = from.Base.Type.SizeOfThisInMemory() > to.Base.Type.SizeOfThisInMemory();
+        var anyIsAuto = from.IsAuto || to.IsAuto;
 
-        if (sameTypes)
+        if (sameTypes || anyIsAuto)
             return true;
 
         if (!bothBase)
@@ -455,6 +454,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         // if the value is a literal (char included), implicit cast can be forced
         if (allCasts || gotLiteral)
             return true;
+
+        var signDiffers = from.IsSigned != to.IsSigned;
+        var floatToInt = from.IsFloat && !to.IsFloat; // float to int may result in loss of data
+        var sourceBigger = from.Base.Type.SizeOfThisInMemory() > to.Base.Type.SizeOfThisInMemory();
 
         if (signDiffers || floatToInt || sourceBigger)
             return false;
@@ -492,7 +495,12 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
 
     private BaseType TypeFromBaseTypeName(BaseTypeName typeName)
-        => new BaseType(typeName.Base.TypeToken.TokenToPrimitive());
+    {
+        if (typeName.IsAuto)
+            Report(Diagnostic.TypeCheckerCatalog.CannotUseLetHere, location: typeName.TypeToken);
+
+        return new BaseType(typeName.Base.TypeToken.TokenToPrimitive());
+    }
 
 
     private PointerType TypeFromPointerTypeName(PointerTypeName pointerTypeName)
