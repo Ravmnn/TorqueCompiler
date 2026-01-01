@@ -41,8 +41,11 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.Parser)] ExpectAssignmentOperator,
         [Item(DiagnosticScope.Parser)] ExpectLeftParen,
         [Item(DiagnosticScope.Parser)] ExpectRightParen,
+        [Item(DiagnosticScope.Parser)] ExpectLeftSquareBracket,
+        [Item(DiagnosticScope.Parser)] ExpectRightSquareBracket,
         [Item(DiagnosticScope.Parser)] UnclosedBlock,
-        [Item(DiagnosticScope.Parser)] WrongBlockPlacement
+        [Item(DiagnosticScope.Parser)] WrongBlockPlacement,
+        [Item(DiagnosticScope.Parser)] ExpectLiteralInteger,
     }
 
 

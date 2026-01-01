@@ -19,8 +19,10 @@ public static class TypeExtensions
     public static LLVMTypeRef TypeToLLVMType(this Type type) => type switch
     {
         BaseType baseType => baseType.Type.PrimitiveToLLVMType(),
-        PointerType pointerType => PointerTypeToLLVMType(pointerType),
+
         FunctionType functionType => FunctionTypeToLLVMType(functionType),
+        ArrayType arrayType => ArrayTypeToLLVMType(arrayType),
+        PointerType pointerType => PointerTypeToLLVMType(pointerType),
 
         _ => throw new UnreachableException()
     };
@@ -28,6 +30,15 @@ public static class TypeExtensions
 
     public static LLVMTypeRef PointerTypeToLLVMType(this PointerType pointerType)
         => LLVMTypeRef.CreatePointer(pointerType.Type.TypeToLLVMType(), 0);
+
+
+    public static LLVMTypeRef ArrayTypeToLLVMType(this ArrayType arrayType)
+    {
+        if (arrayType.Size is null)
+            return LLVMTypeRef.CreatePointer(arrayType.Type.TypeToLLVMType(), 0);
+
+        return LLVMTypeRef.CreateArray2(arrayType.Type.TypeToLLVMType(), arrayType.Size.Value);
+    }
 
 
     public static LLVMTypeRef FunctionTypeToLLVMType(this FunctionType functionType, bool pointer = true)

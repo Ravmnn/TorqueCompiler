@@ -19,6 +19,7 @@ public interface IExpressionProcessor
     void ProcessPointerAccess(PointerAccessExpression expression);
     void ProcessCall(CallExpression expression);
     void ProcessCast(CastExpression expression);
+    // void ProcessArray(ArrayExpression expression);
 }
 
 
@@ -38,4 +39,5 @@ public interface IExpressionProcessor<out T>
     T ProcessPointerAccess(PointerAccessExpression expression);
     T ProcessCall(CallExpression expression);
     T ProcessCast(CastExpression expression);
+    // T ProcessArray(ArrayExpression expression);
 }

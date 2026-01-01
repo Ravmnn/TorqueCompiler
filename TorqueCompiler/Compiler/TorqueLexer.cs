@@ -88,8 +88,10 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
             case '|': return Match('|') ? TokenFromTokenType(TokenType.LogicOr) : TokenFromTokenType(TokenType.Pipe);
             case '(': return TokenFromTokenType(TokenType.LeftParen);
             case ')': return TokenFromTokenType(TokenType.RightParen);
-            case '{': return TokenFromTokenType(TokenType.LeftCurlyBrace);
-            case '}': return TokenFromTokenType(TokenType.RightCurlyBrace);
+            case '{': return TokenFromTokenType(TokenType.LeftCurlyBracket);
+            case '}': return TokenFromTokenType(TokenType.RightCurlyBracket);
+            case '[': return TokenFromTokenType(TokenType.LeftSquareBracket);
+            case ']': return TokenFromTokenType(TokenType.RightSquareBracket);
 
             case '\'': return Char();
 
@@ -129,7 +131,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         var data = EncodeString(text, quoteLocation);
         ReportCharErrors(data, quoteLocation);
 
-        return TokenFromTokenType(TokenType.Value, (ulong)data[0]);
+        return TokenFromTokenType(TokenType.CharValue, (ulong)data[0]);
     }
 
 
@@ -249,7 +251,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         {
             _ when lexeme.IsKeyword() => TokenFromTokenType(Token.Keywords[lexeme]),
             _ when lexeme.IsType() => TokenFromTokenType(TokenType.Type),
-            _ when lexeme.IsBoolean() => TokenFromTokenType(TokenType.Value, lexeme.ValueFromBool()),
+            _ when lexeme.IsBoolean() => TokenFromTokenType(TokenType.BoolValue, lexeme.ValueFromBool()),
 
             _ => TokenFromTokenType(TokenType.Identifier)
         };
@@ -283,7 +285,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         else
             value = lexeme.ValueFromInteger();
 
-        return TokenFromTokenType(TokenType.Value, value);
+        return TokenFromTokenType(isFloat ? TokenType.FloatValue : TokenType.IntegerValue, value);
     }
 
 

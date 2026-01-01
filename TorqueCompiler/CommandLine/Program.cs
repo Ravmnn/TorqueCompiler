@@ -15,7 +15,7 @@ class Program
         var root = new CommandApp();
         root.Configure(config =>
         {
-            config.SetApplicationName("psyan");
+            config.SetApplicationName("torque");
             config.SetApplicationVersion("dev");
 
             config.AddCommand<CompileCommand>("compile");

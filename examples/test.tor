@@ -1,8 +1,16 @@
 int main()
 {
-    int[] numbers = int[6] { 50, 20, 100, 95, 123, 1 };
-    let first = numbers[0];
-    let last = numbers[5];
+    # T[N] allows LLVM to better optimize stuff
+    # "T[]" is equal to "T*"
+
+    # int[6] numbers = int[] { 50, 20, 100, 95, 123, 1 };
+    # float[] floats = float[] { 3.14, 4.45, 90, 1.123 };
+    
+    # let first = numbers[0];
+    # let last = numbers[5];
+
+    int[5] values = 0;
+    int* array = values;
 
     return 0;
 }

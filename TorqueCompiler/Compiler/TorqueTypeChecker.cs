@@ -487,7 +487,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     {
         BaseTypeName baseTypeName => TypeFromBaseTypeName(baseTypeName),
 
+        // all of the types above are descendant from "PointerTypeName", so it's necessary to first
+        // check the most derivative first
         FunctionTypeName functionTypeName => FunctionTypeFromTypeName(functionTypeName),
+        ArrayTypeName arrayTypeName => TypeFromArrayTypeName(arrayTypeName),
         PointerTypeName pointerTypeName => TypeFromPointerTypeName(pointerTypeName),
 
         _ => throw new UnreachableException()
@@ -505,6 +508,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     private PointerType TypeFromPointerTypeName(PointerTypeName pointerTypeName)
         => new PointerType(TypeFromTypeName(pointerTypeName.Type));
+
+
+    private ArrayType TypeFromArrayTypeName(ArrayTypeName arrayTypeName)
+        => new ArrayType(TypeFromTypeName(arrayTypeName.Type), arrayTypeName.Size);
 
 
     private FunctionType FunctionTypeFromTypeName(FunctionTypeName typeName)

@@ -46,13 +46,14 @@ public abstract class Type
     public bool IsVoid => Base.Type == PrimitiveType.Void;
 
     public bool IsSigned => Base.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 || IsFloat;
-    public bool IsUnsigned => !IsSigned; // TODO: use IsUnsigned (and IsInteger in some cases to improve readability
+    public bool IsUnsigned => !IsSigned; // TODO: use IsUnsigned (and IsInteger) in some cases to improve readability
 
     public bool IsFloat => Base.Type is PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64;
     public bool IsInteger => !IsFloat;
 
     public bool IsBase => this is BaseType;
     public bool IsPointer => this is PointerType;
+    public bool IsArray => this is ArrayType;
     public bool IsFunction => this is FunctionType;
 
 
@@ -124,19 +125,31 @@ public class PointerType(Type type) : Type
 
 
 
-    public override string ToString()
-        => $"{Type}*";
+    public override string ToString() => $"{Type}*";
 }
 
 
 
 
-public class FunctionType(Type returnType, IReadOnlyList<Type> parametersType) : Type
+public class ArrayType(Type type, uint? size) : PointerType(type)
+{
+    public uint? Size { get; } = size;
+
+
+
+
+    public override string ToString() => $"{Type}[{(Size is null ? "" : Size.Value.ToString())}]";
+}
+
+
+
+
+public class FunctionType(Type returnType, IReadOnlyList<Type> parametersType) : PointerType(returnType)
 {
     public override BaseType Base => ReturnType.Base;
 
 
-    public Type ReturnType { get; } = returnType;
+    public Type ReturnType => Type;
 
     public IReadOnlyList<Type> ParametersType { get; } = parametersType;
 
@@ -148,7 +161,7 @@ public class FunctionType(Type returnType, IReadOnlyList<Type> parametersType) :
         var parameterTypesString = ParametersType.Select(parameter => parameter.ToString());
         var parameters = string.Join(", ", parameterTypesString);
 
-        return $"{(IsVoid ? "void" : ReturnType)}({parameters})";
+        return $"{ReturnType}({parameters})";
     }
 
 

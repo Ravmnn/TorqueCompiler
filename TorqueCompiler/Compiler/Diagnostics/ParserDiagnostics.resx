@@ -55,4 +55,13 @@
     <data name="WrongBlockPlacement" xml:space="preserve">
         <value>Wrong block placement</value>
     </data>
+    <data name="ExpectLeftSquareBracket" xml:space="preserve">
+        <value>Expect "["</value>
+    </data>
+    <data name="ExpectRightSquareBracket" xml:space="preserve">
+        <value>Expect "]"</value>
+    </data>
+    <data name="ExpectLiteralInteger" xml:space="preserve">
+        <value>Expect literal integer value</value>
+    </data>
 </root>

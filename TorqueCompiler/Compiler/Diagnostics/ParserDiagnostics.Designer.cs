@@ -110,5 +110,23 @@ namespace Torque.Compiler.Diagnostics {
                 return ResourceManager.GetString("WrongBlockPlacement", resourceCulture);
             }
         }
+        
+        internal static string ExpectLeftSquareBracket {
+            get {
+                return ResourceManager.GetString("ExpectLeftSquareBracket", resourceCulture);
+            }
+        }
+        
+        internal static string ExpectRightSquareBracket {
+            get {
+                return ResourceManager.GetString("ExpectRightSquareBracket", resourceCulture);
+            }
+        }
+        
+        internal static string ExpectLiteralInteger {
+            get {
+                return ResourceManager.GetString("ExpectLiteralInteger", resourceCulture);
+            }
+        }
     }
 }
