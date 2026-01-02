@@ -303,11 +303,11 @@ public class CastExpression(Expression expression, Token keyword, TypeName type)
 
 
 
-public class ArrayExpression(TypeName elementType, Token keyword, uint size, IReadOnlyList<Expression> elements, Token rightCurlyBracket) : Expression
+public class ArrayExpression(TypeName elementType, Token keyword, ulong size, IReadOnlyList<Expression> elements, Token rightCurlyBracket) : Expression
 {
     public TypeName ElementType { get; } = elementType;
     public Token Keyword { get; } = keyword;
-    public uint Size { get; } = size;
+    public ulong Size { get; } = size;
     public IReadOnlyList<Expression> Elements { get; } = elements;
     public Token RightCurlyBracket { get; } = rightCurlyBracket;
 
@@ -326,4 +326,31 @@ public class ArrayExpression(TypeName elementType, Token keyword, uint size, IRe
 
     public override SourceLocation Location()
         => new SourceLocation(ElementType.Base.TypeToken, RightCurlyBracket);
+}
+
+
+
+
+public class IndexingExpression(Expression pointer, Token leftSquareBracket, Expression index, Token rightSquareBracket) : Expression
+{
+    public Expression Pointer { get; } = pointer;
+    public Token LeftSquareBracket { get; } = leftSquareBracket;
+    public Expression Index { get; } = index;
+    public Token RightSquareBracket { get; } = rightSquareBracket;
+
+
+
+
+    public override void Process(IExpressionProcessor processor)
+        => processor.ProcessIndexing(this);
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessIndexing(this);
+
+
+    public override Token Source()
+        => LeftSquareBracket;
+
+    public override SourceLocation Location()
+        => new SourceLocation(Pointer.Location(), RightSquareBracket);
 }

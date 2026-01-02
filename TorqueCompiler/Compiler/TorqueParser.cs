@@ -251,7 +251,24 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
     private Expression Unary()
-        => ParseRightAssociativeUnaryLayoutExpression<UnaryExpression>(Call, TokenType.Exclamation, TokenType.Minus);
+        => ParseRightAssociativeUnaryLayoutExpression<UnaryExpression>(Indexing, TokenType.Exclamation, TokenType.Minus);
+
+
+    private Expression Indexing()
+    {
+        var expression = Call();
+
+        while (Match(TokenType.LeftSquareBracket))
+        {
+            var leftSquareBracket = Previous();
+            var index = Expression();
+            var rightSquareBracket = ExpectRightSquareBracket();
+
+            expression = new IndexingExpression(expression, leftSquareBracket, index, rightSquareBracket);
+        }
+
+        return expression;
+    }
 
 
     private Expression Call()
@@ -335,7 +352,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         var expressions = DoWhileComma(Expression);
         var rightCurlyBracket = ExpectRightCurlyBracket();
 
-        return new ArrayExpression(type, keyword, (uint)size, expressions, rightCurlyBracket);
+        return new ArrayExpression(type, keyword, size, expressions, rightCurlyBracket);
     }
 
     #endregion
@@ -473,9 +490,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
             switch (Peek().Type)
             {
                 case TokenType.SemiColon:
-                case TokenType.LeftCurlyBracket:
-                case TokenType.RightCurlyBracket:
                 case TokenType.KwReturn:
+                    Advance();
                     return;
             }
 

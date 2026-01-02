@@ -273,7 +273,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var type = Process(expression.Pointer);
         ReportIfNotAPointer(type, expression.Pointer.Location());
 
-        return expression.Type;
+        return expression.Type!;
     }
 
 
@@ -363,6 +363,20 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
             Process(element);
             elements[i] = ImplicitCastOrReport(elementType, element, syntax.Source());
         }
+    }
+
+
+
+
+    public Type ProcessIndexing(BoundIndexingExpression expression)
+    {
+        Process(expression.Pointer);
+        Process(expression.Index);
+
+        ReportIfNotAPointer(expression.Pointer.Type!, expression.Pointer.Location());
+        expression.Index = ImplicitCastOrReport(PrimitiveType.Int64, expression.Index, expression.Index.Location());
+
+        return expression.Type!;
     }
 
     #endregion

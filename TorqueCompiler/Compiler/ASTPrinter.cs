@@ -282,4 +282,8 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         var expressionsString = expression.Elements.Select(Process);
         return $"{expression.ElementType} array[{expression.Size}] {{ {string.Join(", ", expressionsString)} }}";
     }
+
+
+    public string ProcessIndexing(IndexingExpression expression)
+        => $"{Process(expression.Pointer)}[{Process(expression.Index)}]";
 }

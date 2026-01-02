@@ -22,6 +22,7 @@ public interface IBoundExpressionProcessor
     void ProcessCast(BoundCastExpression expression);
     void ProcessImplicitCast(BoundImplicitCastExpression expression);
     void ProcessArray(BoundArrayExpression expression);
+    void ProcessIndexing(BoundIndexingExpression expression);
 }
 
 
@@ -44,4 +45,5 @@ public interface IBoundExpressionProcessor<out T>
     T ProcessCast(BoundCastExpression expression);
     T ProcessImplicitCast(BoundImplicitCastExpression expression);
     T ProcessArray(BoundArrayExpression expression);
+    T ProcessIndexing(BoundIndexingExpression expression);
 }

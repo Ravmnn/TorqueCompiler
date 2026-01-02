@@ -251,6 +251,7 @@ public class DebugMetadataGenerator
     }
 
 
+    // TODO: create PointerType specific metadata
     public unsafe LLVMMetadataRef TypeToMetadata(Type type)
     {
         var name = type.ToString();

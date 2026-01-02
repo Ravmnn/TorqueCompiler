@@ -360,3 +360,23 @@ public class BoundArrayExpression(ArrayExpression syntax, IReadOnlyList<BoundExp
     public override T Process<T>(IBoundExpressionProcessor<T> processor)
         => processor.ProcessArray(this);
 }
+
+
+
+
+public class BoundIndexingExpression(IndexingExpression syntax, BoundExpression pointer, BoundExpression index) : BoundExpression(syntax)
+{
+    public BoundExpression Pointer { get; set; } = pointer;
+    public BoundExpression Index { get; set; } = index;
+
+    public override Type? Type => (Pointer.Type as PointerType)?.Type;
+
+
+
+
+    public override void Process(IBoundExpressionProcessor processor)
+        => processor.ProcessIndexing(this);
+
+    public override T Process<T>(IBoundExpressionProcessor<T> processor)
+        => processor.ProcessIndexing(this);
+}

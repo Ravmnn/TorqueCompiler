@@ -1,18 +1,10 @@
 int main()
 {
-    # T[N] allows LLVM to better optimize stuff
-    # "T[]" is equal to "T*"
-
-    # int[6] numbers = int[] { 50, 20, 100, 95, 123, 1 };
-    # float[] floats = float[] { 3.14, 4.45, 90, 1.123 };
+    int[] values = int array[5] { 92, 63, 48, 100, 21, };
+    values[0] = 1;
     
-    # let first = numbers[0];
-    # let last = numbers[5];
-
-    int[] values = int array[5] { 92, 63, 48, 100, 21 };
-    
-    int first = *values;
-    int last = *((values as ptrsize + (4 * 4) as ptrsize) as int*);
+    int first = values[0];
+    int last = values[4];
     
     return 0;
 }

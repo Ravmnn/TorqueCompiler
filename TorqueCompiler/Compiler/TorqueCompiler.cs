@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 
@@ -61,7 +62,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add importing system
 
-        // TODO: add arrays
+        // TODO: implement default values "default(T)"
+        // TODO: allow "T array[N]" that fills the empty space with default values;
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
         _module.Target = TargetMachine.Triple;
@@ -561,6 +563,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         BoundSymbolExpression symbol => symbol.Symbol.LLVMReference!.Value, // if it is a symbol, we want its memory address
         BoundPointerAccessExpression pointer => Process(pointer.Pointer), // if it is a pointer, we want the memory address stored by it
+        BoundIndexingExpression indexing => ProcessIndexingExpression(indexing, false),
 
         _ => throw new UnreachableException()
     };
@@ -622,18 +625,40 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMValueRef ProcessArray(BoundArrayExpression expression)
     {
         var llvmArrayType = expression.Type!.TypeToLLVMType();
+
         var elements = expression.Elements.Select(Process).ToArray();
-
         var array = Builder.BuildAlloca(llvmArrayType, "array");
-        var address = Builder.BuildGEP2(llvmArrayType, array, new[] { Zero, Zero }, "array.address");
 
+        InitializeArrayElements(elements, llvmArrayType, array);
+
+        return IndexArray(llvmArrayType, array, Zero);
+    }
+
+
+    private void InitializeArrayElements(LLVMValueRef[] elements, LLVMTypeRef llvmArrayType, LLVMValueRef array)
+    {
         for (var i = 0; i < elements.Length; i++)
         {
-            var elementAddress = Builder.BuildGEP2(llvmArrayType, array, [Zero, NewInteger((ulong)i)]);
+            var elementAddress = IndexArray(llvmArrayType, array, NewInteger((ulong)i));
             Builder.BuildStore(elements[i], elementAddress);
         }
+    }
 
-        return address;
+
+
+
+    public LLVMValueRef ProcessIndexing(BoundIndexingExpression expression)
+        => ProcessIndexingExpression(expression);
+
+
+    private LLVMValueRef ProcessIndexingExpression(BoundIndexingExpression expression, bool getValue = true)
+    {
+        var pointerElementType = (expression.Pointer.Type as PointerType)!.Type.TypeToLLVMType();
+        var pointer = Process(expression.Pointer);
+
+        var index = Process(expression.Index);
+
+        return IndexPointer(pointerElementType, pointer, index, getValue);
     }
 
     #endregion
@@ -655,7 +680,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var sourceTypeSize = SizeOf(llvmFrom);
         var targetTypeSize = SizeOf(llvmTo);
 
-        return (valueType: from, toType: to) switch
+        return (from, to) switch
         {
             _ when !from.IsPointer && to.IsPointer => Builder.BuildIntToPtr(value, llvmTo, "cast.int->ptr"), // int to pointer... is this really useful?
             _ when from.IsPointer && !to.IsPointer => Builder.BuildPtrToInt(value, llvmTo, "cast.ptr->int"), // pointer to int
@@ -671,6 +696,27 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
             _ => value // source type is the same as target type
         };
+    }
+
+
+
+
+    private LLVMValueRef IndexPointer(LLVMTypeRef addressElementType, LLVMValueRef address, LLVMValueRef index, bool getValue = true)
+        => Index(addressElementType, address, index, getValue: getValue);
+
+    private LLVMValueRef IndexArray(LLVMTypeRef addressElementType, LLVMValueRef address, LLVMValueRef index)
+        => Index(addressElementType, address, index, false, false);
+
+    // although this is a pointer, if you are indexing it, we suppose it's an array as well.
+    private LLVMValueRef Index(LLVMTypeRef addressElementType, LLVMValueRef address, LLVMValueRef index, bool scalar = true, bool getValue = true)
+    {
+        var indices = scalar ? new[] { index } : new[] { Zero, index };
+        var elementAddress = Builder.BuildGEP2(addressElementType, address, indices, "array.index.ptr");
+
+        if (getValue)
+            return Builder.BuildLoad2(addressElementType, elementAddress, "array.index.value");
+
+        return elementAddress;
     }
 
     #endregion

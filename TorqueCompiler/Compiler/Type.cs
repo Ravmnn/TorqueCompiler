@@ -135,9 +135,9 @@ public class PointerType(Type type) : Type
 // the only exception being with an "ArrayExpression", which uses
 // the fixed array type from LLVM to allocate the memory for it.
 // In other words, this type must not be available for the programmer
-public class ArrayType(Type type, uint size) : PointerType(type)
+public class ArrayType(Type type, ulong size) : PointerType(type)
 {
-    public uint Size { get; } = size;
+    public ulong Size { get; } = size;
 
 
 

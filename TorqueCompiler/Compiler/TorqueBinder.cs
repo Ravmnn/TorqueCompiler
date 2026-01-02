@@ -225,7 +225,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     private BoundAssignmentReferenceExpression ToAssignmentReference(BoundExpression expression)
     {
-        if (expression is not BoundSymbolExpression and not BoundPointerAccessExpression)
+        if (expression is not BoundSymbolExpression and not BoundPointerAccessExpression and not BoundIndexingExpression)
             Report(Diagnostic.BinderCatalog.MustBeAssignmentReference, location: expression.Location());
 
         return new BoundAssignmentReferenceExpression(expression.Syntax, expression);
@@ -268,6 +268,12 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         var boundExpressions = expression.Elements.Select(Process).ToArray();
         return new BoundArrayExpression(expression, boundExpressions);
     }
+
+
+
+
+    public BoundExpression ProcessIndexing(IndexingExpression expression)
+        => new BoundIndexingExpression(expression, Process(expression.Pointer), Process(expression.Index));
 
     #endregion
 
