@@ -259,8 +259,12 @@ public class DebugMetadataGenerator
         var sizeInBits = type.SizeOfThisInMemory(TargetData) * 8;
         var encoding = GetEncodingFromType(type);
 
-        return LLVM.DIBuilderCreateBasicType(DebugBuilder, sbyteName, (uint)name.Length, (ulong)sizeInBits, (uint)encoding, LLVMDIFlags.LLVMDIFlagZero);
+        return BasicTypeMetadata(sbyteName, name.Length, sizeInBits, encoding);
     }
+
+
+    private unsafe LLVMMetadataRef BasicTypeMetadata(sbyte* sbyteName, int nameLength, int sizeInBits, int encoding)
+        => LLVM.DIBuilderCreateBasicType(DebugBuilder, sbyteName, (uint)nameLength, (ulong)sizeInBits, (uint)encoding, LLVMDIFlags.LLVMDIFlagZero);
 
 
     private static int GetEncodingFromType(Type type) => type.Base.Type switch

@@ -9,8 +9,10 @@ int main()
     # let first = numbers[0];
     # let last = numbers[5];
 
-    int[5] values = 0;
-    int* array = values;
-
+    int[] values = int array[5] { 92, 63, 48, 100, 21 };
+    
+    int first = *values;
+    int last = *((values as ptrsize + (4 * 4) as ptrsize) as int*);
+    
     return 0;
 }

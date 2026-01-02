@@ -336,6 +336,35 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     public Type ProcessImplicitCast(BoundImplicitCastExpression expression)
         => throw new UnreachableException();
 
+
+
+
+    public Type ProcessArray(BoundArrayExpression expression)
+    {
+        var syntax = (expression.Syntax as ArrayExpression)!;
+
+        var elementType = TypeFromTypeName(syntax.ElementType);
+        expression.Type = new ArrayType(elementType, syntax.Size);
+
+        MatchElementTypes(expression.Elements, elementType, syntax);
+
+        return expression.Type;
+    }
+
+
+    private void MatchElementTypes(IList<BoundExpression> elements, Type elementType, ArrayExpression syntax)
+    {
+        // TODO: check if the element count matches with the specified array size
+
+        for (var i = 0; i < elements.Count; i++)
+        {
+            var element = elements[i];
+
+            Process(element);
+            elements[i] = ImplicitCastOrReport(elementType, element, syntax.Source());
+        }
+    }
+
     #endregion
 
 
@@ -442,7 +471,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
             return false;
 
         var sameTypes = from == to;
-        var bothBase = from.IsBase || to.IsBase;
+        var bothBase = from.IsBase && to.IsBase;
         var anyIsAuto = from.IsAuto || to.IsAuto;
 
         if (sameTypes || anyIsAuto)
@@ -490,7 +519,6 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         // all of the types above are descendant from "PointerTypeName", so it's necessary to first
         // check the most derivative first
         FunctionTypeName functionTypeName => FunctionTypeFromTypeName(functionTypeName),
-        ArrayTypeName arrayTypeName => TypeFromArrayTypeName(arrayTypeName),
         PointerTypeName pointerTypeName => TypeFromPointerTypeName(pointerTypeName),
 
         _ => throw new UnreachableException()
@@ -508,10 +536,6 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     private PointerType TypeFromPointerTypeName(PointerTypeName pointerTypeName)
         => new PointerType(TypeFromTypeName(pointerTypeName.Type));
-
-
-    private ArrayType TypeFromArrayTypeName(ArrayTypeName arrayTypeName)
-        => new ArrayType(TypeFromTypeName(arrayTypeName.Type), arrayTypeName.Size);
 
 
     private FunctionType FunctionTypeFromTypeName(FunctionTypeName typeName)

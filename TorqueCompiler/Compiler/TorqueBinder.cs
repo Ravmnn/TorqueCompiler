@@ -260,6 +260,15 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         return new BoundCastExpression(expression, value);
     }
 
+
+
+
+    public BoundExpression ProcessArray(ArrayExpression expression)
+    {
+        var boundExpressions = expression.Elements.Select(Process).ToArray();
+        return new BoundArrayExpression(expression, boundExpressions);
+    }
+
     #endregion
 
 

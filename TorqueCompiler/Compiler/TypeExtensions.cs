@@ -33,12 +33,7 @@ public static class TypeExtensions
 
 
     public static LLVMTypeRef ArrayTypeToLLVMType(this ArrayType arrayType)
-    {
-        if (arrayType.Size is null)
-            return LLVMTypeRef.CreatePointer(arrayType.Type.TypeToLLVMType(), 0);
-
-        return LLVMTypeRef.CreateArray2(arrayType.Type.TypeToLLVMType(), arrayType.Size.Value);
-    }
+        => LLVMTypeRef.CreateArray2(arrayType.Type.TypeToLLVMType(), arrayType.Size);
 
 
     public static LLVMTypeRef FunctionTypeToLLVMType(this FunctionType functionType, bool pointer = true)

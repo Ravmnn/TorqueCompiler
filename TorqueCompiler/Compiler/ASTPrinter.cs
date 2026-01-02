@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 
@@ -274,4 +275,11 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
     public string ProcessCast(CastExpression expression)
         => $"({Process(expression.Expression)} as {expression.Type})";
+
+
+    public string ProcessArray(ArrayExpression expression)
+    {
+        var expressionsString = expression.Elements.Select(Process);
+        return $"{expression.ElementType} array[{expression.Size}] {{ {string.Join(", ", expressionsString)} }}";
+    }
 }

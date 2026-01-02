@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection.Metadata;
+
 using Torque.Compiler.Diagnostics;
 
 
@@ -298,6 +298,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         _ when Match(TokenType.Identifier) => new SymbolExpression(null, Previous()),
         _ when Match(TokenType.LeftParen) => ParseGroupExpression(),
 
+        _ when Check(TokenType.Type) => TryParseArray(),
+
         _ => null
     };
 
@@ -315,10 +317,33 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         return new GroupingExpression(leftParen, expression, rightParen);
     }
 
+
+    private Expression? TryParseArray()
+    {
+        var type = ParseTypeName();
+
+        if (!Match(TokenType.KwArray))
+            return null;
+
+        var keyword = Previous();
+
+        ExpectLeftSquareBracket();
+        var size = (ulong)ExpectLiteralInteger().Value!;
+        ExpectRightSquareBracket();
+
+        ExpectLeftCurlyBracket();
+        var expressions = DoWhileComma(Expression);
+        var rightCurlyBracket = ExpectRightCurlyBracket();
+
+        return new ArrayExpression(type, keyword, (uint)size, expressions, rightCurlyBracket);
+    }
+
     #endregion
 
 
 
+
+    #region Parse Methods
 
     private Expression ParseLeftAssociativeBinaryLayoutExpression<T>(Func<Expression> predecessor, params IReadOnlyList<TokenType> operators)
         where T : BinaryLayoutExpression, IBinaryLayoutExpressionFactory
@@ -364,10 +389,13 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         return predecessor();
     }
 
+    #endregion
 
 
 
-    // TODO: check if this change works
+
+    #region Type Name
+
     private TypeName ParseTypeName()
         => ParseTypeName(new Dictionary<TokenType, Func<TypeName, TypeName>>
         {
@@ -407,13 +435,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
     private TypeName ParseArrayTypeName(TypeName type)
     {
-        var leftSquareBracket = Previous();
-        uint? size = null;
-
-        if (!Check(TokenType.RightSquareBracket))
-            size = (uint)(ulong)ExpectLiteralInteger().Value!;
-
-        return new ArrayTypeName(type, size, leftSquareBracket, ExpectRightSquareBracket());
+        ExpectRightSquareBracket();
+        return new PointerTypeName(type);
     }
 
 
@@ -433,6 +456,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
         return DoWhileComma(ParseTypeName);
     }
+
+    #endregion
 
 
 
@@ -502,6 +527,13 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
     private Token ExpectRightSquareBracket()
         => Expect(TokenType.RightSquareBracket, Diagnostic.ParserCatalog.ExpectRightSquareBracket);
+
+
+    private Token ExpectLeftCurlyBracket()
+        => Expect(TokenType.LeftCurlyBracket, Diagnostic.ParserCatalog.ExpectLeftCurlyBracket);
+
+    private Token ExpectRightCurlyBracket()
+        => Expect(TokenType.RightCurlyBracket, Diagnostic.ParserCatalog.ExpectRightCurlyBracket);
 
 
     private Token ExpectLiteralInteger()

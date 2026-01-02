@@ -267,7 +267,7 @@ public class BoundPointerAccessExpression(PointerAccessExpression syntax, BoundE
 
     public BoundExpression Pointer { get; set; } = pointer;
 
-    public override Type Type => (Pointer.Type as PointerType)!.Type;
+    public override Type? Type => (Pointer.Type as PointerType)?.Type;
 
 
 
@@ -341,4 +341,22 @@ public class BoundImplicitCastExpression(BoundExpression value, Type type) : Bou
 
     public override T Process<T>(IBoundExpressionProcessor<T> processor)
         => processor.ProcessImplicitCast(this);
+}
+
+
+
+
+public class BoundArrayExpression(ArrayExpression syntax, IReadOnlyList<BoundExpression> elements) : BoundExpression(syntax)
+{
+    public IList<BoundExpression> Elements { get; } = elements.ToList();
+    public Type? ElementType => (Type as PointerType)?.Type;
+
+
+
+
+    public override void Process(IBoundExpressionProcessor processor)
+        => processor.ProcessArray(this);
+
+    public override T Process<T>(IBoundExpressionProcessor<T> processor)
+        => processor.ProcessArray(this);
 }

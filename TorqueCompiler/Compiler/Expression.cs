@@ -303,26 +303,27 @@ public class CastExpression(Expression expression, Token keyword, TypeName type)
 
 
 
-// public class ArrayExpression(TypeName type, Token leftSquareBrace, IReadOnlyList<Expression> expressions, Token rightSquareBrace) : Expression
-// {
-//     public TypeName Type { get; } = type;
-//     public Token LeftSquareBrace { get; } = leftSquareBrace;
-//     public IReadOnlyList<Expression> Expressions { get; } = expressions;
-//     public Token RightSquareBrace { get; } = rightSquareBrace;
-//
-//
-//
-//
-//     public override void Process(IExpressionProcessor processor)
-//         => processor.ProcessArray(this);
-//
-//     public override T Process<T>(IExpressionProcessor<T> processor)
-//         => processor.ProcessArray(this);
-//
-//
-//     public override Token Source()
-//         => LeftSquareBrace;
-//
-//     public override SourceLocation Location()
-//         => new SourceLocation(Type.Base.TypeToken, RightSquareBrace);
-// }
+public class ArrayExpression(TypeName elementType, Token keyword, uint size, IReadOnlyList<Expression> elements, Token rightCurlyBracket) : Expression
+{
+    public TypeName ElementType { get; } = elementType;
+    public Token Keyword { get; } = keyword;
+    public uint Size { get; } = size;
+    public IReadOnlyList<Expression> Elements { get; } = elements;
+    public Token RightCurlyBracket { get; } = rightCurlyBracket;
+
+
+
+
+    public override void Process(IExpressionProcessor processor)
+        => processor.ProcessArray(this);
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessArray(this);
+
+
+    public override Token Source()
+        => Keyword;
+
+    public override SourceLocation Location()
+        => new SourceLocation(ElementType.Base.TypeToken, RightCurlyBracket);
+}

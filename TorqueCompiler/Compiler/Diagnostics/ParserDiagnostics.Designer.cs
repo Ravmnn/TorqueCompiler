@@ -128,5 +128,17 @@ namespace Torque.Compiler.Diagnostics {
                 return ResourceManager.GetString("ExpectLiteralInteger", resourceCulture);
             }
         }
+        
+        internal static string ExpectLeftCurlyBracket {
+            get {
+                return ResourceManager.GetString("ExpectLeftCurlyBracket", resourceCulture);
+            }
+        }
+        
+        internal static string ExpectRightCurlyBracket {
+            get {
+                return ResourceManager.GetString("ExpectRightCurlyBracket", resourceCulture);
+            }
+        }
     }
 }

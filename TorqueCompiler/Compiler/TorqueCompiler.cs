@@ -20,6 +20,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private const string FunctionEntryBlockName = "entry";
 
 
+    private static LLVMValueRef Zero { get; } = NewInteger(0);
+    private static LLVMValueRef One { get; } = NewInteger(1);
+
+
     // if debug metadata generation is desired, this property must be set, since
     // debug metadata uses some file information
     public FileInfo? File { get; }
@@ -136,7 +140,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         DebugSetLocationTo(statementSource.Location);
 
-        var reference = Builder.BuildAlloca(llvmType, name);
+        var reference = Builder.BuildAlloca(llvmType, $"var.${name}");
         var debugReference = DebugGenerateLocalVariable(name, type, statementSource, reference);
 
         symbol.SetLLVMProperties(reference, llvmType, debugReference);
@@ -186,7 +190,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
             var llvmValue = function.GetParam((uint)i);
             var llvmType = type.TypeToLLVMType();
-            var llvmReference = Builder.BuildAlloca(llvmType, parameter.Name);
+            var llvmReference = Builder.BuildAlloca(llvmType, $"param.${parameter.Name}");
             var llvmDebugMetadata = DebugGenerateParameter(parameter.Name, i + 1, type, parameter.Location, llvmReference);
 
             parameter.SetLLVMProperties(llvmReference, llvmType, llvmDebugMetadata);
@@ -280,8 +284,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         var llvmReference = type.Base.Type switch
         {
-            _ when type.IsInteger => LLVMValueRef.CreateConstInt(llvmType, (ulong)value),
-            _ when type.IsFloat => LLVMValueRef.CreateConstReal(llvmType, (double)value),
+            _ when type.IsInteger => NewInteger((ulong)value, llvmType),
+            _ when type.IsFloat => NewReal((double)value, llvmType),
 
             _ => throw new UnreachableException()
         };
@@ -311,11 +315,11 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private LLVMValueRef ProcessIntegerBinaryOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right, bool isSigned = true) => @operator switch
     {
-        TokenType.Plus => Builder.BuildAdd(left, right, "isum"),
-        TokenType.Minus => Builder.BuildSub(left, right, "isub"),
-        TokenType.Star => Builder.BuildMul(left, right, "imult"),
-        TokenType.Slash when isSigned => Builder.BuildSDiv(left, right, "sdiv"),
-        TokenType.Slash when !isSigned => Builder.BuildUDiv(left, right, "udiv"),
+        TokenType.Plus => Builder.BuildAdd(left, right, "sum.int"),
+        TokenType.Minus => Builder.BuildSub(left, right, "sub.int"),
+        TokenType.Star => Builder.BuildMul(left, right, "mult.int"),
+        TokenType.Slash when isSigned => Builder.BuildSDiv(left, right, "div.signed"),
+        TokenType.Slash when !isSigned => Builder.BuildUDiv(left, right, "div.unsigned"),
 
         _ => throw new UnreachableException() // TODO: use UnreachableException everywhere in cases like this
     };
@@ -323,10 +327,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private LLVMValueRef ProcessFloatBinaryOperation(TokenType @operator, LLVMValueRef left, LLVMValueRef right) => @operator switch
     {
-        TokenType.Plus => Builder.BuildFAdd(left, right, "fsum"),
-        TokenType.Minus => Builder.BuildFSub(left, right, "fsub"),
-        TokenType.Star => Builder.BuildFMul(left, right, "fmult"),
-        TokenType.Slash => Builder.BuildFDiv(left, right, "fdiv"),
+        TokenType.Plus => Builder.BuildFAdd(left, right, "sum.float"),
+        TokenType.Minus => Builder.BuildFSub(left, right, "sub.float"),
+        TokenType.Star => Builder.BuildFMul(left, right, "mult.float"),
+        TokenType.Slash => Builder.BuildFDiv(left, right, "div.float"),
 
         _ => throw new UnreachableException()
     };
@@ -355,22 +359,22 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private LLVMValueRef ProcessIntegerNegateOperation(LLVMTypeRef llvmType, LLVMValueRef value)
     {
-        var constIntZero = LLVMValueRef.CreateConstInt(llvmType, 0);
-        return Builder.BuildSub(constIntZero, value, "ineg");
+        var constIntZero = NewInteger(0, llvmType);
+        return Builder.BuildSub(constIntZero, value, "negate.int");
     }
 
 
     private LLVMValueRef ProcessFloatNegateOperation(LLVMTypeRef llvmType, LLVMValueRef value)
     {
-        var constFloatZero = LLVMValueRef.CreateConstReal(llvmType, 0);
-        return Builder.BuildFSub(constFloatZero, value, "fneg");
+        var constFloatZero = NewReal(0, llvmType);
+        return Builder.BuildFSub(constFloatZero, value, "negate.float");
     }
 
 
     private LLVMValueRef ProcessBooleanNegateOperation(LLVMTypeRef llvmType, LLVMValueRef value)
     {
-        var constIntOne = LLVMValueRef.CreateConstInt(llvmType, 1);
-        return Builder.BuildXor(value, constIntOne, "bneg");
+        var constIntOne = NewInteger(1, llvmType);
+        return Builder.BuildXor(value, constIntOne, "negate.bool");
     }
 
 
@@ -414,7 +418,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             _ => throw new UnreachableException()
         };
 
-        return Builder.BuildICmp(operation, left, right, "intcmp");
+        return Builder.BuildICmp(operation, left, right, "compare.int");
     }
 
 
@@ -430,7 +434,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             _ => throw new UnreachableException()
         };
 
-        return Builder.BuildFCmp(operation, left, right, "fpcmp");
+        return Builder.BuildFCmp(operation, left, right, "compare.float");
     }
 
 
@@ -463,7 +467,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             _ => throw new UnreachableException()
         };
 
-        return Builder.BuildICmp(operation, left, right, "intcmp");
+        return Builder.BuildICmp(operation, left, right, "compare.int");
     }
 
 
@@ -477,7 +481,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             _ => throw new UnreachableException()
         };
 
-        return Builder.BuildFCmp(operation, left, right, "fpcmp");
+        return Builder.BuildFCmp(operation, left, right, "compare.float");
     }
 
 
@@ -515,16 +519,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         Builder.PositionAtEnd(joinBlock);
 
-        var phi = Builder.BuildPhi(LLVMTypeRef.Int1, "logicres");
+        var phi = Builder.BuildPhi(LLVMTypeRef.Int1, "logic.result");
         phi.AddIncoming([NewBoolean(true), NewBoolean(false)], [trueBlock, falseBlock], 2);
 
 
         return phi;
     }
-
-
-    private static LLVMValueRef NewBoolean(bool value)
-        => LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, value ? 1UL : 0UL);
 
 
 
@@ -540,7 +540,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         if (expression.GetAddress || symbol is FunctionSymbol)
             return llvmReference;
 
-        return Builder.BuildLoad2(llvmType, llvmReference, "symval");
+        return Builder.BuildLoad2(llvmType, llvmReference, "symbol.value");
     }
 
 
@@ -573,7 +573,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var value = Process(expression.Pointer);
         var llvmType = expression.Type!.TypeToLLVMType();
 
-        return Builder.BuildLoad2(llvmType, value, "ptraccess");
+        return Builder.BuildLoad2(llvmType, value, "access.ptr");
     }
 
 
@@ -587,7 +587,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var functionType = (expression.Callee.Type as FunctionType)!;
         var llvmFunctionType = functionType.FunctionTypeToLLVMType(false);
 
-        return Builder.BuildCall2(llvmFunctionType, function, arguments.ToArray(), "retval");
+        return Builder.BuildCall2(llvmFunctionType, function, arguments.ToArray(), "return.value");
     }
 
 
@@ -616,6 +616,26 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         return Cast(from, to, value);
     }
 
+
+
+
+    public LLVMValueRef ProcessArray(BoundArrayExpression expression)
+    {
+        var llvmArrayType = expression.Type!.TypeToLLVMType();
+        var elements = expression.Elements.Select(Process).ToArray();
+
+        var array = Builder.BuildAlloca(llvmArrayType, "array");
+        var address = Builder.BuildGEP2(llvmArrayType, array, new[] { Zero, Zero }, "array.address");
+
+        for (var i = 0; i < elements.Length; i++)
+        {
+            var elementAddress = Builder.BuildGEP2(llvmArrayType, array, [Zero, NewInteger((ulong)i)]);
+            Builder.BuildStore(elements[i], elementAddress);
+        }
+
+        return address;
+    }
+
     #endregion
 
 
@@ -637,17 +657,17 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         return (valueType: from, toType: to) switch
         {
-            _ when !from.IsPointer && to.IsPointer => Builder.BuildIntToPtr(value, llvmTo, "itopcast"), // int to pointer... is this really useful?
-            _ when from.IsPointer && !to.IsPointer => Builder.BuildPtrToInt(value, llvmTo, "ptoicast"), // pointer to int
-            _ when from.IsPointer && to.IsPointer => Builder.BuildPointerCast(value, llvmTo, "ptrcast"), // pointer to another pointer type
+            _ when !from.IsPointer && to.IsPointer => Builder.BuildIntToPtr(value, llvmTo, "cast.int->ptr"), // int to pointer... is this really useful?
+            _ when from.IsPointer && !to.IsPointer => Builder.BuildPtrToInt(value, llvmTo, "cast.ptr->int"), // pointer to int
+            _ when from.IsPointer && to.IsPointer => Builder.BuildPointerCast(value, llvmTo, "cast.ptr"), // pointer to another pointer type
 
-            _ when from.IsFloat && !to.IsFloat && to.IsSigned => Builder.BuildFPToSI(value, llvmTo, "fptoint"), // float to int
-            _ when from.IsFloat && !to.IsFloat && !to.IsSigned => Builder.BuildFPToUI(value, llvmTo, "fptouint"), // float to uint
-            _ when !from.IsFloat && to.IsFloat && from.IsSigned => Builder.BuildSIToFP(value, llvmTo, "inttofp"), // int to float
-            _ when !from.IsFloat && to.IsFloat && !from.IsSigned => Builder.BuildUIToFP(value, llvmTo, "uinttofp"), // uint to float
-            _ when from.IsFloat && to.IsFloat => Builder.BuildFPCast(value, llvmTo, "fpcast"), // float to another float type
+            _ when from.IsFloat && !to.IsFloat && to.IsSigned => Builder.BuildFPToSI(value, llvmTo, "cast.float->int"), // float to int
+            _ when from.IsFloat && !to.IsFloat && !to.IsSigned => Builder.BuildFPToUI(value, llvmTo, "cast.float->uint"), // float to uint
+            _ when !from.IsFloat && to.IsFloat && from.IsSigned => Builder.BuildSIToFP(value, llvmTo, "cast.int->float"), // int to float
+            _ when !from.IsFloat && to.IsFloat && !from.IsSigned => Builder.BuildUIToFP(value, llvmTo, "cast.uint->float"), // uint to float
+            _ when from.IsFloat && to.IsFloat => Builder.BuildFPCast(value, llvmTo, "cast.float"), // float to another float type
 
-            _ when sourceTypeSize != targetTypeSize => Builder.BuildIntCast(value, llvmTo, "intcast"), // integer to another integer type
+            _ when sourceTypeSize != targetTypeSize => Builder.BuildIntCast(value, llvmTo, "cast.int"), // integer to another integer type
 
             _ => value // source type is the same as target type
         };
@@ -756,4 +776,18 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private static void UnreachableCode()
         => throw new UnreachableCodeControl();
+
+
+
+
+    private static LLVMValueRef NewInteger(ulong value, LLVMTypeRef? type = null)
+        => LLVMValueRef.CreateConstInt(type ?? LLVMTypeRef.Int32, value);
+
+
+    private static LLVMValueRef NewReal(double value, LLVMTypeRef? type = null)
+        => LLVMValueRef.CreateConstReal(type ?? LLVMTypeRef.Double, value);
+
+
+    private static LLVMValueRef NewBoolean(bool value)
+        => LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, value ? 1UL : 0UL);
 }

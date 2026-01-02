@@ -42,7 +42,7 @@ public abstract class Type
     public abstract BaseType Base { get; }
 
 
-    public bool IsAuto => Base.Type == PrimitiveType.Auto;
+    public bool IsAuto => Base.Type == PrimitiveType.Auto; // "let" variable declarator
     public bool IsVoid => Base.Type == PrimitiveType.Void;
 
     public bool IsSigned => Base.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 || IsFloat;
@@ -53,7 +53,7 @@ public abstract class Type
 
     public bool IsBase => this is BaseType;
     public bool IsPointer => this is PointerType;
-    public bool IsArray => this is ArrayType;
+    //public bool IsArray => this is ArrayType;
     public bool IsFunction => this is FunctionType;
 
 
@@ -131,14 +131,18 @@ public class PointerType(Type type) : Type
 
 
 
-public class ArrayType(Type type, uint? size) : PointerType(type)
+// arrays are represented by a pointer to the first element,
+// the only exception being with an "ArrayExpression", which uses
+// the fixed array type from LLVM to allocate the memory for it.
+// In other words, this type must not be available for the programmer
+public class ArrayType(Type type, uint size) : PointerType(type)
 {
-    public uint? Size { get; } = size;
+    public uint Size { get; } = size;
 
 
 
 
-    public override string ToString() => $"{Type}[{(Size is null ? "" : Size.Value.ToString())}]";
+    public override string ToString() => $"{Type}[]";
 }
 
 
