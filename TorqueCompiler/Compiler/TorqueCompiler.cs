@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 
@@ -400,7 +399,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         return leftType switch
         {
-            _ when !leftType.IsFloat => ProcessIntegerComparisonOperation(@operator, left, right, isSigned),
+            _ when leftType.IsInteger => ProcessIntegerComparisonOperation(@operator, left, right, isSigned),
             _ when leftType.IsFloat => ProcessFloatComparisonOperation(@operator, left, right),
 
             _ => throw new UnreachableException()
@@ -625,19 +624,22 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMValueRef ProcessArray(BoundArrayExpression expression)
     {
         var llvmArrayType = expression.Type!.TypeToLLVMType();
-
-        var elements = expression.Elements.Select(Process).ToArray();
         var array = Builder.BuildAlloca(llvmArrayType, "array");
 
-        InitializeArrayElements(elements, llvmArrayType, array);
+        InitializeArrayElements(expression, llvmArrayType, array);
 
         return IndexArray(llvmArrayType, array, Zero);
     }
 
 
-    private void InitializeArrayElements(LLVMValueRef[] elements, LLVMTypeRef llvmArrayType, LLVMValueRef array)
+    private void InitializeArrayElements(BoundArrayExpression expression, LLVMTypeRef llvmArrayType, LLVMValueRef array)
     {
-        for (var i = 0; i < elements.Length; i++)
+        var elements = new List<LLVMValueRef>();
+
+        for (var i = 0; i < (uint)expression.Syntax.Size; i++)
+            elements.Add(Process(expression.Elements[i]));
+
+        for (var i = 0; i < elements.Count; i++)
         {
             var elementAddress = IndexArray(llvmArrayType, array, NewInteger((ulong)i));
             Builder.BuildStore(elements[i], elementAddress);
@@ -686,10 +688,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             _ when from.IsPointer && !to.IsPointer => Builder.BuildPtrToInt(value, llvmTo, "cast.ptr->int"), // pointer to int
             _ when from.IsPointer && to.IsPointer => Builder.BuildPointerCast(value, llvmTo, "cast.ptr"), // pointer to another pointer type
 
-            _ when from.IsFloat && !to.IsFloat && to.IsSigned => Builder.BuildFPToSI(value, llvmTo, "cast.float->int"), // float to int
-            _ when from.IsFloat && !to.IsFloat && !to.IsSigned => Builder.BuildFPToUI(value, llvmTo, "cast.float->uint"), // float to uint
-            _ when !from.IsFloat && to.IsFloat && from.IsSigned => Builder.BuildSIToFP(value, llvmTo, "cast.int->float"), // int to float
-            _ when !from.IsFloat && to.IsFloat && !from.IsSigned => Builder.BuildUIToFP(value, llvmTo, "cast.uint->float"), // uint to float
+            _ when from.IsFloat && to.IsInteger && to.IsSigned => Builder.BuildFPToSI(value, llvmTo, "cast.float->int"), // float to int
+            _ when from.IsFloat && to.IsInteger && to.IsUnsigned => Builder.BuildFPToUI(value, llvmTo, "cast.float->uint"), // float to uint
+            _ when from.IsInteger && to.IsFloat && from.IsSigned => Builder.BuildSIToFP(value, llvmTo, "cast.int->float"), // int to float
+            _ when from.IsInteger && to.IsFloat && from.IsUnsigned => Builder.BuildUIToFP(value, llvmTo, "cast.uint->float"), // uint to float
             _ when from.IsFloat && to.IsFloat => Builder.BuildFPCast(value, llvmTo, "cast.float"), // float to another float type
 
             _ when sourceTypeSize != targetTypeSize => Builder.BuildIntCast(value, llvmTo, "cast.int"), // integer to another integer type

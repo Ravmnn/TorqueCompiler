@@ -46,14 +46,13 @@ public abstract class Type
     public bool IsVoid => Base.Type == PrimitiveType.Void;
 
     public bool IsSigned => Base.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 || IsFloat;
-    public bool IsUnsigned => !IsSigned; // TODO: use IsUnsigned (and IsInteger) in some cases to improve readability
+    public bool IsUnsigned => !IsSigned;
 
     public bool IsFloat => Base.Type is PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64;
     public bool IsInteger => !IsFloat;
 
     public bool IsBase => this is BaseType;
     public bool IsPointer => this is PointerType;
-    //public bool IsArray => this is ArrayType;
     public bool IsFunction => this is FunctionType;
 
 

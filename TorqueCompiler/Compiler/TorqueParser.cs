@@ -352,7 +352,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         var expressions = DoWhileComma(Expression);
         var rightCurlyBracket = ExpectRightCurlyBracket();
 
-        return new ArrayExpression(type, keyword, size, expressions, rightCurlyBracket);
+        return new ArrayExpression(type, keyword, (ulong)size, expressions, rightCurlyBracket);
     }
 
     #endregion

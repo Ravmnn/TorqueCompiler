@@ -354,8 +354,6 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     private void MatchElementTypes(IList<BoundExpression> elements, Type elementType, ArrayExpression syntax)
     {
-        // TODO: check if the element count matches with the specified array size
-
         for (var i = 0; i < elements.Count; i++)
         {
             var element = elements[i];
