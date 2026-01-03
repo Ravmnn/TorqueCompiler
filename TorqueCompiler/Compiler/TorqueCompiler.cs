@@ -322,7 +322,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         TokenType.Slash when isSigned => Builder.BuildSDiv(left, right, "div.signed"),
         TokenType.Slash when !isSigned => Builder.BuildUDiv(left, right, "div.unsigned"),
 
-        _ => throw new UnreachableException() // TODO: use UnreachableException everywhere in cases like this
+        _ => throw new UnreachableException()
     };
 
 

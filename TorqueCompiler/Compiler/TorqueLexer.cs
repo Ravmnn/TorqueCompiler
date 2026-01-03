@@ -1,6 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Torque.Compiler.Diagnostics;
 
 
@@ -62,8 +62,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
     private Token? TokenizeNext()
     {
-        if (Advance() is not { } character)
-            throw new NullReferenceException("Current character is null.");
+        var character = Advance();
 
         switch (character)
         {
@@ -330,11 +329,10 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
 
 
-    // TODO: don't return null
-    private char? Advance()
+    private char Advance()
     {
         if (AtEnd())
-            return null;
+            return Previous();
 
         _endInLine++;
 
@@ -351,12 +349,16 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
     }
 
 
-    private char? Peek()
-        => AtEnd() ? null : Source[_end];
+    private char Previous()
+        => Source[_end - 1];
 
 
-    private char? PeekNext()
-        => AtEnd() ? null : Source[_end + 1];
+    private char Peek()
+        => AtEnd() ? Previous() : Source[_end];
+
+
+    private char PeekNext()
+        => AtEnd() ? Peek() : Source[_end + 1];
 
 
     private bool Match(char character)

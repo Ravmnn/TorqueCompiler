@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -251,7 +252,6 @@ public class DebugMetadataGenerator
     }
 
 
-    // TODO: create PointerType specific metadata
     public unsafe LLVMMetadataRef TypeToMetadata(Type type)
     {
         var name = type.ToString();
@@ -260,7 +260,20 @@ public class DebugMetadataGenerator
         var sizeInBits = type.SizeOfThisInMemory(TargetData) * 8;
         var encoding = GetEncodingFromType(type);
 
-        return BasicTypeMetadata(sbyteName, name.Length, sizeInBits, encoding);
+        return type switch
+        {
+            BaseType => BasicTypeMetadata(sbyteName, name.Length, sizeInBits, encoding),
+            PointerType pointerType => PointerTypeMetadata(pointerType.Type, sbyteName, name.Length, sizeInBits),
+
+            _ => throw new UnreachableException()
+        };
+    }
+
+
+    private unsafe LLVMMetadataRef PointerTypeMetadata(Type elementType, sbyte* sbyteName, int nameLength, int sizeInBits)
+    {
+        var elementTypeMetadata = TypeToMetadata(elementType);
+        return LLVM.DIBuilderCreatePointerType(DebugBuilder, elementTypeMetadata, (ulong)sizeInBits, (uint)sizeInBits, 0, sbyteName, (uint)nameLength);
     }
 
 
