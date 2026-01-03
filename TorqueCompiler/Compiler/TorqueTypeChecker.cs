@@ -377,6 +377,15 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         return expression.Type!;
     }
 
+
+
+
+    public Type ProcessDefault(BoundDefaultExpression expression)
+    {
+        expression.Type = TypeFromNonVoidTypeName(expression.Syntax.TypeName);
+        return expression.Type;
+    }
+
     #endregion
 
 

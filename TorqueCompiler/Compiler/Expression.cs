@@ -354,3 +354,30 @@ public class IndexingExpression(Expression pointer, Token leftSquareBracket, Exp
     public override SourceLocation Location()
         => new SourceLocation(Pointer.Location(), RightSquareBracket);
 }
+
+
+
+
+public class DefaultExpression(Token keyword, Token leftParen, TypeName typeName, Token rightParen) : Expression
+{
+    public Token Keyword { get; } = keyword;
+    public Token LeftParen { get; } = leftParen;
+    public TypeName TypeName { get; } = typeName;
+    public Token RightParen { get; } = rightParen;
+
+
+
+
+    public override void Process(IExpressionProcessor processor)
+        => processor.ProcessDefault(this);
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessDefault(this);
+
+
+    public override Token Source()
+        => Keyword;
+
+    public override SourceLocation Location()
+        => new SourceLocation(Keyword, RightParen);
+}

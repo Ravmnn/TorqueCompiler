@@ -21,6 +21,7 @@ public interface IExpressionProcessor
     void ProcessCast(CastExpression expression);
     void ProcessArray(ArrayExpression expression);
     void ProcessIndexing(IndexingExpression expression);
+    void ProcessDefault(DefaultExpression expression);
 }
 
 
@@ -42,4 +43,5 @@ public interface IExpressionProcessor<out T>
     T ProcessCast(CastExpression expression);
     T ProcessArray(ArrayExpression expression);
     T ProcessIndexing(IndexingExpression expression);
+    T ProcessDefault(DefaultExpression expression);
 }

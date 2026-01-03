@@ -41,10 +41,6 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
 
-    private string Parenthesize(Expression expression)
-        => $"({Process(expression)})";
-
-
     private string Stringify(string name, IReadOnlyList<Expression> expressions)
     {
         if (expressions.Count == 1)
@@ -219,7 +215,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessGrouping(GroupingExpression expression)
-        => Parenthesize(expression.Expression);
+        => $"({Process(expression.Expression)})";
 
 
     public string ProcessComparison(ComparisonExpression expression)
@@ -235,7 +231,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessSymbol(SymbolExpression expression)
-        => $"{(expression.GetAddress ? "&" : "$")}{expression.Identifier.Lexeme}";
+        => $"({(expression.GetAddress ? "&" : "$")}{expression.Identifier.Lexeme})";
 
 
     public string ProcessUnary(UnaryExpression expression)
@@ -280,10 +276,14 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     public string ProcessArray(ArrayExpression expression)
     {
         var expressionsString = expression.Elements.Select(Process);
-        return $"{expression.ElementType} array[{expression.Size}] {{ {string.Join(", ", expressionsString)} }}";
+        return $"({expression.ElementType} array[{expression.Size}] {{ {string.Join(", ", expressionsString)} }})";
     }
 
 
     public string ProcessIndexing(IndexingExpression expression)
-        => $"{Process(expression.Pointer)}[{Process(expression.Index)}]";
+        => $"({Process(expression.Pointer)}[{Process(expression.Index)}])";
+
+
+    public string ProcessDefault(DefaultExpression expression)
+        => $"(defaultOf {expression.TypeName})";
 }

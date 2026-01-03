@@ -23,6 +23,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private static LLVMValueRef Zero { get; } = NewInteger(0);
     private static LLVMValueRef One { get; } = NewInteger(1);
 
+    private static LLVMTypeRef GenericPointerType { get; }
+        = LLVMTypeRef.CreatePointer(LLVMTypeRef.CreateIntPtr(TargetMachine.Global!.DataLayout), 0);
+
 
     // if debug metadata generation is desired, this property must be set, since
     // debug metadata uses some file information
@@ -663,6 +666,21 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         return IndexPointer(pointerElementType, pointer, index, getValue);
     }
 
+
+
+
+    public LLVMValueRef ProcessDefault(BoundDefaultExpression expression)
+    {
+        return GetDefaultValueForType(expression.Type!);
+    }
+
+
+    private LLVMValueRef GetDefaultValueForType(Type type) => type switch
+    {
+        _ when type.IsPointer => NullPointer(),
+        _ => NewInteger(0, type.TypeToLLVMType())
+    };
+
     #endregion
 
 
@@ -831,11 +849,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private static LLVMValueRef NewInteger(ulong value, LLVMTypeRef? type = null)
         => LLVMValueRef.CreateConstInt(type ?? LLVMTypeRef.Int32, value);
 
-
     private static LLVMValueRef NewReal(double value, LLVMTypeRef? type = null)
         => LLVMValueRef.CreateConstReal(type ?? LLVMTypeRef.Double, value);
 
-
     private static LLVMValueRef NewBoolean(bool value)
         => LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, value ? 1UL : 0UL);
+
+    private static LLVMValueRef NullPointer(LLVMTypeRef? pointerType = null)
+        => LLVMValueRef.CreateConstPointerNull(pointerType ?? GenericPointerType);
 }

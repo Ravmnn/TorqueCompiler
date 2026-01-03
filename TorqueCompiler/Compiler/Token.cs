@@ -26,7 +26,7 @@ public enum TokenType
     IntegerValue, FloatValue, BoolValue, CharValue,
     Type,
 
-    KwReturn, KwAs, KwArray
+    KwReturn, KwAs, KwArray, KwDefault
 }
 
 
@@ -68,7 +68,8 @@ public readonly record struct Token(string Lexeme, TokenType Type, SourceLocatio
     {
         { "return", TokenType.KwReturn },
         { "as", TokenType.KwAs },
-        { "array", TokenType.KwArray }
+        { "array", TokenType.KwArray },
+        { "default", TokenType.KwDefault }
     };
 
 

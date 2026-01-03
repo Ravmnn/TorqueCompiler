@@ -317,6 +317,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
         _ when Check(TokenType.Type) => TryParseArray(),
 
+        _ when Match(TokenType.KwDefault) => ParseDefault(),
+
         _ => null
     };
 
@@ -352,7 +354,18 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         var expressions = DoWhileComma(Expression);
         var rightCurlyBracket = ExpectRightCurlyBracket();
 
-        return new ArrayExpression(type, keyword, (ulong)size, expressions, rightCurlyBracket);
+        return new ArrayExpression(type, keyword, size, expressions, rightCurlyBracket);
+    }
+
+
+    private Expression ParseDefault()
+    {
+        var keyword = Previous();
+        var leftParen = ExpectLeftParen();
+        var typeName = ParseTypeName();
+        var rightParen = ExpectRightParen();
+
+        return new DefaultExpression(keyword, leftParen, typeName, rightParen);
     }
 
     #endregion

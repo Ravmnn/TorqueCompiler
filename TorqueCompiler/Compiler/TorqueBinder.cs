@@ -275,6 +275,12 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     public BoundExpression ProcessIndexing(IndexingExpression expression)
         => new BoundIndexingExpression(expression, Process(expression.Pointer), Process(expression.Index));
 
+
+
+
+    public BoundExpression ProcessDefault(DefaultExpression expression)
+        => new BoundDefaultExpression(expression);
+
     #endregion
 
 

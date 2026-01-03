@@ -1,7 +1,10 @@
 int main()
 {
+    int defaultValue = default(int);
+    int* defaultPtr = default(int*);
+
     int[] values = int array[5] { 92, 63, 48, 100, 21, 90 };
-    values[0] = 1;
+    &values[0] = 1;
     
     int first = values[0];
     int last = values[4];
