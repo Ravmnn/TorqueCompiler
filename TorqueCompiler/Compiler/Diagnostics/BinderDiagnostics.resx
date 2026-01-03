@@ -40,4 +40,7 @@
     <data name="FunctionsMustBeAtFileScope" xml:space="preserve">
         <value>Functions can only be declared at file scope</value>
     </data>
+    <data name="ValueMustBeAddressable" xml:space="preserve">
+        <value>Value must be an addressable value</value>
+    </data>
 </root>

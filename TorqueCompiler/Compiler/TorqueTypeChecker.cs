@@ -251,6 +251,22 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
 
 
+    public Type ProcessAddress(BoundAddressExpression expression)
+    {
+        Process(expression.Expression);
+        return expression.Type;
+    }
+
+
+    public Type ProcessAddressable(BoundAddressableExpression expression)
+    {
+        Process(expression.Expression);
+        return expression.Type!;
+    }
+
+    
+
+
     public Type ProcessAssignment(BoundAssignmentExpression expression)
     {
         var referenceType = Process(expression.Reference);

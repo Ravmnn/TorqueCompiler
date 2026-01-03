@@ -15,6 +15,7 @@ public interface IExpressionProcessor
     void ProcessEquality(EqualityExpression expression);
     void ProcessLogic(LogicExpression expression);
     void ProcessSymbol(SymbolExpression expression);
+    void ProcessAddress(AddressExpression expression);
     void ProcessAssignment(AssignmentExpression expression);
     void ProcessPointerAccess(PointerAccessExpression expression);
     void ProcessCall(CallExpression expression);
@@ -37,6 +38,7 @@ public interface IExpressionProcessor<out T>
     T ProcessEquality(EqualityExpression expression);
     T ProcessLogic(LogicExpression expression);
     T ProcessSymbol(SymbolExpression expression);
+    T ProcessAddress(AddressExpression expression);
     T ProcessAssignment(AssignmentExpression expression);
     T ProcessPointerAccess(PointerAccessExpression expression);
     T ProcessCall(CallExpression expression);

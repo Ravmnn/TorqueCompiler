@@ -58,7 +58,8 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.Binder)] SymbolIsNotAValue,
         [Item(DiagnosticScope.Binder)] MustBeAssignmentReference,
         [Item(DiagnosticScope.Binder)] OnlyDeclarationsCanExistInFileScope,
-        [Item(DiagnosticScope.Binder)] FunctionsMustBeAtFileScope
+        [Item(DiagnosticScope.Binder)] FunctionsMustBeAtFileScope,
+        [Item(DiagnosticScope.Binder)] ValueMustBeAddressable
     }
 
 

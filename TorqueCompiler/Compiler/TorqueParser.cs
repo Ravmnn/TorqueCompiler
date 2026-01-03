@@ -251,7 +251,11 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
     private Expression Unary()
-        => ParseRightAssociativeUnaryLayoutExpression<UnaryExpression>(Indexing, TokenType.Exclamation, TokenType.Minus);
+        => ParseRightAssociativeUnaryLayoutExpression<UnaryExpression>(Address, TokenType.Exclamation, TokenType.Minus);
+
+
+    private Expression Address()
+        => ParseRightAssociativeUnaryLayoutExpression<AddressExpression>(Indexing, TokenType.Ampersand);
 
 
     private Expression Indexing()
@@ -311,8 +315,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     {
         _ when Match(TokenType.IntegerValue, TokenType.FloatValue, TokenType.BoolValue, TokenType.CharValue) => ParseLiteral(),
 
-        _ when Match(TokenType.Ampersand) => new SymbolExpression(Previous(), ExpectIdentifier()),
-        _ when Match(TokenType.Identifier) => new SymbolExpression(null, Previous()),
+        _ when Match(TokenType.Identifier) => new SymbolExpression(Previous()),
         _ when Match(TokenType.LeftParen) => ParseGroupExpression(),
 
         _ when Check(TokenType.Type) => TryParseArray(),

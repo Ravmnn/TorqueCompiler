@@ -541,11 +541,26 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var llvmType = symbol.LLVMType!.Value;
 
         // Sometimes, we want the symbol memory address instead of its value.
-        if (expression.GetAddress || symbol is FunctionSymbol)
+        if (symbol is FunctionSymbol)
             return llvmReference;
 
         return Builder.BuildLoad2(llvmType, llvmReference, "symbol.value");
     }
+
+
+
+
+    public LLVMValueRef ProcessAddress(BoundAddressExpression expression)
+        => Process(expression.Expression);
+
+
+    public LLVMValueRef ProcessAddressable(BoundAddressableExpression expression) => expression.Expression switch
+    {
+        BoundSymbolExpression symbolExpression => symbolExpression.Symbol.LLVMReference!.Value,
+        BoundIndexingExpression indexingExpression => ProcessIndexingExpression(indexingExpression, false),
+
+        _ => throw new UnreachableException()
+    };
 
 
 

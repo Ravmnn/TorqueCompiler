@@ -212,10 +212,30 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
 
 
+    public BoundExpression ProcessAddress(AddressExpression expression)
+    {
+        var target = Process(expression.Expression);
+        var addressable = ToAddressable(target);
+
+        return new BoundAddressExpression(expression, addressable);
+    }
+
+
+    private BoundAddressableExpression ToAddressable(BoundExpression expression)
+    {
+        if (expression is not BoundSymbolExpression and not BoundIndexingExpression)
+            Report(Diagnostic.BinderCatalog.ValueMustBeAddressable, location: expression.Location());
+
+        return new BoundAddressableExpression(expression.Syntax, expression);
+    }
+
+
+
+
     public BoundExpression ProcessAssignment(AssignmentExpression expression)
     {
-        var pointer = Process(expression.Pointer);
-        var reference = ToAssignmentReference(pointer);
+        var target = Process(expression.Target);
+        var reference = ToAssignmentReference(target);
 
         var value = Process(expression.Value);
 

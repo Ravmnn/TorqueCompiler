@@ -231,7 +231,11 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessSymbol(SymbolExpression expression)
-        => $"({(expression.GetAddress ? "&" : "$")}{expression.Identifier.Lexeme})";
+        => $"({expression.Identifier.Lexeme})";
+
+
+    public string ProcessAddress(AddressExpression expression)
+        => $"(&{Process(expression.Expression)})";
 
 
     public string ProcessUnary(UnaryExpression expression)
@@ -239,7 +243,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessAssignment(AssignmentExpression expression)
-        => BinaryStringify("=", expression.Pointer, expression.Value);
+        => BinaryStringify("=", expression.Target, expression.Value);
 
 
     public string ProcessPointerAccess(PointerAccessExpression expression)
@@ -285,5 +289,5 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessDefault(DefaultExpression expression)
-        => $"(defaultOf {expression.TypeName})";
+        => $"(defaultFor {expression.TypeName})";
 }

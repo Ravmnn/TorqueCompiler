@@ -189,10 +189,8 @@ public class BoundSymbolExpression(SymbolExpression syntax, VariableSymbol symbo
 {
     public new SymbolExpression Syntax => (base.Syntax as SymbolExpression)!;
 
-    public override Type Type => GetAddress ? new PointerType(Symbol.Type!) : Symbol.Type!;
-
+    public override Type Type => Symbol.Type!;
     public VariableSymbol Symbol { get; } = symbol;
-    public bool GetAddress => Syntax.GetAddress;
 
 
 
@@ -203,6 +201,47 @@ public class BoundSymbolExpression(SymbolExpression syntax, VariableSymbol symbo
 
     public override T Process<T>(IBoundExpressionProcessor<T> processor)
         => processor.ProcessSymbol(this);
+}
+
+
+
+
+public class BoundAddressExpression(AddressExpression syntax, BoundAddressableExpression expression) : BoundExpression(syntax)
+{
+    public new AddressExpression Syntax => (base.Syntax as AddressExpression)!;
+
+    public BoundAddressableExpression Expression { get; } = expression;
+    public override Type Type => new PointerType(Expression.Type!);
+
+
+
+
+    public override void Process(IBoundExpressionProcessor processor)
+        => processor.ProcessAddress(this);
+
+
+    public override T Process<T>(IBoundExpressionProcessor<T> processor)
+        => processor.ProcessAddress(this);
+}
+
+
+
+
+// An addressable expression is an expression in which it is possible to get its memory address
+public class BoundAddressableExpression(Expression syntax, BoundExpression expression) : BoundExpression(syntax)
+{
+    public BoundExpression Expression { get; } = expression;
+
+    public override Type? Type => Expression.Type;
+
+
+
+
+    public override void Process(IBoundExpressionProcessor processor)
+        => processor.ProcessAddressable(this);
+
+    public override T Process<T>(IBoundExpressionProcessor<T> processor)
+        => processor.ProcessAddressable(this);
 }
 
 

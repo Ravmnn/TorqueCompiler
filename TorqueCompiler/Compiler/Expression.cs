@@ -33,6 +33,8 @@ public abstract class BinaryLayoutExpression(Expression left, Token @operator, E
     public Expression Right { get; } = right;
 
 
+
+
     public override Token Source() => Operator;
     public override SourceLocation Location()
         => new SourceLocation(Left.Location(), Right.Location());
@@ -53,6 +55,8 @@ public abstract class UnaryLayoutExpression(Token @operator, Expression right) :
     public Expression Right { get; } = right;
 
 
+
+
     public override Token Source() => Operator;
     public override SourceLocation Location()
         => new SourceLocation(Operator.Location, Right.Location());
@@ -68,6 +72,8 @@ public abstract class UnaryLayoutExpression(Token @operator, Expression right) :
 public class LiteralExpression(Token value) : Expression
 {
     public Token Value { get; } = value;
+
+
 
 
     public override void Process(IExpressionProcessor processor)
@@ -123,6 +129,8 @@ public class GroupingExpression(Token leftParen, Expression expression, Token ri
     public Token LeftParen { get; } = leftParen;
     public Expression Expression { get; } = expression;
     public Token RightParen { get; } = rightParen;
+
+
 
 
     public override void Process(IExpressionProcessor processor)
@@ -191,12 +199,11 @@ public class LogicExpression(Expression left, Token @operator, Expression right)
 
 
 
-public class SymbolExpression(Token? addressOperator, Token identifier) : Expression
+public class SymbolExpression(Token identifier) : Expression
 {
-    public Token? AddressOperator { get; } = addressOperator;
     public Token Identifier { get; } = identifier;
 
-    public bool GetAddress => AddressOperator is not null;
+
 
 
     public override void Process(IExpressionProcessor processor)
@@ -207,9 +214,36 @@ public class SymbolExpression(Token? addressOperator, Token identifier) : Expres
 
 
     public override Token Source() => Identifier;
+    public override SourceLocation Location() => Identifier;
+}
+
+
+
+
+public class AddressExpression(Token @operator, Expression expression)
+    : UnaryLayoutExpression(@operator, expression), IUnaryLayoutExpressionFactory
+{
+    public Expression Expression => Right;
+
+
+
+
+    public override void Process(IExpressionProcessor processor)
+        => processor.ProcessAddress(this);
+
+    public override T Process<T>(IExpressionProcessor<T> processor)
+        => processor.ProcessAddress(this);
+
+
+    public override Token Source()
+        => Operator;
 
     public override SourceLocation Location()
-        => GetAddress ? new SourceLocation(AddressOperator!.Value.Location, Identifier.Location) : Identifier.Location;
+        => new SourceLocation(Operator, Right.Location());
+
+
+    public static UnaryLayoutExpression Create(Token @operator, Expression right)
+        => new AddressExpression(@operator, right);
 }
 
 
@@ -218,8 +252,10 @@ public class SymbolExpression(Token? addressOperator, Token identifier) : Expres
 public class AssignmentExpression(Expression pointer, Token @operator, Expression value)
     : BinaryLayoutExpression(pointer, @operator, value), IBinaryLayoutExpressionFactory
 {
-    public Expression Pointer => Left;
+    public Expression Target => Left;
     public Expression Value => Right;
+
+
 
 
     public override void Process(IExpressionProcessor processor)
@@ -240,6 +276,8 @@ public class PointerAccessExpression(Token @operator, Expression pointer)
     : UnaryLayoutExpression(@operator, pointer), IUnaryLayoutExpressionFactory
 {
     public Expression Pointer => Right;
+
+
 
 
     public override void Process(IExpressionProcessor processor)
@@ -264,6 +302,8 @@ public class CallExpression(Expression callee, Token leftParen, IReadOnlyList<Ex
     public Token RightParen { get; } = rightParen;
 
 
+
+
     public override void Process(IExpressionProcessor processor)
         => processor.ProcessCall(this);
 
@@ -285,6 +325,8 @@ public class CastExpression(Expression expression, Token keyword, TypeName type)
     public Expression Expression { get; } = expression;
     public Token Keyword { get; } = keyword;
     public TypeName Type { get; } = type;
+
+
 
 
     public override void Process(IExpressionProcessor processor)
