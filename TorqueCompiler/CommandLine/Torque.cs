@@ -66,7 +66,15 @@ public static class Torque
         var statements = parser.Parse();
         LogDiagnostics(parser.Diagnostics);
 
-        if (Failed || PrintedAST(statements))
+        if (Failed)
+            return null;
+
+
+        // desugarize
+        var desugarizer = new TorqueDesugarizer(statements);
+        statements = desugarizer.Desugarize(); // desugarizer cannot fail
+
+        if (PrintedAST(statements))
             return null;
 
 

@@ -82,6 +82,9 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
     private Statement VariableDeclaration(TypeName type, Token name)
     {
+        if (Match(TokenType.SemiColon))
+            return new SugarDefaultDeclarationStatement(type, name);
+        
         Expect(TokenType.Equal, Diagnostic.ParserCatalog.ExpectAssignmentOperator);
         var value = Expression();
         ExpectEndOfStatement();

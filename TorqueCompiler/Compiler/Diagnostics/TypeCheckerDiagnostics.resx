@@ -44,6 +44,6 @@
         <value>Function is "void" and cannot return any value</value>
     </data>
     <data name="CannotUseLetHere" xml:space="preserve">
-        <value>The use of "let" is only allowed for function-scope variables</value>
+        <value>Cannot use "let" here</value>
     </data>
 </root>

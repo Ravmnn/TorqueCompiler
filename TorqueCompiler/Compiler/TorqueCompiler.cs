@@ -648,7 +648,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessArray(BoundArrayExpression expression)
     {
-        var llvmArrayType = expression.Type!.TypeToLLVMType();
+        var llvmArrayType = expression.ArrayType!.TypeToLLVMType();
         var arrayAddress = Builder.BuildAlloca(llvmArrayType, "array");
 
         InitializeArrayElements(expression, llvmArrayType, arrayAddress);
@@ -666,7 +666,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         if ((ulong)llvmElements.Length >= expression.Syntax.Size)
             return;
 
-        InitializeRemainingArrayElements((expression.Type as ArrayType)!, llvmArrayType, arrayAddress, llvmElements);
+        InitializeRemainingArrayElements((expression.ArrayType as ArrayType)!, llvmArrayType, arrayAddress, llvmElements);
     }
 
 
@@ -723,6 +723,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private LLVMValueRef GetDefaultValueForType(Type type) => type switch
     {
         _ when type.IsPointer => NullPointer(),
+        _ when type.IsFloat => NewReal(0, type.TypeToLLVMType()),
         _ => NewInteger(0, type.TypeToLLVMType())
     };
 
@@ -794,6 +795,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
+    #region Intrinsics
+
     private void CallIntrinsicMemsetZero(LLVMValueRef destination, LLVMValueRef sizeInBytes)
         => CallIntrinsicMemset(destination, NewInteger(0, LLVMTypeRef.Int8), sizeInBytes);
 
@@ -825,6 +828,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         return (intrinsic, type);
     }
+
+    #endregion
 
 
 

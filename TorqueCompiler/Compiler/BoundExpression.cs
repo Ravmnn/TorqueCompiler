@@ -390,7 +390,7 @@ public class BoundArrayExpression(ArrayExpression syntax, IReadOnlyList<BoundExp
     public new ArrayExpression Syntax => (base.Syntax as ArrayExpression)!;
 
     public IList<BoundExpression>? Elements { get; } = elements?.ToList();
-    public Type? ElementType => (Type as PointerType)?.Type;
+    public Type? ArrayType { get; set; }
 
 
 

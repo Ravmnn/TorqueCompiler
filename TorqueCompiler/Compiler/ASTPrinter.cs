@@ -279,8 +279,10 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
     public string ProcessArray(ArrayExpression expression)
     {
-        var expressionsString = expression.Elements.Select(Process);
-        return $"({expression.ElementType} array[{expression.Size}] {{ {string.Join(", ", expressionsString)} }})";
+        var expressionsString = expression.Elements?.Select(Process);
+        var elementsString = expressionsString is not null ? $"{{ {string.Join(", ", expressionsString)} }}" : "";
+
+        return $"({expression.ElementType} array[{expression.Size}]{elementsString})";
     }
 
 

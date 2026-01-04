@@ -1,11 +1,8 @@
 int main(int argc, char** argv)
 {
-    int stdint;
-    char stdchar;
-    bool stdbool;
-    ptrsize* stdptr;
-    float stdfloat;
-    uint stduint;
+    # TODO: test "let array[N]"
+
+    char* arr = int array[3] { 123, 321 };
 
     return 0;
 }

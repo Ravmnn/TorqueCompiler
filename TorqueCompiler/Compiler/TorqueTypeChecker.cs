@@ -360,7 +360,9 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         // TODO: cannot have an array with size 0
 
         var elementType = TypeFromTypeName(expression.Syntax.ElementType);
-        expression.Type = new ArrayType(elementType, expression.Syntax.Size);
+
+        expression.ArrayType = new ArrayType(elementType, expression.Syntax.Size); // this is the type used to the alloca
+        expression.Type = new PointerType(elementType); // to avoid any future hidden bug, force the use of the pointer type
 
         if (expression.Elements is not null)
             MatchElementTypes(expression.Elements, elementType, expression.Syntax);

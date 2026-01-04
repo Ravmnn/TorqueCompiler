@@ -69,7 +69,6 @@ public class DeclarationStatement(TypeName type, Token name, Expression value) :
 public readonly record struct FunctionParameterDeclaration(Token Name, TypeName Type);
 
 
-
 public class FunctionDeclarationStatement(TypeName returnType, Token name, IReadOnlyList<FunctionParameterDeclaration> parameters,
     BlockStatement body) : Statement
 {
