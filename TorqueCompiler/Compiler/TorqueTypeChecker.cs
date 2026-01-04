@@ -264,7 +264,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         return expression.Type!;
     }
 
-    
+
 
 
     public Type ProcessAssignment(BoundAssignmentExpression expression)
@@ -357,12 +357,13 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public Type ProcessArray(BoundArrayExpression expression)
     {
-        var syntax = (expression.Syntax as ArrayExpression)!;
+        // TODO: cannot have an array with size 0
 
-        var elementType = TypeFromTypeName(syntax.ElementType);
-        expression.Type = new ArrayType(elementType, syntax.Size);
+        var elementType = TypeFromTypeName(expression.Syntax.ElementType);
+        expression.Type = new ArrayType(elementType, expression.Syntax.Size);
 
-        MatchElementTypes(expression.Elements, elementType, syntax);
+        if (expression.Elements is not null)
+            MatchElementTypes(expression.Elements, elementType, expression.Syntax);
 
         return expression.Type;
     }

@@ -17,14 +17,21 @@ namespace Torque.Compiler;
 
 public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcessor<LLVMValueRef>
 {
-    private const string FunctionEntryBlockName = "entry";
-
-
     private static LLVMValueRef Zero { get; } = NewInteger(0);
     private static LLVMValueRef One { get; } = NewInteger(1);
 
     private static LLVMTypeRef GenericPointerType { get; }
         = LLVMTypeRef.CreatePointer(LLVMTypeRef.CreateIntPtr(TargetMachine.Global!.DataLayout), 0);
+
+
+    private static Dictionary<string, LLVMTypeRef> IntrinsicDeclarations { get; } = new Dictionary<string, LLVMTypeRef>
+    {
+        { "llvm.memset.p0i8.i64", LLVMTypeRef.CreateFunction(LLVMTypeRef.Void, [
+            LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0), LLVMTypeRef.Int8, LLVMTypeRef.Int64, LLVMTypeRef.Int1
+        ]) }
+    };
+
+
 
 
     // if debug metadata generation is desired, this property must be set, since
@@ -64,8 +71,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add importing system
 
-        // TODO: implement default values "default(T)"
         // TODO: allow "T array[N]" that fills the empty space with default values;
+        // TODO: allow "T value;" === "T value = default(T)"
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
         _module.Target = TargetMachine.Triple;
@@ -175,7 +182,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         symbol.SetLLVMProperties(llvmFunctionReference, llvmFunctionType, llvmFunctionDebugMetadata);
 
 
-        var entry = llvmFunctionReference.AppendBasicBlock(FunctionEntryBlockName);
+        var entry = llvmFunctionReference.AppendBasicBlock("entry");
         Builder.PositionAtEnd(entry);
 
         _currentFunction = llvmFunctionReference;
@@ -642,26 +649,49 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMValueRef ProcessArray(BoundArrayExpression expression)
     {
         var llvmArrayType = expression.Type!.TypeToLLVMType();
-        var array = Builder.BuildAlloca(llvmArrayType, "array");
+        var arrayAddress = Builder.BuildAlloca(llvmArrayType, "array");
 
-        InitializeArrayElements(expression, llvmArrayType, array);
+        InitializeArrayElements(expression, llvmArrayType, arrayAddress);
 
-        return IndexArray(llvmArrayType, array, Zero);
+        return IndexArray(llvmArrayType, arrayAddress, Zero);
     }
 
 
-    private void InitializeArrayElements(BoundArrayExpression expression, LLVMTypeRef llvmArrayType, LLVMValueRef array)
+    private void InitializeArrayElements(BoundArrayExpression expression, LLVMTypeRef llvmArrayType, LLVMValueRef arrayAddress)
     {
-        var elements = new List<LLVMValueRef>();
+        var llvmElements = expression.Elements?.Select(Process).ToArray() ?? [];
 
-        for (var i = 0; i < (uint)expression.Syntax.Size; i++)
-            elements.Add(Process(expression.Elements[i]));
+        InitializeArrayFromInitializationList(llvmArrayType, arrayAddress, llvmElements);
 
-        for (var i = 0; i < elements.Count; i++)
+        if ((ulong)llvmElements.Length >= expression.Syntax.Size)
+            return;
+
+        InitializeRemainingArrayElements((expression.Type as ArrayType)!, llvmArrayType, arrayAddress, llvmElements);
+    }
+
+
+    private void InitializeArrayFromInitializationList(LLVMTypeRef llvmArrayType, LLVMValueRef arrayAddress, LLVMValueRef[] llvmElements)
+    {
+        for (var i = 0; i < llvmElements.Length; i++)
         {
-            var elementAddress = IndexArray(llvmArrayType, array, NewInteger((ulong)i));
-            Builder.BuildStore(elements[i], elementAddress);
+            var elementAddress = IndexArray(llvmArrayType, arrayAddress, NewInteger((ulong)i));
+            Builder.BuildStore(llvmElements[i], elementAddress);
         }
+    }
+
+
+    private void InitializeRemainingArrayElements(ArrayType arrayType, LLVMTypeRef llvmArrayType, LLVMValueRef array, LLVMValueRef[] llvmElements)
+    {
+        var elementCount = (ulong)llvmElements.Length;
+
+        var elementTypeSize = (ulong)arrayType.Type.SizeOfThisInMemory();
+        var startAddress = IndexArray(llvmArrayType, array, NewInteger(elementCount));
+
+        var arraySizeInBytes = elementTypeSize * arrayType.Size;
+        var elementsSizeInBytes = elementTypeSize * elementCount;
+        var remainingSizeInBytes = arraySizeInBytes - elementsSizeInBytes;
+
+        CallIntrinsicMemsetZero(startAddress, NewInteger(remainingSizeInBytes, LLVMTypeRef.Int64));
     }
 
 
@@ -712,8 +742,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var llvmFrom = from.TypeToLLVMType();
         var llvmTo = to.TypeToLLVMType();
 
-        var sourceTypeSize = SizeOf(llvmFrom);
-        var targetTypeSize = SizeOf(llvmTo);
+        var sourceTypeSize = llvmFrom.SizeOfThisInMemory();
+        var targetTypeSize = llvmTo.SizeOfThisInMemory();
 
         return (from, to) switch
         {
@@ -755,6 +785,46 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
     #endregion
+
+
+
+
+
+
+
+
+
+    private void CallIntrinsicMemsetZero(LLVMValueRef destination, LLVMValueRef sizeInBytes)
+        => CallIntrinsicMemset(destination, NewInteger(0, LLVMTypeRef.Int8), sizeInBytes);
+
+    private void CallIntrinsicMemset(LLVMValueRef destination, LLVMValueRef byteValue, LLVMValueRef sizeInBytes)
+        => CallIntrinsic(GetMemsetIntrinsicName(), [destination, byteValue, sizeInBytes, NewBoolean(false)]);
+
+
+    private static string GetMemsetIntrinsicName()
+        => IntrinsicDeclarations.Keys.ElementAt(0);
+
+
+
+
+    private void CallIntrinsic(string name, LLVMValueRef[] arguments)
+    {
+        var (intrinsic, type) = GetOrCreateIntrinsic(name);
+
+        Builder.BuildCall2(type, intrinsic, arguments);
+    }
+
+
+    private (LLVMValueRef, LLVMTypeRef) GetOrCreateIntrinsic(string name)
+    {
+        var intrinsic = Module.GetNamedFunction(name);
+        var type = IntrinsicDeclarations[name];
+
+        if (intrinsic.Handle == IntPtr.Zero)
+            intrinsic = Module.AddFunction(name, type);
+
+        return (intrinsic, type);
+    }
 
 
 
@@ -845,12 +915,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
     #endregion
-
-
-
-
-    private int SizeOf(LLVMTypeRef type)
-        => type.SizeOfThisInMemory(DataLayout);
 
 
 

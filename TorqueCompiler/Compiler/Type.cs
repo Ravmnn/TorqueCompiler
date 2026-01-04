@@ -137,11 +137,6 @@ public class PointerType(Type type) : Type
 public class ArrayType(Type type, ulong size) : PointerType(type)
 {
     public ulong Size { get; } = size;
-
-
-
-
-    public override string ToString() => $"{Type}[]";
 }
 
 

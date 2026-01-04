@@ -206,16 +206,24 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         => Assignment();
 
 
+
+
     private Expression Assignment()
         => ParseRightAssociativeBinaryLayoutExpression<AssignmentExpression>(Logic, TokenType.Equal);
+
+
 
 
     private Expression Logic()
         => ParseLeftAssociativeBinaryLayoutExpression<LogicExpression>(Equality, TokenType.LogicAnd, TokenType.LogicOr);
 
 
+
+
     private Expression Equality()
         => ParseLeftAssociativeBinaryLayoutExpression<EqualityExpression>(Comparison, TokenType.Equality, TokenType.Inequality);
+
+
 
 
     private Expression Comparison()
@@ -223,12 +231,18 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
             TokenType.GreaterThanOrEqual, TokenType.LessThanOrEqual);
 
 
+
+
     private Expression Term()
         => ParseLeftAssociativeBinaryLayoutExpression<BinaryExpression>(Factor, TokenType.Plus, TokenType.Minus);
 
 
+
+
     private Expression Factor()
         => ParseLeftAssociativeBinaryLayoutExpression<BinaryExpression>(Cast, TokenType.Star, TokenType.Slash);
+
+
 
 
     private Expression Cast()
@@ -246,16 +260,24 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     }
 
 
+
+
     private Expression PointerAccess()
         => ParseRightAssociativeUnaryLayoutExpression<PointerAccessExpression>(Unary, TokenType.Star);
+
+
 
 
     private Expression Unary()
         => ParseRightAssociativeUnaryLayoutExpression<UnaryExpression>(Address, TokenType.Exclamation, TokenType.Minus);
 
 
+
+
     private Expression Address()
         => ParseRightAssociativeUnaryLayoutExpression<AddressExpression>(Indexing, TokenType.Ampersand);
+
+
 
 
     private Expression Indexing()
@@ -273,6 +295,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
         return expression;
     }
+
+
 
 
     private Expression Call()
@@ -301,6 +325,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     }
 
 
+
+
     private Expression Primary()
     {
         if (PrimaryOrNull() is { } expression)
@@ -326,8 +352,12 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     };
 
 
+
+
     private Expression ParseLiteral()
         => new LiteralExpression(Previous());
+
+
 
 
     private Expression ParseGroupExpression()
@@ -340,6 +370,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     }
 
 
+
+
     private Expression? TryParseArray()
     {
         var type = ParseTypeName();
@@ -349,16 +381,28 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
         var keyword = Previous();
 
-        ExpectLeftSquareBracket();
+        var leftSquareBracket = ExpectLeftSquareBracket();
         var size = (ulong)ExpectLiteralInteger().Value!;
-        ExpectRightSquareBracket();
+        var rightSquareBracket = ExpectRightSquareBracket();
 
-        ExpectLeftCurlyBracket();
-        var expressions = DoWhileComma(Expression);
-        var rightCurlyBracket = ExpectRightCurlyBracket();
+        var expressions = GetOptionalArrayInitializationExpressions();
 
-        return new ArrayExpression(type, keyword, size, expressions, rightCurlyBracket);
+        return new ArrayExpression(type, keyword, leftSquareBracket, size, rightSquareBracket, expressions);
     }
+
+
+    private IReadOnlyList<Expression>? GetOptionalArrayInitializationExpressions()
+    {
+        if (!Match(TokenType.LeftCurlyBracket))
+            return null;
+
+        var expressions = DoWhileComma(Expression);
+        ExpectRightCurlyBracket();
+
+        return expressions;
+    }
+
+
 
 
     private Expression ParseDefault()

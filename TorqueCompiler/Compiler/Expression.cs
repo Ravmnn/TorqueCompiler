@@ -345,13 +345,14 @@ public class CastExpression(Expression expression, Token keyword, TypeName type)
 
 
 
-public class ArrayExpression(TypeName elementType, Token keyword, ulong size, IReadOnlyList<Expression> elements, Token rightCurlyBracket) : Expression
+public class ArrayExpression(TypeName elementType, Token keyword, Token leftSquareBracket, ulong size, Token rightSquareBracket, IReadOnlyList<Expression>? elements) : Expression
 {
     public TypeName ElementType { get; } = elementType;
     public Token Keyword { get; } = keyword;
+    public Token LeftSquareBracket { get; } = leftSquareBracket;
     public ulong Size { get; } = size;
-    public IReadOnlyList<Expression> Elements { get; } = elements;
-    public Token RightCurlyBracket { get; } = rightCurlyBracket;
+    public Token RightSquareBracket { get; } = rightSquareBracket;
+    public IReadOnlyList<Expression>? Elements { get; } = elements;
 
 
 
@@ -367,7 +368,7 @@ public class ArrayExpression(TypeName elementType, Token keyword, ulong size, IR
         => Keyword;
 
     public override SourceLocation Location()
-        => new SourceLocation(ElementType.Base.TypeToken, RightCurlyBracket);
+        => new SourceLocation(ElementType.Base.TypeToken, RightSquareBracket);
 }
 
 

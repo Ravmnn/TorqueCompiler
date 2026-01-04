@@ -1,20 +1,11 @@
-int main()
+int main(int argc, char** argv)
 {
-    int defaultValue = default(int);
-    int* defaultPtr = default(int*);
-
-    int[] values = int array[5] { 92, 63, 48, 100, 21, 90 };
-    
-    int* secondPtr = &values[1];
-    int* thirdPtr = &values[2];
-
-    *secondPtr = 543;
-    *thirdPtr = -23;
-
-    int first = values[0];
-    int second = values[1];
-    int third = values[2];
-    int last = values[4];
+    int stdint;
+    char stdchar;
+    bool stdbool;
+    ptrsize* stdptr;
+    float stdfloat;
+    uint stduint;
 
     return 0;
 }
