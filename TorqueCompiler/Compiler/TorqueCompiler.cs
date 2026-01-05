@@ -71,9 +71,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add importing system
 
-        // TODO: allow "T array[N]" that fills the empty space with default values;
-        // TODO: allow "T value;" === "T value = default(T)"
-
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
         _module.Target = TargetMachine.Triple;
         _module.DataLayout = TargetMachine.StringDataLayout;

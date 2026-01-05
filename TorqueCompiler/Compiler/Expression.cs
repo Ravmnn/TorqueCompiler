@@ -4,8 +4,6 @@ using System.Collections.Generic;
 namespace Torque.Compiler;
 
 
-// TODO: urgent, use SourceLocation instead of Token to avoid coupling and improve architecture quality:
-// each expression must have a single optional "SourceLocation" (maybe rename to "Span")
 
 
 public abstract class Expression(Span location)

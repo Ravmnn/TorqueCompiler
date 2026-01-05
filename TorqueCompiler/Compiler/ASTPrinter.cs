@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -12,10 +13,6 @@ namespace Torque.Compiler;
 public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<string>
 {
     private uint _indentDegree;
-
-
-    public bool FoldBlocks { get; set; }
-    public bool NoNewlines { get; set; }
 
 
 
@@ -103,11 +100,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     }
 
 
-    private string NewlineChar()
-    {
-        return NoNewlines ? "" : "\n";
-    }
-
+    private string NewlineChar() => "\n";
 
 
     private string BeginStatement()
@@ -133,7 +126,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessDeclaration(DeclarationStatement statement)
-        => $"{BeginStatement()}{statement.Type} {statement.Name} = {Process(statement.Value)} {EndStatement()}";
+        => $"{BeginStatement()}{statement.Type} {statement.Name.Name} = {Process(statement.Value)} {EndStatement()}";
 
 
 
@@ -142,22 +135,10 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     {
         var builder = new StringBuilder();
 
-        builder.Append(BeginStatement());
-        builder.Append($"{statement.ReturnType} {statement.Name}(");
-
-        var parameters = statement.Parameters;
-
-        for (var i = 0; i < parameters.Count; i++)
-        {
-            var parameter = parameters[i];
-            var atEnd = i + 1 >= parameters.Count;
-
-            builder.Append($"{parameter.Type} {parameter.Name}{(!atEnd ? ", " : "")}");
-        }
-
+        builder.Append($"{BeginStatement()}{statement.ReturnType} {statement.Name}(");
+        builder.Append(JoinWithComma(statement.Parameters, param => $"{param.Type} {param.Name}"));
         builder.Append($") {NewlineChar()}");
-        builder.Append(Process(statement.Body));
-        builder.Append(EndStatement());
+        builder.Append($"{Process(statement.Body)}{EndStatement()}");
 
         return builder.ToString();
     }
@@ -175,24 +156,14 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     {
         var builder = new StringBuilder();
 
-        if (FoldBlocks)
-        {
-            builder.Append("block...");
-            return builder.ToString();
-        }
-
-        builder.Append(BeginStatement());
-        builder.Append($"{{{NewlineChar()}");
-
+        builder.Append($"{BeginStatement()}{{{NewlineChar()}");
         IncreaseIndent();
 
         foreach (var statement in blockStatement.Statements)
             builder.Append(Process(statement));
 
         DecreaseIndent();
-
-        builder.Append($"{Indent()}}}");
-        builder.Append(EndStatement());
+        builder.Append($"{Indent()}}}{EndStatement()}");
 
         return builder.ToString();
     }
@@ -217,28 +188,6 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
     public string ProcessBinary(BinaryExpression expression)
         => Stringify(OperatorFromTokenType(expression.Operator), [expression.Left, expression.Right]);
-
-
-    private static string OperatorFromTokenType(TokenType type) => type switch
-    {
-        TokenType.Plus => "+",
-        TokenType.Minus => "-",
-        TokenType.Star => "*",
-        TokenType.Slash => "/",
-
-        TokenType.GreaterThan => ">",
-        TokenType.GreaterThanOrEqual => ">=",
-        TokenType.LessThan => "<",
-        TokenType.LessThanOrEqual => "<=",
-
-        TokenType.Equality => "==",
-        TokenType.Inequality => "!=",
-
-        TokenType.LogicAnd => "&&",
-        TokenType.LogicOr => "||",
-
-        _ => throw new UnreachableException()
-    };
 
 
 
@@ -301,19 +250,8 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     {
         var builder = new StringBuilder();
 
-        builder.Append(Process(expression.Callee));
-        builder.Append('(');
-
-        var arguments = expression.Arguments;
-
-        for (var i = 0; i < arguments.Count; i++)
-        {
-            var argument = arguments[i];
-            var atEnd = i + 1 >= arguments.Count;
-
-            builder.Append($"{Process(argument)}{(!atEnd ? ", " : "")}");
-        }
-
+        builder.Append($"{Process(expression.Callee)}(");
+        builder.Append(JoinWithComma(expression.Arguments, Process));
         builder.Append(')');
 
         return builder.ToString();
@@ -331,7 +269,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     public string ProcessArray(ArrayExpression expression)
     {
         var expressionsString = expression.Elements?.Select(Process);
-        var elementsString = expressionsString is not null ? $"{{ {string.Join(", ", expressionsString)} }}" : "";
+        var elementsString = expressionsString is not null ? $" {{ {JoinWithComma(expressionsString.ToList(), str => str)} }}" : "";
 
         return $"({expression.ElementType} array[{expression.Size}]{elementsString})";
     }
@@ -347,4 +285,54 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
     public string ProcessDefault(DefaultExpression expression)
         => $"(defaultFor {expression.TypeName})";
+
+
+
+
+
+
+
+
+    private static string JoinWithComma<T>(IReadOnlyList<T> elements, Func<T, string> processor)
+    {
+        var builder = new StringBuilder();
+
+        for (var i = 0; i < elements.Count; i++)
+        {
+            var element = elements[i];
+            var atEnd = i + 1 >= elements.Count;
+
+            builder.Append($"{processor(element)}{(!atEnd ? ", " : "")}");
+        }
+
+        return builder.ToString();
+    }
+
+
+
+
+
+
+
+
+    private static string OperatorFromTokenType(TokenType type) => type switch
+    {
+        TokenType.Plus => "+",
+        TokenType.Minus => "-",
+        TokenType.Star => "*",
+        TokenType.Slash => "/",
+
+        TokenType.GreaterThan => ">",
+        TokenType.GreaterThanOrEqual => ">=",
+        TokenType.LessThan => "<",
+        TokenType.LessThanOrEqual => "<=",
+
+        TokenType.Equality => "==",
+        TokenType.Inequality => "!=",
+
+        TokenType.LogicAnd => "&&",
+        TokenType.LogicOr => "||",
+
+        _ => throw new UnreachableException()
+    };
 }
