@@ -38,12 +38,12 @@ public readonly partial struct Diagnostic()
 
 
     public IReadOnlyList<object> Arguments { get; init; } = [];
-    public SourceLocation? Location { get; init; }
+    public Span? Location { get; init; }
 
 
 
 
-    public static Diagnostic FromCatalog<T>(int code, IReadOnlyList<object>? arguments = null, SourceLocation? location = null)
+    public static Diagnostic FromCatalog<T>(int code, IReadOnlyList<object>? arguments = null, Span? location = null)
         where T : Enum
     {
         var (item, scope, severity) = GetFromCatalog<T>(code);

@@ -10,16 +10,13 @@ namespace Torque.Compiler;
 public abstract class BoundStatement(Statement syntax)
 {
     public Statement Syntax { get; } = syntax;
+    public Span Location => Syntax.Location;
 
 
 
 
     public abstract void Process(IBoundStatementProcessor processor);
     public abstract T Process<T>(IBoundStatementProcessor<T> processor);
-
-
-    public Token Source() => Syntax.Source();
-    public SourceLocation Location() => Syntax.Location();
 }
 
 

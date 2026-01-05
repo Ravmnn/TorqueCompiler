@@ -32,7 +32,7 @@ public enum TokenType
 
 
 
-public readonly record struct Token(string Lexeme, TokenType Type, SourceLocation Location, object? Value = null)
+public readonly record struct Token(string Lexeme, TokenType Type, Span Location, object? Value = null)
 {
     public static readonly IReadOnlyDictionary<string, PrimitiveType> Primitives = new Dictionary<string, PrimitiveType>
     {
@@ -79,5 +79,5 @@ public readonly record struct Token(string Lexeme, TokenType Type, SourceLocatio
         => $"\"{Lexeme}\" of type {Type}, at {Location}";
 
 
-    public static implicit operator SourceLocation(Token token) => token.Location;
+    public static implicit operator Span(Token token) => token.Location;
 }

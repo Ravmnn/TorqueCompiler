@@ -3,9 +3,9 @@ namespace Torque.Compiler;
 
 
 
-public readonly record struct SourceLocation(int Start, int End, int Line)
+public readonly record struct Span(int Start, int End, int Line)
 {
-    public SourceLocation(SourceLocation start, SourceLocation end)
+    public Span(Span start, Span end)
         : this(start.Start, end.End, start.Line)
     {}
 

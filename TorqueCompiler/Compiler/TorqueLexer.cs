@@ -130,11 +130,11 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         var data = EncodeString(text, quoteLocation);
         ReportCharErrors(data, quoteLocation);
 
-        return TokenFromTokenType(TokenType.CharValue, (ulong)data[0]);
+        return TokenFromTokenType(TokenType.CharValue, data[0]);
     }
 
 
-    private void ReportCharErrors(IReadOnlyList<byte> data, SourceLocation quoteLocation)
+    private void ReportCharErrors(IReadOnlyList<byte> data, Span quoteLocation)
     {
         if (data.Count == 0)
             Report(Diagnostic.LexerCatalog.SingleCharacterEmpty);
@@ -176,7 +176,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
     }
 
 
-    private IReadOnlyList<byte> EncodeString(string text, SourceLocation quoteLocation)
+    private IReadOnlyList<byte> EncodeString(string text, Span quoteLocation)
     {
         var encoder = new StringTokenEncoder(text);
         var data = encoder.ToASCII();
@@ -186,7 +186,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
     }
 
 
-    private void AddStringEncoderDiagnosticsToThis(StringTokenEncoder encoder, SourceLocation stringQuote)
+    private void AddStringEncoderDiagnosticsToThis(StringTokenEncoder encoder, Span stringQuote)
     {
         var diagnostics = encoder.Diagnostics;
 
@@ -195,7 +195,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
             var diagnostic = diagnostics[i];
             var location = diagnostic.Location!.Value;
             diagnostics[i] = diagnostic with { Location = // "+ 1" here is to jump the quote
-                new SourceLocation(stringQuote.Start + location.Start + 1, stringQuote.End + location.End, stringQuote.Line) };
+                new Span(stringQuote.Start + location.Start + 1, stringQuote.End + location.End, stringQuote.Line) };
         }
 
         Diagnostics.AddRange(diagnostics);
@@ -309,7 +309,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
 
 
-    public override Diagnostic Report(Diagnostic.LexerCatalog item, IReadOnlyList<object>? arguments = null, SourceLocation? location = null)
+    public override Diagnostic Report(Diagnostic.LexerCatalog item, IReadOnlyList<object>? arguments = null, Span? location = null)
         => base.Report(item, arguments, location ?? GetCurrentLocation());
 
 
@@ -319,8 +319,8 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         => new Token(GetCurrentTokenLexeme(), type, GetCurrentLocation(), value);
 
 
-    private SourceLocation GetCurrentLocation()
-        => new SourceLocation(_startInLine, _endInLine, _line);
+    private Span GetCurrentLocation()
+        => new Span(_startInLine, _endInLine, _line);
 
 
     private string GetCurrentTokenLexeme()

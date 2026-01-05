@@ -69,7 +69,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     private Statement GenericDeclaration()
     {
         var type = ParseTypeName();
-        var name = ExpectIdentifier();
+        var name = new SymbolSyntax(ExpectIdentifier());
 
         if (Check(TokenType.LeftParen))
             return FunctionDeclaration(type, name);
@@ -80,11 +80,11 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
 
-    private Statement VariableDeclaration(TypeName type, Token name)
+    private Statement VariableDeclaration(TypeName type, SymbolSyntax name)
     {
         if (Match(TokenType.SemiColon))
             return new SugarDefaultDeclarationStatement(type, name);
-        
+
         Expect(TokenType.Equal, Diagnostic.ParserCatalog.ExpectAssignmentOperator);
         var value = Expression();
         ExpectEndOfStatement();
@@ -95,15 +95,15 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
 
-    private Statement FunctionDeclaration(TypeName returnType, Token name)
+    private Statement FunctionDeclaration(TypeName returnType, SymbolSyntax name)
     {
         ExpectLeftParen();
         var parameters = FunctionParameters();
         ExpectRightParen();
 
-        var body = Block() as BlockStatement;
+        var body = (Block() as BlockStatement)!;
 
-        return new FunctionDeclarationStatement(returnType, name, parameters, body!);
+        return new FunctionDeclarationStatement(returnType, name, parameters, body);
     }
 
 
@@ -115,7 +115,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         return DoWhileComma(() =>
         {
             var type = ParseTypeName();
-            var name = ExpectIdentifier();
+            var name = new SymbolSyntax(ExpectIdentifier());
 
             return new FunctionParameterDeclaration(name, type);
         });
@@ -189,9 +189,9 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
             if (Declaration() is { } declaration)
                 block.Add(declaration);
 
-        var end = Expect(TokenType.RightCurlyBracket, Diagnostic.ParserCatalog.UnclosedBlock);
+        Expect(TokenType.RightCurlyBracket, Diagnostic.ParserCatalog.UnclosedBlock);
 
-        return new BlockStatement(start, end, block);
+        return new BlockStatement(block, start.Location);
     }
 
     #endregion
@@ -256,7 +256,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         {
             var keyword = Previous();
             var type = ParseTypeName();
-            expression = new CastExpression(expression, keyword, type);
+            expression = new CastExpression(expression, type, new Span(expression.Location, type.Base.TypeToken));
         }
 
         return expression;
@@ -289,11 +289,10 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
         while (Match(TokenType.LeftSquareBracket))
         {
-            var leftSquareBracket = Previous();
             var index = Expression();
             var rightSquareBracket = ExpectRightSquareBracket();
 
-            expression = new IndexingExpression(expression, leftSquareBracket, index, rightSquareBracket);
+            expression = new IndexingExpression(expression, index, new Span(expression.Location, rightSquareBracket));
         }
 
         return expression;
@@ -308,11 +307,10 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
         while (Match(TokenType.LeftParen))
         {
-            var parenLeft = Previous();
             var arguments = Arguments();
             var parenRight = ExpectRightParen();
 
-            expression = new CallExpression(expression, parenLeft, arguments, parenRight);
+            expression = new CallExpression(expression, arguments, new Span(expression.Location, parenRight));
         }
 
         return expression;
@@ -344,7 +342,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     {
         _ when Match(TokenType.IntegerValue, TokenType.FloatValue, TokenType.BoolValue, TokenType.CharValue) => ParseLiteral(),
 
-        _ when Match(TokenType.Identifier) => new SymbolExpression(Previous()),
+        _ when Match(TokenType.Identifier) => new SymbolExpression(new SymbolSyntax(Previous())),
         _ when Match(TokenType.LeftParen) => ParseGroupExpression(),
 
         _ when Check(TokenType.Type) => TryParseArray(),
@@ -358,9 +356,10 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
     private Expression ParseLiteral()
-        => new LiteralExpression(Previous());
-
-
+    {
+        var literal = Previous();
+        return new LiteralExpression(literal.Value!, literal.Location);
+    }
 
 
     private Expression ParseGroupExpression()
@@ -369,7 +368,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         var expression = Expression();
         var rightParen = ExpectRightParen();
 
-        return new GroupingExpression(leftParen, expression, rightParen);
+        return new GroupingExpression(expression, new Span(leftParen, rightParen));
     }
 
 
@@ -382,15 +381,13 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         if (!Match(TokenType.KwArray))
             return null;
 
-        var keyword = Previous();
-
-        var leftSquareBracket = ExpectLeftSquareBracket();
+        ExpectLeftSquareBracket();
         var size = (ulong)ExpectLiteralInteger().Value!;
         var rightSquareBracket = ExpectRightSquareBracket();
 
         var expressions = GetOptionalArrayInitializationExpressions();
 
-        return new ArrayExpression(type, keyword, leftSquareBracket, size, rightSquareBracket, expressions);
+        return new ArrayExpression(type, size, expressions, new Span(type.Base.TypeToken, rightSquareBracket));
     }
 
 
@@ -411,11 +408,10 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     private Expression ParseDefault()
     {
         var keyword = Previous();
-        var leftParen = ExpectLeftParen();
         var typeName = ParseTypeName();
         var rightParen = ExpectRightParen();
 
-        return new DefaultExpression(keyword, leftParen, typeName, rightParen);
+        return new DefaultExpression(typeName, new Span(keyword, rightParen));
     }
 
     #endregion
@@ -446,7 +442,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         {
             var @operator = Previous();
             var right = rightAssociative ? ParseAssociativeBinaryLayoutExpression<T>(predecessor, rightAssociative, operators) : predecessor();
-            expression = T.Create(expression, @operator, right);
+            expression = T.Create(expression, right, @operator.Type, new Span(expression.Location, right.Location));
         }
 
         return expression;
@@ -463,7 +459,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
             var @operator = Previous();
             var expression = ParseRightAssociativeUnaryLayoutExpression<T>(predecessor, operators);
 
-            return T.Create(@operator, expression);
+            return T.Create(expression, @operator.Type, new Span(@operator, expression.Location));
         }
 
         return predecessor();
@@ -566,13 +562,13 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
     [DoesNotReturn]
-    public override void ReportAndThrow(Diagnostic.ParserCatalog item, IReadOnlyList<object>? arguments = null, SourceLocation? location = null)
+    public override void ReportAndThrow(Diagnostic.ParserCatalog item, IReadOnlyList<object>? arguments = null, Span? location = null)
         => base.ReportAndThrow(item, arguments, location ?? Peek().Location);
 
 
 
 
-    private Token Expect(TokenType token, Diagnostic.ParserCatalog item, SourceLocation? location = null)
+    private Token Expect(TokenType token, Diagnostic.ParserCatalog item, Span? location = null)
     {
         if (Check(token))
             return Advance();

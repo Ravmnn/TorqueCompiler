@@ -130,8 +130,8 @@ public class StringTokenEncoder(string text) : DiagnosticReporter<Diagnostic.Lex
 
 
 
-    private SourceLocation GetCurrentLocation()
-        => new SourceLocation(_start, _end, 0);
+    private Span GetCurrentLocation()
+        => new Span(_start, _end, 0);
 
 
 

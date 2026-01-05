@@ -6,7 +6,7 @@ namespace Torque.Compiler;
 
 
 
-public abstract class SugarStatement : Statement
+public abstract class SugarStatement(Span location) : Statement(location)
 {
     public override void Process(IStatementProcessor processor) => throw new InvalidOperationException();
     public override T Process<T>(IStatementProcessor<T> processor) => throw new InvalidOperationException();
@@ -18,19 +18,14 @@ public abstract class SugarStatement : Statement
 
 
 
-public class SugarDefaultDeclarationStatement(TypeName type, Token name) : SugarStatement
+public class SugarDefaultDeclarationStatement(TypeName type, SymbolSyntax name) : SugarStatement(name.Location)
 {
     public TypeName Type { get; } = type;
-    public Token Name { get; } = name;
+    public SymbolSyntax Name { get; } = name;
 
 
 
 
     public override Statement Process(ISugarStatementProcessor processor)
         => processor.ProcessDefaultDeclaration(this);
-
-
-    public override Token Source() => Name;
-    public override SourceLocation Location()
-        => new SourceLocation(Type.Base.TypeToken.Location, Name);
 }

@@ -15,6 +15,7 @@ namespace Torque.Compiler;
 public abstract class BoundExpression(Expression syntax)
 {
     public Expression Syntax { get; } = syntax;
+    public Span Location => Syntax.Location;
 
     public virtual Type? Type { get; set; }
 
@@ -23,10 +24,6 @@ public abstract class BoundExpression(Expression syntax)
 
     public abstract void Process(IBoundExpressionProcessor processor);
     public abstract T Process<T>(IBoundExpressionProcessor<T> processor);
-
-
-    public Token Source() => Syntax.Source();
-    public SourceLocation Location() => Syntax.Location();
 }
 
 

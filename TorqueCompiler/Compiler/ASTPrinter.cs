@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -132,7 +133,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessDeclaration(DeclarationStatement statement)
-        => $"{BeginStatement()}{statement.Type} {statement.Name.Lexeme} = {Process(statement.Value)} {EndStatement()}";
+        => $"{BeginStatement()}{statement.Type} {statement.Name} = {Process(statement.Value)} {EndStatement()}";
 
 
 
@@ -142,7 +143,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         var builder = new StringBuilder();
 
         builder.Append(BeginStatement());
-        builder.Append($"{statement.ReturnType} {statement.Name.Lexeme}(");
+        builder.Append($"{statement.ReturnType} {statement.Name}(");
 
         var parameters = statement.Parameters;
 
@@ -151,7 +152,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
             var parameter = parameters[i];
             var atEnd = i + 1 >= parameters.Count;
 
-            builder.Append($"{parameter.Type} {parameter.Name.Lexeme}{(!atEnd ? ", " : "")}");
+            builder.Append($"{parameter.Type} {parameter.Name}{(!atEnd ? ", " : "")}");
         }
 
         builder.Append($") {NewlineChar()}");
@@ -206,48 +207,94 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         => expression.Process(this);
 
 
+
+
     public string ProcessLiteral(LiteralExpression expression)
-        => expression.Value.Lexeme;
+        => expression.Value.ToString() ?? "invalid";
+
+
 
 
     public string ProcessBinary(BinaryExpression expression)
-        => Stringify(expression.Operator.Lexeme, [expression.Left, expression.Right]);
+        => Stringify(OperatorFromTokenType(expression.Operator), [expression.Left, expression.Right]);
+
+
+    private static string OperatorFromTokenType(TokenType type) => type switch
+    {
+        TokenType.Plus => "+",
+        TokenType.Minus => "-",
+        TokenType.Star => "*",
+        TokenType.Slash => "/",
+
+        TokenType.GreaterThan => ">",
+        TokenType.GreaterThanOrEqual => ">=",
+        TokenType.LessThan => "<",
+        TokenType.LessThanOrEqual => "<=",
+
+        TokenType.Equality => "==",
+        TokenType.Inequality => "!=",
+
+        TokenType.LogicAnd => "&&",
+        TokenType.LogicOr => "||",
+
+        _ => throw new UnreachableException()
+    };
+
+
 
 
     public string ProcessGrouping(GroupingExpression expression)
         => $"({Process(expression.Expression)})";
 
 
+
+
     public string ProcessComparison(ComparisonExpression expression)
-        => BinaryStringify(expression.Operator.Lexeme, expression.Left, expression.Right);
+        => BinaryStringify(OperatorFromTokenType(expression.Operator), expression.Left, expression.Right);
+
+
 
 
     public string ProcessEquality(EqualityExpression expression)
-        => BinaryStringify(expression.Operator.Lexeme, expression.Left, expression.Right);
+        => BinaryStringify(OperatorFromTokenType(expression.Operator), expression.Left, expression.Right);
+
+
 
 
     public string ProcessLogic(LogicExpression expression)
-        => BinaryStringify(expression.Operator.Lexeme, expression.Left, expression.Right);
+        => BinaryStringify(OperatorFromTokenType(expression.Operator), expression.Left, expression.Right);
+
+
 
 
     public string ProcessSymbol(SymbolExpression expression)
-        => $"({expression.Identifier.Lexeme})";
+        => $"({expression.Symbol.Name})";
+
+
 
 
     public string ProcessAddress(AddressExpression expression)
         => $"(&{Process(expression.Expression)})";
 
 
+
+
     public string ProcessUnary(UnaryExpression expression)
-        => UnaryStringify(expression.Operator.Lexeme, expression.Right);
+        => UnaryStringify(OperatorFromTokenType(expression.Operator), expression.Right);
+
+
 
 
     public string ProcessAssignment(AssignmentExpression expression)
         => BinaryStringify("=", expression.Target, expression.Value);
 
 
+
+
     public string ProcessPointerAccess(PointerAccessExpression expression)
         => UnaryStringify("*", expression.Pointer);
+
+
 
 
     public string ProcessCall(CallExpression expression)
@@ -273,8 +320,12 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     }
 
 
+
+
     public string ProcessCast(CastExpression expression)
         => $"({Process(expression.Expression)} as {expression.Type})";
+
+
 
 
     public string ProcessArray(ArrayExpression expression)
@@ -286,8 +337,12 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     }
 
 
+
+
     public string ProcessIndexing(IndexingExpression expression)
         => $"({Process(expression.Pointer)}[{Process(expression.Index)}])";
+
+
 
 
     public string ProcessDefault(DefaultExpression expression)

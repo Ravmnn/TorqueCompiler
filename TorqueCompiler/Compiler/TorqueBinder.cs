@@ -197,14 +197,14 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundExpression ProcessSymbol(SymbolExpression expression)
     {
-        var symbol = Scope.TryGetSymbol(expression.Identifier.Lexeme);
+        var symbol = Scope.TryGetSymbol(expression.Symbol.Name);
         var variableSymbol = (symbol as VariableSymbol)!;
 
         if (symbol is null)
-            ReportToken(Diagnostic.BinderCatalog.UndeclaredSymbol, expression.Source());
+            ReportSymbol(Diagnostic.BinderCatalog.UndeclaredSymbol, expression.Symbol);
 
         else if (symbol is not VariableSymbol)
-            ReportToken(Diagnostic.BinderCatalog.SymbolIsNotAValue, expression.Source());
+            ReportSymbol(Diagnostic.BinderCatalog.SymbolIsNotAValue, expression.Symbol);
 
         return new BoundSymbolExpression(expression, variableSymbol);
     }
@@ -224,7 +224,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     private BoundAddressableExpression ToAddressable(BoundExpression expression)
     {
         if (expression is not BoundSymbolExpression and not BoundIndexingExpression)
-            Report(Diagnostic.BinderCatalog.ValueMustBeAddressable, location: expression.Location());
+            Report(Diagnostic.BinderCatalog.ValueMustBeAddressable, location: expression.Location);
 
         return new BoundAddressableExpression(expression.Syntax, expression);
     }
@@ -246,7 +246,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     private BoundAssignmentReferenceExpression ToAssignmentReference(BoundExpression expression)
     {
         if (expression is not BoundSymbolExpression and not BoundPointerAccessExpression and not BoundIndexingExpression)
-            Report(Diagnostic.BinderCatalog.MustBeAssignmentReference, location: expression.Location());
+            Report(Diagnostic.BinderCatalog.MustBeAssignmentReference, location: expression.Location);
 
         return new BoundAssignmentReferenceExpression(expression.Syntax, expression);
     }
@@ -312,12 +312,12 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     #region Diagnostic Reporting
 
-    private bool ReportIfMultipleDeclaration(Token symbol)
+    private bool ReportIfMultipleDeclaration(SymbolSyntax symbol)
     {
-        if (!Scope.SymbolExists(symbol.Lexeme))
+        if (!Scope.SymbolExists(symbol.Name))
             return false;
 
-        ReportToken(Diagnostic.BinderCatalog.MultipleSymbolDeclaration, symbol);
+        ReportSymbol(Diagnostic.BinderCatalog.MultipleSymbolDeclaration, symbol);
         return true;
     }
 
@@ -327,7 +327,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         if (!Scope.IsGlobal || statement is FunctionDeclarationStatement)
             return false;
 
-        Report(Diagnostic.BinderCatalog.OnlyDeclarationsCanExistInFileScope, location: statement.Location());
+        Report(Diagnostic.BinderCatalog.OnlyDeclarationsCanExistInFileScope, location: statement.Location);
         return true;
     }
 
@@ -337,7 +337,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         if (Scope.IsGlobal || statement is not FunctionDeclarationStatement)
             return false;
 
-        Report(Diagnostic.BinderCatalog.FunctionsMustBeAtFileScope, location: statement.Location());
+        Report(Diagnostic.BinderCatalog.FunctionsMustBeAtFileScope, location: statement.Location);
         return true;
     }
 

@@ -39,8 +39,12 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
         => statement;
 
 
+
+
     public Statement ProcessDeclaration(DeclarationStatement statement)
         => statement;
+
+
 
 
     public Statement ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
@@ -48,22 +52,30 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
             (Process(statement.Body) as BlockStatement)!);
 
 
+
+
     public Statement ProcessReturn(ReturnStatement statement)
         => statement;
+
+
 
 
     public Statement ProcessBlock(BlockStatement statement)
     {
         var desugarizedStatements = statement.Statements.Select(Process).ToArray();
-        return new BlockStatement(statement.Start, statement.End, desugarizedStatements);
+        return new BlockStatement(desugarizedStatements, statement.Location);
     }
+
+
+
+
 
 
 
 
     public Statement ProcessDefaultDeclaration(SugarDefaultDeclarationStatement statement)
     {
-        var defaultValue = new DefaultExpression(default, default, statement.Type, default);
+        var defaultValue = new DefaultExpression(statement.Type, statement.Location);
         return new DeclarationStatement(statement.Type, statement.Name, defaultValue);
     }
 }

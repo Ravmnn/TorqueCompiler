@@ -8,16 +8,22 @@ namespace Torque.Compiler;
 
 
 
-public abstract class Symbol(string name, SourceLocation location, Scope declarationScope)
+public abstract class Symbol(string name, Span location, Scope declarationScope)
 {
     public string Name { get; } = name;
-    public SourceLocation Location { get; } = location;
+    public Span Location { get; } = location;
     public Scope DeclarationScope { get; } = declarationScope;
 
 
     public LLVMValueRef? LLVMReference { get; set; }
     public LLVMTypeRef? LLVMType { get; set; }
     public LLVMMetadataRef? LLVMDebugMetadata { get; set; }
+
+
+
+
+    public Symbol(SymbolSyntax symbol, Scope declarationScope) : this(symbol.Name, symbol.Location, declarationScope)
+    { }
 
 
 
@@ -33,7 +39,7 @@ public abstract class Symbol(string name, SourceLocation location, Scope declara
 
 
 
-public class VariableSymbol(string name, Type? type, SourceLocation location, Scope declarationScope)
+public class VariableSymbol(string name, Type? type, Span location, Scope declarationScope)
     : Symbol(name, location, declarationScope)
 {
     public Type? Type { get; set; } = type;
@@ -43,15 +49,15 @@ public class VariableSymbol(string name, Type? type, SourceLocation location, Sc
 
 
 
-    public VariableSymbol(Token symbol, Scope declarationScope)
-        : this(symbol.Lexeme, null, symbol.Location, declarationScope)
+    public VariableSymbol(SymbolSyntax symbol, Scope declarationScope)
+        : this(symbol.Name, null, symbol.Location, declarationScope)
     {}
 }
 
 
 
 
-public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbol> parameters, SourceLocation location, Scope declarationScope)
+public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbol> parameters, Span location, Scope declarationScope)
     : VariableSymbol(name, type, location, declarationScope)
 {
     public new FunctionType? Type
@@ -65,7 +71,7 @@ public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbo
 
 
 
-    public FunctionSymbol(Token symbol, Scope declarationScope)
-        : this(symbol.Lexeme, null, [], symbol.Location, declarationScope)
+    public FunctionSymbol(SymbolSyntax symbol, Scope declarationScope)
+        : this(symbol.Name, null, [], symbol.Location, declarationScope)
     {}
 }

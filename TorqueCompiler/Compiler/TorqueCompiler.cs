@@ -130,7 +130,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public void ProcessExpression(BoundExpressionStatement statement)
     {
-        DebugSetLocationTo(statement.Location());
+        DebugSetLocationTo(statement.Location);
         Process(statement.Expression);
         DebugSetLocationTo(null);
     }
@@ -146,13 +146,13 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var type = symbol.Type!;
         var llvmType = type.TypeToLLVMType();
 
-        var statementSource = statement.Source();
+        var statementLocation = statement.Location;
 
 
-        DebugSetLocationTo(statementSource.Location);
+        DebugSetLocationTo(statementLocation);
 
         var reference = Builder.BuildAlloca(llvmType, $"var.${name}");
-        var debugReference = DebugGenerateLocalVariable(name, type, statementSource, reference);
+        var debugReference = DebugGenerateLocalVariable(name, type, statementLocation, reference);
 
         symbol.SetLLVMProperties(reference, llvmType, debugReference);
 
@@ -170,7 +170,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         var functionName = symbol.Name;
         var functionReturnType = symbol.Type!.ReturnType;
-        var functionLocation = statement.Location();
+        var functionLocation = statement.Location;
         var parameterTypes = symbol.Type.ParametersType;
 
         var llvmFunctionReturnType = functionReturnType.TypeToLLVMType();
@@ -217,7 +217,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         if (statement.Expression is not null)
         {
-            DebugSetLocationTo(statement.Location());
+            DebugSetLocationTo(statement.Location);
             Builder.BuildRet(Process(statement.Expression));
             DebugSetLocationTo(null);
         }
@@ -237,7 +237,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private void ProcessLexicalBlock(BoundBlockStatement statement)
         => Scope.ProcessInnerScope(ref _scope, statement.Scope, () =>
         {
-            DebugGenerateScope(Scope, statement.Location());
+            DebugGenerateScope(Scope, statement.Location);
             ProcessBlockWithControl(statement);
         });
 
@@ -245,7 +245,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private void ProcessFunctionBlock(BoundBlockStatement statement, FunctionSymbol function)
         => Scope.ProcessInnerScope(ref _scope, statement.Scope, () =>
         {
-            DebugGenerateScope(Scope, statement.Location(), function.LLVMDebugMetadata);
+            DebugGenerateScope(Scope, statement.Location, function.LLVMDebugMetadata);
             DeclareFunctionParameters(function.LLVMReference!.Value, function.Parameters);
             ProcessBlockWithControl(statement);
         });
@@ -316,8 +316,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         return leftType switch
         {
-            _ when !leftType.IsFloat => ProcessIntegerBinaryOperation(expression.Syntax.Operator.Type, left, right, leftType.IsSigned),
-            _ when leftType.IsFloat => ProcessFloatBinaryOperation(expression.Syntax.Operator.Type, left, right),
+            _ when !leftType.IsFloat => ProcessIntegerBinaryOperation(expression.Syntax.Operator, left, right, leftType.IsSigned),
+            _ when leftType.IsFloat => ProcessFloatBinaryOperation(expression.Syntax.Operator, left, right),
 
             _ => throw new UnreachableException()
         };
@@ -355,7 +355,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var type = expression.Type!;
         var llvmType = type.TypeToLLVMType();
 
-        var operation = expression.Syntax.Operator.Type;
+        var operation = expression.Syntax.Operator;
 
         return operation switch
         {
@@ -404,7 +404,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         var leftType = expression.Left.Type!;
 
-        var @operator = expression.Syntax.Operator.Type;
+        var @operator = expression.Syntax.Operator;
         var isSigned = expression.Type.IsSigned;
 
         return leftType switch
@@ -460,8 +460,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         return leftType switch
         {
-            _ when !leftType.IsFloat => ProcessIntegerEqualityOperation(expression.Syntax.Operator.Type, left, right),
-            _ when leftType.IsFloat => ProcessFloatEqualityOperation(expression.Syntax.Operator.Type, left, right),
+            _ when !leftType.IsFloat => ProcessIntegerEqualityOperation(expression.Syntax.Operator, left, right),
+            _ when leftType.IsFloat => ProcessFloatEqualityOperation(expression.Syntax.Operator, left, right),
 
             _ => throw new UnreachableException()
         };
@@ -507,7 +507,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var falseBlock = _currentFunction!.Value.AppendBasicBlock("false");
         var joinBlock = _currentFunction!.Value.AppendBasicBlock("join");
 
-        var operation = expression.Syntax.Operator.Type;
+        var operation = expression.Syntax.Operator;
         var isLogicAnd = operation == TokenType.LogicAnd;
 
         if (operation is not TokenType.LogicAnd and not TokenType.LogicOr)
@@ -840,7 +840,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     #region Debug Metadata
 
-    private LLVMMetadataRef? DebugSetLocationTo(SourceLocation? location)
+    private LLVMMetadataRef? DebugSetLocationTo(Span? location)
     {
         if (location is null)
         {
@@ -852,23 +852,23 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
 
-    private LLVMMetadataRef? DebugCreateLocation(SourceLocation location)
+    private LLVMMetadataRef? DebugCreateLocation(Span location)
         => Debug?.CreateDebugLocation(location.Line, location.Start);
 
 
-    private LLVMMetadataRef? DebugCreateLexicalScope(SourceLocation location)
+    private LLVMMetadataRef? DebugCreateLexicalScope(Span location)
         => Debug?.CreateLexicalScope(location.Line, location.Start);
 
 
 
 
-    private LLVMMetadataRef? DebugGenerateFunction(LLVMValueRef function, string functionName, SourceLocation functionLocation, FunctionType type)
+    private LLVMMetadataRef? DebugGenerateFunction(LLVMValueRef function, string functionName, Span functionLocation, FunctionType type)
         => Debug?.GenerateFunction(function, functionName, functionLocation.Line, type);
 
 
 
 
-    private LLVMMetadataRef? DebugGenerateLocalVariable(string name, Type type, SourceLocation location, LLVMValueRef alloca)
+    private LLVMMetadataRef? DebugGenerateLocalVariable(string name, Type type, Span location, LLVMValueRef alloca)
     {
         var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
 
@@ -881,7 +881,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    private LLVMMetadataRef? DebugGenerateParameter(string name, int index, Type type, SourceLocation location, LLVMValueRef alloca)
+    private LLVMMetadataRef? DebugGenerateParameter(string name, int index, Type type, Span location, LLVMValueRef alloca)
     {
         var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
 
@@ -895,14 +895,14 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     // These methods are only necessary when the variable for some reason does not have an alloca (memory address).
     // if the variable has an alloca, the debugger is able to track its memory address and, consequently
     // its value. Since currently a variable cannot be created without alloca, they're useless
-    private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(string name, SourceLocation location)
+    private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(string name, Span location)
     {
         var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
         return Debug?.UpdateLocalVariableValue(name, llvmLocation!.Value);
     }
 
 
-    private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(LLVMValueRef reference, SourceLocation location)
+    private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(LLVMValueRef reference, Span location)
     {
         var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
         return Debug?.UpdateLocalVariableValue(reference, llvmLocation!.Value);
@@ -911,7 +911,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    private void DebugGenerateScope(Scope scope, SourceLocation location, LLVMMetadataRef? debugFunctionReference = null)
+    private void DebugGenerateScope(Scope scope, Span location, LLVMMetadataRef? debugFunctionReference = null)
     {
         var llvmDebugScopeMetadata = DebugCreateLexicalScope(location);
         llvmDebugScopeMetadata = debugFunctionReference ?? llvmDebugScopeMetadata;

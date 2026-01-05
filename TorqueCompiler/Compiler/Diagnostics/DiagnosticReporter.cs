@@ -13,14 +13,12 @@ public abstract class DiagnosticReporter<T> where T : Enum
     public List<Diagnostic> Diagnostics { get; } = [];
 
 
-
-
     public bool HasReports => Diagnostics.Count > 0;
 
 
 
 
-    public virtual Diagnostic Report(T item, IReadOnlyList<object>? arguments = null, SourceLocation? location = null)
+    public virtual Diagnostic Report(T item, IReadOnlyList<object>? arguments = null, Span? location = null)
     {
         var diagnostic = Diagnostic.FromCatalog<T>(Convert.ToInt32(item), arguments, location);
         Diagnostics.Add(diagnostic);
@@ -29,8 +27,8 @@ public abstract class DiagnosticReporter<T> where T : Enum
     }
 
 
-    public virtual Diagnostic ReportToken(T item, Token? token = null)
-        => Report(item, token is not null ? [token.Value.Lexeme] : null, token?.Location);
+    public virtual Diagnostic ReportSymbol(T item, SymbolSyntax? symbol = null)
+        => Report(item, symbol is not null ? [symbol.Value.Name] : null, symbol?.Location);
 
 
     public virtual Diagnostic Report(Diagnostic diagnostic)
@@ -43,7 +41,7 @@ public abstract class DiagnosticReporter<T> where T : Enum
 
 
     [DoesNotReturn]
-    public virtual void ReportAndThrow(T item, IReadOnlyList<object>? arguments = null, SourceLocation? location = null)
+    public virtual void ReportAndThrow(T item, IReadOnlyList<object>? arguments = null, Span? location = null)
     {
         var diagnostic = Report(item, arguments, location);
         throw new DiagnosticException(diagnostic);
@@ -51,9 +49,9 @@ public abstract class DiagnosticReporter<T> where T : Enum
 
 
     [DoesNotReturn]
-    public virtual void ReportTokenAndThrow(T item, Token? token = null)
+    public virtual void ReportTokenAndThrow(T item, SymbolSyntax? symbol = null)
     {
-        var diagnostic = ReportToken(item, token);
+        var diagnostic = ReportSymbol(item, symbol);
         throw new DiagnosticException(diagnostic);
     }
 

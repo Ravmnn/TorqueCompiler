@@ -6,20 +6,21 @@ namespace Torque.Compiler;
 
 
 
-public abstract class Statement
+public abstract class Statement(Span location)
 {
+    public Span Location { get; } = location;
+
+
+
+
     public abstract void Process(IStatementProcessor processor);
     public abstract T Process<T>(IStatementProcessor<T> processor);
-
-
-    public abstract Token Source();
-    public abstract SourceLocation Location();
 }
 
 
 
 
-public class ExpressionStatement(Expression expression) : Statement
+public class ExpressionStatement(Expression expression) : Statement(expression.Location)
 {
     public Expression Expression { get; } = expression;
 
@@ -32,19 +33,15 @@ public class ExpressionStatement(Expression expression) : Statement
 
     public override T Process<T>(IStatementProcessor<T> processor)
         => processor.ProcessExpression(this);
-
-
-    public override Token Source() => Expression.Source();
-    public override SourceLocation Location() => Expression.Location();
 }
 
 
 
 
-public class DeclarationStatement(TypeName type, Token name, Expression value) : Statement
+public class DeclarationStatement(TypeName type, SymbolSyntax name, Expression value) : Statement(name.Location)
 {
     public TypeName Type { get; } = type;
-    public Token Name { get; } = name;
+    public SymbolSyntax Name { get; } = name;
     public Expression Value { get; } = value;
 
 
@@ -56,24 +53,19 @@ public class DeclarationStatement(TypeName type, Token name, Expression value) :
 
     public override T Process<T>(IStatementProcessor<T> processor)
         => processor.ProcessDeclaration(this);
-
-
-    public override Token Source() => Name;
-    public override SourceLocation Location()
-        => new SourceLocation(Type.Base.TypeToken.Location, Value.Location());
 }
 
 
 
 
-public readonly record struct FunctionParameterDeclaration(Token Name, TypeName Type);
+public readonly record struct FunctionParameterDeclaration(SymbolSyntax Name, TypeName Type);
 
 
-public class FunctionDeclarationStatement(TypeName returnType, Token name, IReadOnlyList<FunctionParameterDeclaration> parameters,
-    BlockStatement body) : Statement
+public class FunctionDeclarationStatement(TypeName returnType, SymbolSyntax name, IReadOnlyList<FunctionParameterDeclaration> parameters,
+    BlockStatement body) : Statement(name.Location)
 {
     public TypeName ReturnType { get; } = returnType;
-    public Token Name { get; } = name;
+    public SymbolSyntax Name { get; } = name;
     public IReadOnlyList<FunctionParameterDeclaration> Parameters { get; } = parameters;
     public BlockStatement Body { get; } = body;
 
@@ -86,20 +78,13 @@ public class FunctionDeclarationStatement(TypeName returnType, Token name, IRead
 
     public override T Process<T>(IStatementProcessor<T> processor)
         => processor.ProcessFunctionDeclaration(this);
-
-
-    public override Token Source() => Name;
-
-    public override SourceLocation Location()
-        => new SourceLocation(ReturnType.Base.TypeToken.Location, Name.Location);
 }
 
 
 
 
-public class ReturnStatement(Token keyword, Expression? expression = null) : Statement
+public class ReturnStatement(Span location, Expression? expression = null) : Statement(location)
 {
-    public Token Keyword { get; } = keyword;
     public Expression? Expression { get; } = expression;
 
 
@@ -111,21 +96,13 @@ public class ReturnStatement(Token keyword, Expression? expression = null) : Sta
 
     public override T Process<T>(IStatementProcessor<T> processor)
         => processor.ProcessReturn(this);
-
-
-    public override Token Source() => Keyword;
-
-    public override SourceLocation Location()
-        => Expression is not null ? new SourceLocation(Keyword.Location, Expression.Location()) : Keyword.Location;
 }
 
 
 
 
-public class BlockStatement(Token start, Token end, IReadOnlyList<Statement> statements) : Statement
+public class BlockStatement(IReadOnlyList<Statement> statements, Span location) : Statement(location)
 {
-    public Token Start { get; } = start;
-    public Token End { get; } = end;
     public IReadOnlyList<Statement> Statements { get; } = statements;
 
 
@@ -137,8 +114,4 @@ public class BlockStatement(Token start, Token end, IReadOnlyList<Statement> sta
 
     public override T Process<T>(IStatementProcessor<T> processor)
         => processor.ProcessBlock(this);
-
-
-    public override Token Source() => Start;
-    public override SourceLocation Location() => Start.Location;
 }

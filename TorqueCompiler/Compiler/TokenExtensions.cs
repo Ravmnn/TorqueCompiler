@@ -31,22 +31,4 @@ public static class TokenExtensions
 
     public static ulong ValueFromBool(this string token)
         => token == "true" ? 1UL : 0UL;
-
-
-
-
-    public static bool IsKeyword(this Token token)
-        => token.Lexeme.IsKeyword();
-
-    public static bool IsType(this Token token)
-        => token.Lexeme.IsType();
-
-    public static bool IsBoolean(this Token token)
-        => token.Lexeme.IsBoolean();
-
-    public static bool IsChar(this Token token)
-        => token.Lexeme.IsChar();
-
-    public static bool IsFloat(this Token token)
-        => token.Lexeme.IsFloat();
 }

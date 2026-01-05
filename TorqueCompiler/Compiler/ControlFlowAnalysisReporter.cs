@@ -39,8 +39,8 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
         if (functionType.IsVoid || graph.Conclusion().State.HasReturn)
             return false;
 
-        var returnLocation = graph.Conclusion().Statements.LastOrDefault()?.Source() ?? graph.FunctionDeclaration.Source();
-        Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionMustReturnFromAllPaths, location: returnLocation.Location);
+        var returnLocation = graph.Conclusion().Statements.LastOrDefault()?.Location ?? graph.FunctionDeclaration.Location;
+        Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionMustReturnFromAllPaths, location: returnLocation);
         return true;
     }
 
@@ -50,8 +50,8 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
         if (!functionType.IsVoid || !graph.Conclusion().State.HasReturn)
             return false;
 
-        var returnLocation = graph.Conclusion().Statements.Last().Source();
-        Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionCannotReturnAValue, location: returnLocation.Location);
+        var returnLocation = graph.Conclusion().Statements.Last().Location;
+        Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionCannotReturnAValue, location: returnLocation);
         return true;
     }
 
@@ -60,6 +60,6 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
     {
         foreach (var block in graph.Blocks)
             if (!block.State.Reachable)
-                Report(Diagnostic.ControlFlowAnalyzerCatalog.UnreachableCode, location: block.Statements.First().Location());
+                Report(Diagnostic.ControlFlowAnalyzerCatalog.UnreachableCode, location: block.Statements.First().Location);
     }
 }
