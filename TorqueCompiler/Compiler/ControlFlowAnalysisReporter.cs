@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 
 using Torque.Compiler.Diagnostics;
 
@@ -25,7 +24,6 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
 
             ReportIfNonVoidAndDoesNotReturn(functionType, graph);
             ReportIfVoidAndReturn(functionType, graph);
-            ReportUnreachable(graph);
         }
     }
 
@@ -51,32 +49,25 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
         return true;
     }
 
-
-    private void ReportUnreachable(ControlFlowGraph graph)
-    {
-        foreach (var block in graph.Blocks)
-            if (!block.State.Reachable)
-                Report(Diagnostic.ControlFlowAnalyzerCatalog.UnreachableCode, location: block.Statements.First().Location);
-    }
-
     // TODO: clean code everywhere
 
 
-    //  f
-    //  f
-    //  t
 
 
     private bool AllExecutionPathOfGraphReturns(BasicBlock start)
     {
-        foreach (var sucessor in start.Successors)
-        {
-            if (!sucessor.State.HasReturn)
-                if (!AllExecutionPathOfGraphReturns(sucessor))
-                    return false;
-        }
+        if (start.State.HasReturn)
+            return true;
 
-        return start.State.HasReturn || start.Successors.Count != 0;
+        if (start.Successors.Count == 0)
+            return false;
+
+        foreach (var successor in start.Successors)
+            if (!successor.State.HasReturn)
+                if (!AllExecutionPathOfGraphReturns(successor))
+                    return false;
+
+        return true;
     }
 
 

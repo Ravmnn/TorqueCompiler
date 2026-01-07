@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 
 
 namespace Torque.Compiler;
@@ -7,7 +6,6 @@ namespace Torque.Compiler;
 
 
 
-// TODO: when add control flow statements like if and while, change this to support them
 public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationStatement> functionDeclarations) : IBoundStatementProcessor
 {
     private readonly List<ControlFlowGraph> _graphs = [];
@@ -15,8 +13,6 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
     private BasicBlock _currentBlock = null!;
     private int _blockCounter;
-
-    private bool _reachable = true;
 
 
     public IReadOnlyList<BoundFunctionDeclarationStatement> FunctionDeclarations { get; } = functionDeclarations;
@@ -56,8 +52,6 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
     {
         _currentBlock = null!;
         _blockCounter = 0;
-
-        _reachable = true;
     }
 
 
@@ -106,8 +100,6 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
         AddStatementToCurrentBlock(statement);
 
         _currentBlock.State.HasReturn = true;
-        _reachable = false;
-
         _currentBlock = NewBlockFromLast();
     }
 
@@ -138,6 +130,8 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
             AttachNewBlockFromAndProcess(statement.ElseStatement, origin);
             joinPredecessors.Add(_currentBlock);
         }
+        else
+            joinPredecessors.Add(origin);
 
         _currentBlock = NewBlockFrom(joinPredecessors);
     }
@@ -202,8 +196,6 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
     {
         var block = new BasicBlock($"B{_blockCounter++}");
         _currentGraph!.Blocks.Add(block);
-
-        block.State.Reachable = _reachable;
 
         return block;
     }

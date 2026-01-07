@@ -1,14 +1,14 @@
 int main(int argc, char** argv)
 {
-    char* response;
-    int age = 15;
+    let num1 = 10;
+    let num2 = num1 * 999;
+    let result = num1 * num1 * num2 / 3.14159;
 
-    if (age < 12)
-        response = char array[3] { 'k', 'i', 'd' };
-    else if (age < 16)
-        response = char array[4] { 't', 'e', 'e', 'n' };
+    if (true)
+        return 0;
     else
-        response = char array[5] { 'a', 'd', 'u', 'l', 't' };
-
-    return 0;
+    {
+        if (true)
+            return;
+    }
 }

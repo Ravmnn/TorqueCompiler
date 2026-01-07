@@ -8,7 +8,6 @@ namespace Torque.Compiler;
 
 public record struct BlockState
 {
-    public bool Reachable { get; set; }
     public bool HasReturn { get; set; }
 }
 
