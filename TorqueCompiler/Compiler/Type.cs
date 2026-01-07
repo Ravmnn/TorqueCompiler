@@ -51,6 +51,7 @@ public abstract class Type
     public bool IsFloat => Base.Type is PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64;
     public bool IsInteger => !IsFloat;
     public bool IsChar => Base.Type == PrimitiveType.Char;
+    public bool IsBool => Base.Type == PrimitiveType.Bool;
 
     public bool IsBase => this is BaseType;
     public bool IsPointer => this is PointerType;

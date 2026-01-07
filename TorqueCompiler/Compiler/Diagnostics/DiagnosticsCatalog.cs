@@ -72,7 +72,8 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.TypeChecker)] ExpressionDoesNotReturnAnyValue,
         [Item(DiagnosticScope.TypeChecker)] CannotCallNonFunction,
         [Item(DiagnosticScope.TypeChecker)] ArityDiffers,
-        [Item(DiagnosticScope.TypeChecker)] CannotHaveAZeroSizedArray
+        [Item(DiagnosticScope.TypeChecker)] CannotHaveAZeroSizedArray,
+        [Item(DiagnosticScope.TypeChecker)] ExpectedAReturnValue,
     }
 
 
@@ -82,6 +83,7 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.ControlFlowAnalyzer)] FunctionCannotReturnAValue,
         [Item(DiagnosticScope.ControlFlowAnalyzer, DiagnosticSeverity.Warning)] UnreachableCode
     }
+
 
 
 

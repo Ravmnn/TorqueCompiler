@@ -29,6 +29,6 @@ public static class TokenExtensions
     public static double ValueFromFloat(this string token)
         => double.Parse(token, CultureInfo.InvariantCulture);
 
-    public static ulong ValueFromBool(this string token)
-        => token == "true" ? 1UL : 0UL;
+    public static bool ValueFromBool(this string token)
+        => token == "true";
 }

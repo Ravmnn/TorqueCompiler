@@ -259,7 +259,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
     private void AdvanceIdentifier()
     {
-        while (Peek() is { } @char && char.IsAsciiLetterOrDigit(@char))
+        while (Peek() is var @char && char.IsAsciiLetterOrDigit(@char))
             Advance();
     }
 

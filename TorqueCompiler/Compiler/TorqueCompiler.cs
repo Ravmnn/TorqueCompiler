@@ -254,16 +254,14 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // will never be reached, so everything after it can be safely ignored. Also, LLVM doesn't compile
         // if it finds any code after a terminator.
 
-        try
+        TryCatchControlException(() =>
         {
             foreach (var subStatement in statement.Statements)
                 Process(subStatement);
 
             if (addVoidReturnAtEnd)
                 Builder.BuildRetVoid();
-        }
-        catch (UnreachableCodeControl)
-        {}
+        });
     }
 
 
@@ -275,30 +273,33 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var elseBlock = LLVM.CreateBasicBlockInContext(Module.Context, "else".StringToSBytePtr());
         var joinBlock = LLVM.CreateBasicBlockInContext(Module.Context, "join".StringToSBytePtr());
 
+        var hasElse = statement.ElseStatement is not null;
+
         var condition = Process(statement.Condition);
 
 
         DebugSetLocationTo(statement.Location);
-        Builder.BuildCondBr(condition, thenBlock, elseBlock);
+        Builder.BuildCondBr(condition, thenBlock, hasElse ? elseBlock : joinBlock);
 
         DebugSetLocationTo(statement.ThenStatement.Location);
 
         LLVM.AppendExistingBasicBlock(_currentFunction!.Value, thenBlock);
         Builder.PositionAtEnd(thenBlock);
-        Process(statement.ThenStatement);
+        TryCatchControlException(() => Process(statement.ThenStatement));
         Builder.BuildBr(joinBlock);
 
-        if (statement.ElseStatement is not null)
+        if (hasElse)
         {
-            DebugSetLocationTo(statement.ElseStatement.Location);
+            DebugSetLocationTo(statement.ElseStatement!.Location);
 
             LLVM.AppendExistingBasicBlock(_currentFunction!.Value, elseBlock);
             Builder.PositionAtEnd(elseBlock);
-            Process(statement.ElseStatement);
+            TryCatchControlException(() => Process(statement.ElseStatement));
             Builder.BuildBr(joinBlock);
         }
 
         DebugSetLocationTo(null);
+
 
         LLVM.AppendExistingBasicBlock(_currentFunction!.Value, joinBlock);
         Builder.PositionAtEnd(joinBlock);
@@ -334,6 +335,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var llvmReference = type.Base.Type switch
         {
             _ when type.IsChar => NewInteger((byte)value),
+            _ when type.IsBool => NewBoolean((bool)value),
             _ when type.IsInteger => NewInteger((ulong)value, llvmType),
             _ when type.IsFloat => NewReal((double)value, llvmType),
 
@@ -348,8 +350,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessBinary(BoundBinaryExpression expression)
     {
-        var left = Process(expression.Right);
-        var right = Process(expression.Left);
+        var left = Process(expression.Left);
+        var right = Process(expression.Right);
 
         var leftType = expression.Left.Type!;
 
@@ -963,6 +965,17 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     #endregion
 
 
+
+
+    private static void TryCatchControlException(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (CompilerControlException)
+        {}
+    }
 
 
     private static void UnreachableCode()

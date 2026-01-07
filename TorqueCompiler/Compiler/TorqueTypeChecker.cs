@@ -77,7 +77,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var symbolType = typeSyntax.IsAuto ? valueType : TypeFromNonVoidTypeName(typeSyntax);
 
         statement.Symbol.Type = symbolType;
-        statement.Value = ImplicitCastOrReport(symbolType, statement.Value, statement.Value.Location);
+        statement.Value = ImplicitCastOrReport(symbolType, statement.Value, statement.Value.Location, true);
     }
 
 
@@ -113,7 +113,12 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     public void ProcessReturn(BoundReturnStatement statement)
     {
         if (statement.Expression is null)
+        {
+            if (!_expectedReturnType!.IsVoid)
+                Report(Diagnostic.TypeCheckerCatalog.ExpectedAReturnValue, location: statement.Location);
+
             return;
+        }
 
         Process(statement.Expression);
 
@@ -191,9 +196,14 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     public Type ProcessBinary(BoundBinaryExpression expression)
     {
         var leftType = Process(expression.Left);
-        Process(expression.Right);
+        var rightType = Process(expression.Right);
 
-        expression.Right = ImplicitCastOrReport(leftType, expression.Right, expression.Right.Location);
+        var rightOperandCast = TryImplicitCast(leftType, expression.Right);
+
+        if (rightOperandCast is not null)
+            expression.Right = rightOperandCast;
+        else
+            expression.Left = ImplicitCastOrReport(rightType, expression.Left, expression.Left.Location);
 
         return expression.Type!;
     }
@@ -434,24 +444,34 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     #region Diagnostic Reporting
 
-    private BoundExpression ImplicitCastOrReport(Type expected, BoundExpression expression, Span location)
+    private BoundExpression ImplicitCastOrReport(Type expected, BoundExpression expression, Span location, bool forceIfLiteral = false)
+    {
+        if (TryImplicitCast(expected, expression, forceIfLiteral) is { } result)
+            return result;
+
+        Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), expression.Type!.ToString()], location);
+        return expression;
+    }
+
+
+    private BoundExpression? TryImplicitCast(Type expected, BoundExpression expression, bool forceIfLiteral = false)
     {
         // here, "expression" should already have been processed (typed)
 
         var got = expression.Type!;
-        var gotLiteral = expression is BoundLiteralExpression;
 
         if (expected == got)
             return expression;
 
-        if (TryImplicitCast(got, expected, gotLiteral) is { } type)
+        var forceForBaseTypes = expression is BoundLiteralExpression && forceIfLiteral;
+
+        if (TryImplicitCast(got, expected, forceForBaseTypes) is { } type)
             return new BoundImplicitCastExpression(expression, type);
 
-        if (!got.IsVoid)
-            Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
-
-        return expression;
+        return null;
     }
+
+
 
 
     private bool ReportIfNotAPointer(Type type, Span location)
@@ -511,16 +531,16 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     #region Implicit Casting
 
-    private Type? TryImplicitCast(Type from, Type to, bool gotLiteral = false)
+    private Type? TryImplicitCast(Type from, Type to, bool forceForBaseTypes = false)
     {
-        if (!CanImplicitCast(from, to, gotLiteral))
+        if (!CanImplicitCast(from, to, forceForBaseTypes))
             return null;
 
         return to;
     }
 
 
-    private bool CanImplicitCast(Type from, Type to, bool gotLiteral = false)
+    private bool CanImplicitCast(Type from, Type to, bool forceForBaseTypes = false)
     {
         var allCasts = ImplicitCastMode == ImplicitCastMode.All;
         var noCasts = ImplicitCastMode == ImplicitCastMode.None;
@@ -529,8 +549,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var bothBase = from.IsBase && to.IsBase;
         var anyIsAuto = from.IsAuto || to.IsAuto;
 
-        // if the value is a literal (char included), implicit cast can be forced
-        if (allCasts || gotLiteral || sameTypes || anyIsAuto)
+        if (allCasts || sameTypes || anyIsAuto)
+            return true;
+
+        if (bothBase && forceForBaseTypes)
             return true;
 
         if (noCasts || !bothBase)

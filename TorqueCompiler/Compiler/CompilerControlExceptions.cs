@@ -6,4 +6,7 @@ namespace Torque.Compiler;
 
 
 
-public class UnreachableCodeControl : Exception;
+public abstract class CompilerControlException : Exception;
+
+
+public class UnreachableCodeControl : CompilerControlException;

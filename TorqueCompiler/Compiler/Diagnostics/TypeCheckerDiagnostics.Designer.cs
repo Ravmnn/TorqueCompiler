@@ -81,12 +81,6 @@ namespace Torque.Compiler.Diagnostics {
             }
         }
         
-        internal static string FunctionCannotReturnValue {
-            get {
-                return ResourceManager.GetString("FunctionCannotReturnValue", resourceCulture);
-            }
-        }
-        
         internal static string CannotUseLetHere {
             get {
                 return ResourceManager.GetString("CannotUseLetHere", resourceCulture);
@@ -96,6 +90,12 @@ namespace Torque.Compiler.Diagnostics {
         internal static string CannotHaveAZeroSizedArray {
             get {
                 return ResourceManager.GetString("CannotHaveAZeroSizedArray", resourceCulture);
+            }
+        }
+        
+        internal static string ExpectedAReturnValue {
+            get {
+                return ResourceManager.GetString("ExpectedAReturnValue", resourceCulture);
             }
         }
     }
