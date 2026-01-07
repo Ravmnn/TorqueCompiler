@@ -69,6 +69,17 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
 
 
 
+    public Statement ProcessIf(IfStatement statement)
+    {
+        var thenStatement = Process(statement.ThenStatement);
+        var elseStatement = statement.ElseStatement is not null ? Process(statement.ElseStatement) : null;
+
+        return new IfStatement(statement.Condition, thenStatement, elseStatement, statement.Location);
+    }
+
+
+
+
 
 
 

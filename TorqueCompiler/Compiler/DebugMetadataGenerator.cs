@@ -184,7 +184,7 @@ public class DebugMetadataGenerator
 
     private unsafe LLVMOpaqueMetadata* CreateAutoVariable(string name, int lineNumber, LLVMMetadataRef typeMetadata, uint sizeInBits)
         => LLVM.DIBuilderCreateAutoVariable(
-            DebugBuilder, Scope.DebugMetadata!.Value, StringToSBytePtr(name), (uint)name.Length, File,
+            DebugBuilder, Scope.DebugMetadata!.Value, name.StringToSBytePtr(), (uint)name.Length, File,
             (uint)lineNumber, typeMetadata, 0, LLVMDIFlags.LLVMDIFlagZero, sizeInBits
         );
 
@@ -204,7 +204,7 @@ public class DebugMetadataGenerator
 
     private unsafe LLVMOpaqueMetadata* CreateParameterVariable(string name, int lineNumber, int index, LLVMMetadataRef typeMetadata)
         => LLVM.DIBuilderCreateParameterVariable(
-            DebugBuilder, Scope.DebugMetadata!.Value, StringToSBytePtr(name), (uint)name.Length, (uint)index, File,
+            DebugBuilder, Scope.DebugMetadata!.Value, name.StringToSBytePtr(), (uint)name.Length, (uint)index, File,
             (uint)lineNumber, typeMetadata, 0, LLVMDIFlags.LLVMDIFlagZero
         );
 
@@ -256,8 +256,8 @@ public class DebugMetadataGenerator
     {
         var name = type.ToString();
 
-        var sbyteName = StringToSBytePtr(name);
-        var sizeInBits = type.SizeOfThisInMemory(TargetData) * 8;
+        var sbyteName = name.StringToSBytePtr();
+        var sizeInBits = type.SizeOfThisInMemoryAsBits(TargetData);
         var encoding = GetEncodingFromType(type);
 
         return type switch
@@ -295,10 +295,4 @@ public class DebugMetadataGenerator
 
         _ => DebugMetadataTypeEncodings.Void
     };
-
-
-
-
-    private static unsafe sbyte* StringToSBytePtr(string source)
-        => (sbyte*)Marshal.StringToHGlobalAnsi(source);
 }

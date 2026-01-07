@@ -21,5 +21,7 @@ public class BasicBlock(string name)
     public ref BlockState State => ref _state;
 
     public List<BoundStatement> Statements { get; } = [];
+
+    public List<BasicBlock> Predecessor { get; } = [];
     public List<BasicBlock> Successors { get; } = [];
 }

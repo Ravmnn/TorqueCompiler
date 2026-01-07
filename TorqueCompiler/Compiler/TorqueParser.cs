@@ -128,8 +128,9 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     {
         switch (Peek().Type)
         {
-        case TokenType.LeftCurlyBracket: return Block();
         case TokenType.KwReturn: return ReturnStatement();
+        case TokenType.LeftCurlyBracket: return Block();
+        case TokenType.KwIf: return If();
 
         // some tokens only makes sense when together with another,
         // but parser exceptions may break that "together", leaving those
@@ -142,7 +143,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
             if (HasReports) // something already went wrong, ignore
                 return null;
 
-            ReportAndThrow(Diagnostic.ParserCatalog.WrongBlockPlacement);
+            ReportAndThrow(Diagnostic.ParserCatalog.UnexpectedToken);
             throw new UnreachableException();
 
 
@@ -192,6 +193,26 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         Expect(TokenType.RightCurlyBracket, Diagnostic.ParserCatalog.UnclosedBlock);
 
         return new BlockStatement(block, start.Location);
+    }
+
+
+
+
+    private Statement If()
+    {
+        var keyword = Advance();
+
+        ExpectLeftParen();
+        var condition = Expression();
+        var rightParen = ExpectRightParen();
+
+        var thenStatement = Statement()!;
+        Statement? elseStatement = null;
+
+        if (Match(TokenType.KwElse))
+            elseStatement = Statement();
+
+        return new IfStatement(condition, thenStatement, elseStatement, new Span(keyword, rightParen));
     }
 
     #endregion
@@ -382,7 +403,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
             return null;
 
         ExpectLeftSquareBracket();
-        var size = (ulong)ExpectLiteralInteger().Value!;
+        var size = (ulong)ExpectLiteralInteger().Value!; // TODO: size should be able to be inferred from the initialization list
         var rightSquareBracket = ExpectRightSquareBracket();
 
         var expressions = GetOptionalArrayInitializationExpressions();

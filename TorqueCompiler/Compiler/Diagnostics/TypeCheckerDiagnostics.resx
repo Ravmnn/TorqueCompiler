@@ -46,4 +46,7 @@
     <data name="CannotUseLetHere" xml:space="preserve">
         <value>Cannot use "let" here</value>
     </data>
+    <data name="CannotHaveAZeroSizedArray" xml:space="preserve">
+        <value>Arrays cannot have size of "0"</value>
+    </data>
 </root>

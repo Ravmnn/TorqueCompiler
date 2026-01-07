@@ -44,7 +44,7 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.Parser)] ExpectLeftSquareBracket,
         [Item(DiagnosticScope.Parser)] ExpectRightSquareBracket,
         [Item(DiagnosticScope.Parser)] UnclosedBlock,
-        [Item(DiagnosticScope.Parser)] WrongBlockPlacement,
+        [Item(DiagnosticScope.Parser)] UnexpectedToken,
         [Item(DiagnosticScope.Parser)] ExpectLiteralInteger,
         [Item(DiagnosticScope.Parser)] ExpectLeftCurlyBracket,
         [Item(DiagnosticScope.Parser)] ExpectRightCurlyBracket,
@@ -71,7 +71,8 @@ public readonly partial struct Diagnostic
         [Item(DiagnosticScope.TypeChecker)] CannotUseLetHere,
         [Item(DiagnosticScope.TypeChecker)] ExpressionDoesNotReturnAnyValue,
         [Item(DiagnosticScope.TypeChecker)] CannotCallNonFunction,
-        [Item(DiagnosticScope.TypeChecker)] ArityDiffers
+        [Item(DiagnosticScope.TypeChecker)] ArityDiffers,
+        [Item(DiagnosticScope.TypeChecker)] CannotHaveAZeroSizedArray
     }
 
 

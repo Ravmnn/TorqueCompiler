@@ -52,8 +52,8 @@
     <data name="UnclosedBlock" xml:space="preserve">
         <value>Unclosed block statement</value>
     </data>
-    <data name="WrongBlockPlacement" xml:space="preserve">
-        <value>Wrong block placement</value>
+    <data name="UnexpectedToken" xml:space="preserve">
+        <value>Unexpected token</value>
     </data>
     <data name="ExpectLeftSquareBracket" xml:space="preserve">
         <value>Expect "["</value>

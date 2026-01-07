@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
 
 
 namespace Torque.Compiler;
@@ -13,12 +13,10 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
     private readonly List<ControlFlowGraph> _graphs = [];
     private ControlFlowGraph? _currentGraph;
 
-    private readonly Stack<BasicBlock> _blocks = [];
+    private BasicBlock _currentBlock = null!;
     private int _blockCounter;
 
     private bool _reachable = true;
-
-    private BasicBlock CurrentBlock => _blocks.Peek();
 
 
     public IReadOnlyList<BoundFunctionDeclarationStatement> FunctionDeclarations { get; } = functionDeclarations;
@@ -46,6 +44,7 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
     private void Reset()
     {
+
         _currentGraph = null;
         _graphs.Clear();
 
@@ -55,7 +54,7 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
     private void ResetBlocks()
     {
-        _blocks.Clear();
+        _currentBlock = null!;
         _blockCounter = 0;
 
         _reachable = true;
@@ -94,8 +93,7 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
     public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement statement)
     {
         _currentGraph = new ControlFlowGraph(statement);
-        _currentGraph.Entry = NewBlock();
-        _blocks.Push(_currentGraph.Entry);
+        _currentGraph.Entry = AttachNewBlock();
 
         Process(statement.Body);
     }
@@ -106,10 +104,11 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
     public void ProcessReturn(BoundReturnStatement statement)
     {
         AddStatementToCurrentBlock(statement);
-        CurrentBlock.State.HasReturn = true;
+
+        _currentBlock.State.HasReturn = true;
         _reachable = false;
 
-        _blocks.Push(NewBlock());
+        _currentBlock = NewBlockFromLast();
     }
 
 
@@ -124,17 +123,78 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
 
 
-    private void ProcessNewBlock(Action action)
+    public void ProcessIf(BoundIfStatement statement)
     {
-        _blocks.Push(NewBlock());
-        action();
-        _blocks.Pop();
+        AddStatementToCurrentBlock(statement);
+
+        var origin = _currentBlock;
+        var joinPredecessors = new List<BasicBlock>();
+
+        AttachNewBlockFromAndProcess(statement.ThenStatement, origin);
+        joinPredecessors.Add(_currentBlock);
+
+        if (statement.ElseStatement is not null)
+        {
+            AttachNewBlockFromAndProcess(statement.ElseStatement, origin);
+            joinPredecessors.Add(_currentBlock);
+        }
+
+        _currentBlock = NewBlockFrom(joinPredecessors);
     }
 
 
+
+
+
+
+
+
     private void AddStatementToCurrentBlock(BoundStatement statement)
+        => _currentBlock.Statements.Add(statement);
+
+
+
+
+    private BasicBlock AttachNewBlockFromAndProcess(BoundStatement statement, params IReadOnlyList<BasicBlock> predecessors)
     {
-        CurrentBlock.Statements.Add(statement);
+        AttachNewBlockFrom(predecessors);
+        Process(statement);
+
+        return _currentBlock;
+    }
+
+
+
+
+    private BasicBlock AttachNewBlockFromLast()
+        => _currentBlock = NewBlockFromLast();
+
+
+    private BasicBlock AttachNewBlockFrom(params IReadOnlyList<BasicBlock> predecessors)
+        => _currentBlock = NewBlockFrom(predecessors);
+
+
+    private BasicBlock AttachNewBlock()
+        => _currentBlock = NewBlock();
+
+
+
+
+    private BasicBlock NewBlockFromLast()
+        => NewBlockFrom(_currentBlock);
+
+
+    private BasicBlock NewBlockFrom(params IReadOnlyList<BasicBlock> predecessors)
+    {
+        var block = NewBlock();
+
+        foreach (var predecessor in predecessors)
+        {
+            predecessor.Successors.Add(block);
+            block.Predecessor.Add(predecessor);
+        }
+
+        return block;
     }
 
 

@@ -125,6 +125,18 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         return new BoundBlockStatement(statement, boundStatements, Scope);
     }
 
+
+
+
+    public BoundStatement ProcessIf(IfStatement statement)
+    {
+        var condition = Process(statement.Condition);
+        var thenStatement = Process(statement.ThenStatement);
+        var elseStatement = statement.ElseStatement is not null ? Process(statement.ElseStatement) : null;
+
+        return new BoundIfStatement(statement, condition, thenStatement, elseStatement);
+    }
+
     #endregion
 
 

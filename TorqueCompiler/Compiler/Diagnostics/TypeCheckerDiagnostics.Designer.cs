@@ -92,5 +92,11 @@ namespace Torque.Compiler.Diagnostics {
                 return ResourceManager.GetString("CannotUseLetHere", resourceCulture);
             }
         }
+        
+        internal static string CannotHaveAZeroSizedArray {
+            get {
+                return ResourceManager.GetString("CannotHaveAZeroSizedArray", resourceCulture);
+            }
+        }
     }
 }

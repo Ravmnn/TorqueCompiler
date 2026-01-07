@@ -130,6 +130,20 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
             Process(blockStatement);
     }
 
+
+
+
+    public void ProcessIf(BoundIfStatement statement)
+    {
+        Process(statement.Condition);
+        statement.Condition = ImplicitCastOrReport(PrimitiveType.Bool, statement.Condition, statement.Condition.Location);
+
+        Process(statement.ThenStatement);
+
+        if (statement.ElseStatement is not null)
+            Process(statement.ElseStatement);
+    }
+
     #endregion
 
 
@@ -142,7 +156,12 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     #region Expression
 
     public Type Process(BoundExpression expression)
-        => expression.Process(this);
+    {
+        var type = expression.Process(this);
+        ReportIfVoidExpression(type, expression.Location);
+
+        return type;
+    }
 
 
 
@@ -338,9 +357,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public Type ProcessCast(BoundCastExpression expression)
     {
-        var type = Process(expression.Value);
-        ReportIfVoidExpression(type, expression.Value.Location);
-
+        Process(expression.Value);
         expression.Type = TypeFromNonVoidTypeName(expression.Syntax.Type);
 
         return expression.Type!;
@@ -357,12 +374,13 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public Type ProcessArray(BoundArrayExpression expression)
     {
-        // TODO: cannot have an array with size 0
-
         var elementType = TypeFromTypeName(expression.Syntax.ElementType);
 
         expression.ArrayType = new ArrayType(elementType, expression.Syntax.Size); // this is the type used to the alloca
         expression.Type = new PointerType(elementType); // to avoid any future hidden bug, force the use of the pointer type
+
+        if (expression.Syntax.Size == 0)
+            Report(Diagnostic.TypeCheckerCatalog.CannotHaveAZeroSizedArray, location: expression.Location);
 
         if (expression.Elements is not null)
             MatchElementTypes(expression.Elements, elementType);
@@ -429,7 +447,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         if (TryImplicitCast(got, expected, gotLiteral) is { } type)
             return new BoundImplicitCastExpression(expression, type);
 
-        if (!ReportIfVoidExpression(got, location))
+        if (!got.IsVoid)
             Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
 
         return expression;

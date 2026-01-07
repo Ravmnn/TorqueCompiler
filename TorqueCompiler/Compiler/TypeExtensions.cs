@@ -55,8 +55,12 @@ public static class TypeExtensions
 
 
 
-    public static int SizeOfThisInMemory(this Type type, LLVMTargetDataRef? targetData = null)
-        => (int)TargetMachine.GetDataLayoutOfOrGlobal(targetData).ABISizeOfType(type.TypeToLLVMType());
+    public static int SizeOfThisInMemory(this Type type, LLVMTargetDataRef? targetData = null) => type switch
+    {
+        _ when type.IsVoid => 0,
+
+        _ => (int)TargetMachine.GetDataLayoutOfOrGlobal(targetData).ABISizeOfType(type.TypeToLLVMType())
+    };
 
 
     public static int SizeOfThisInMemoryAsBits(this Type type, LLVMTargetDataRef? targetData = null)

@@ -1,8 +1,14 @@
 int main(int argc, char** argv)
 {
-    # TODO: test "let array[N]"
+    char* response;
+    int age = 15;
 
-    char* arr = char array[3] { 123 as int, 321 };
+    if (age < 12)
+        response = char array[3] { 'k', 'i', 'd' };
+    else if (age < 16)
+        response = char array[4] { 't', 'e', 'e', 'n' };
+    else
+        response = char array[5] { 'a', 'd', 'u', 'l', 't' };
 
     return 0;
 }

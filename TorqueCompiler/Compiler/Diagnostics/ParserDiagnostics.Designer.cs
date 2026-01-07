@@ -105,9 +105,9 @@ namespace Torque.Compiler.Diagnostics {
             }
         }
         
-        internal static string WrongBlockPlacement {
+        internal static string UnexpectedToken {
             get {
-                return ResourceManager.GetString("WrongBlockPlacement", resourceCulture);
+                return ResourceManager.GetString("UnexpectedToken", resourceCulture);
             }
         }
         

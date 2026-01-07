@@ -20,8 +20,6 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
     {
         foreach (var graph in Graphs)
         {
-            var conclusion = graph.Entry; // for now, functions only have one block, since there are no control flow statements yet
-
             var functionDeclaration = graph.FunctionDeclaration;
             var functionType = functionDeclaration.Symbol.Type!;
 
@@ -36,22 +34,20 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
 
     private bool ReportIfNonVoidAndDoesNotReturn(FunctionType functionType, ControlFlowGraph graph)
     {
-        if (functionType.IsVoid || graph.Conclusion().State.HasReturn)
+        if (functionType.IsVoid || AllExecutionPathOfGraphReturns(graph.Entry))
             return false;
 
-        var returnLocation = graph.Conclusion().Statements.LastOrDefault()?.Location ?? graph.FunctionDeclaration.Location;
-        Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionMustReturnFromAllPaths, location: returnLocation);
+        Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionMustReturnFromAllPaths, location: graph.FunctionDeclaration.Location);
         return true;
     }
 
 
     private bool ReportIfVoidAndReturn(FunctionType functionType, ControlFlowGraph graph)
     {
-        if (!functionType.IsVoid || !graph.Conclusion().State.HasReturn)
+        if (!functionType.IsVoid || !AnyExecutionPathOfGraphReturns(graph.Entry))
             return false;
 
-        var returnLocation = graph.Conclusion().Statements.Last().Location;
-        Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionCannotReturnAValue, location: returnLocation);
+        Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionCannotReturnAValue, location: graph.FunctionDeclaration.Location);
         return true;
     }
 
@@ -61,5 +57,38 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
         foreach (var block in graph.Blocks)
             if (!block.State.Reachable)
                 Report(Diagnostic.ControlFlowAnalyzerCatalog.UnreachableCode, location: block.Statements.First().Location);
+    }
+
+    // TODO: clean code everywhere
+
+
+    //  f
+    //  f
+    //  t
+
+
+    private bool AllExecutionPathOfGraphReturns(BasicBlock start)
+    {
+        foreach (var sucessor in start.Successors)
+        {
+            if (!sucessor.State.HasReturn)
+                if (!AllExecutionPathOfGraphReturns(sucessor))
+                    return false;
+        }
+
+        return start.State.HasReturn || start.Successors.Count != 0;
+    }
+
+
+    private bool AnyExecutionPathOfGraphReturns(BasicBlock start)
+    {
+        foreach (var sucessor in start.Successors)
+        {
+            if (!sucessor.State.HasReturn)
+                if (AnyExecutionPathOfGraphReturns(sucessor))
+                    return true;
+        }
+
+        return start.State.HasReturn;
     }
 }

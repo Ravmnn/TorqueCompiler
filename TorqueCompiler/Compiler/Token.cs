@@ -26,7 +26,7 @@ public enum TokenType
     IntegerValue, FloatValue, BoolValue, CharValue,
     Type,
 
-    KwReturn, KwAs, KwArray, KwDefault
+    KwIf, KwElse, KwReturn, KwAs, KwArray, KwDefault
 }
 
 
@@ -66,6 +66,8 @@ public readonly record struct Token(string Lexeme, TokenType Type, Span Location
 
     public static readonly IReadOnlyDictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>
     {
+        { "if", TokenType.KwIf },
+        { "else", TokenType.KwElse },
         { "return", TokenType.KwReturn },
         { "as", TokenType.KwAs },
         { "array", TokenType.KwArray },

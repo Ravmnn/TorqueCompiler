@@ -244,11 +244,11 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         {
             DebugGenerateScope(Scope, statement.Location, function.LLVMDebugMetadata);
             DeclareFunctionParameters(function.LLVMReference!.Value, function.Parameters);
-            ProcessBlockWithControl(statement);
+            ProcessBlockWithControl(statement, true);
         });
 
 
-    private void ProcessBlockWithControl(BoundBlockStatement statement)
+    private void ProcessBlockWithControl(BoundBlockStatement statement, bool addVoidReturnAtEnd = false)
     {
         // If a return statement is reached, the subsequent code after the return that is inside the same scope
         // will never be reached, so everything after it can be safely ignored. Also, LLVM doesn't compile
@@ -258,9 +258,50 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         {
             foreach (var subStatement in statement.Statements)
                 Process(subStatement);
+
+            if (addVoidReturnAtEnd)
+                Builder.BuildRetVoid();
         }
         catch (UnreachableCodeControl)
         {}
+    }
+
+
+
+
+    public unsafe void ProcessIf(BoundIfStatement statement)
+    {
+        var thenBlock = LLVM.CreateBasicBlockInContext(Module.Context, "then".StringToSBytePtr());
+        var elseBlock = LLVM.CreateBasicBlockInContext(Module.Context, "else".StringToSBytePtr());
+        var joinBlock = LLVM.CreateBasicBlockInContext(Module.Context, "join".StringToSBytePtr());
+
+        var condition = Process(statement.Condition);
+
+
+        DebugSetLocationTo(statement.Location);
+        Builder.BuildCondBr(condition, thenBlock, elseBlock);
+
+        DebugSetLocationTo(statement.ThenStatement.Location);
+
+        LLVM.AppendExistingBasicBlock(_currentFunction!.Value, thenBlock);
+        Builder.PositionAtEnd(thenBlock);
+        Process(statement.ThenStatement);
+        Builder.BuildBr(joinBlock);
+
+        if (statement.ElseStatement is not null)
+        {
+            DebugSetLocationTo(statement.ElseStatement.Location);
+
+            LLVM.AppendExistingBasicBlock(_currentFunction!.Value, elseBlock);
+            Builder.PositionAtEnd(elseBlock);
+            Process(statement.ElseStatement);
+            Builder.BuildBr(joinBlock);
+        }
+
+        DebugSetLocationTo(null);
+
+        LLVM.AppendExistingBasicBlock(_currentFunction!.Value, joinBlock);
+        Builder.PositionAtEnd(joinBlock);
     }
 
     #endregion
@@ -292,6 +333,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         var llvmReference = type.Base.Type switch
         {
+            _ when type.IsChar => NewInteger((byte)value),
             _ when type.IsInteger => NewInteger((ulong)value, llvmType),
             _ when type.IsFloat => NewReal((double)value, llvmType),
 
@@ -611,7 +653,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var functionType = (expression.Callee.Type as FunctionType)!;
         var llvmFunctionType = functionType.FunctionTypeToLLVMType(false);
 
-        return Builder.BuildCall2(llvmFunctionType, function, arguments.ToArray(), "return.value");
+        return Builder.BuildCall2(llvmFunctionType, function, arguments.ToArray(),  functionType.IsVoid ? "" : "return.value");
     }
 
 
@@ -645,6 +687,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessArray(BoundArrayExpression expression)
     {
+        // TODO: a string ("text") must be a constant to improve speed, since its value is always known at compile-time
+
         var llvmArrayType = expression.ArrayType!.TypeToLLVMType();
         var arrayAddress = Builder.BuildAlloca(llvmArrayType, "array");
 

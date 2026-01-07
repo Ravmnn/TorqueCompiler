@@ -171,6 +171,28 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
 
+    public string ProcessIf(IfStatement statement)
+    {
+        var builder = new StringBuilder();
+
+        builder.Append($"{BeginStatement()}if {Process(statement.Condition)}{NewlineChar()}");
+
+        IncreaseIndent();
+        builder.Append(Process(statement.ThenStatement));
+        DecreaseIndent();
+
+        if (statement.ElseStatement is not null)
+        {
+            builder.Append($"{BeginStatement()}else{NewlineChar()}");
+
+            IncreaseIndent();
+            builder.Append(Process(statement.ElseStatement));
+            DecreaseIndent();
+        }
+
+        return builder.ToString();
+    }
+
 
 
 

@@ -12,6 +12,7 @@ public interface IStatementProcessor
     void ProcessFunctionDeclaration(FunctionDeclarationStatement statement);
     void ProcessReturn(ReturnStatement statement);
     void ProcessBlock(BlockStatement statement);
+    void ProcessIf(IfStatement statement);
 }
 
 
@@ -24,4 +25,5 @@ public interface IStatementProcessor<out T>
     T ProcessFunctionDeclaration(FunctionDeclarationStatement statement);
     T ProcessReturn(ReturnStatement statement);
     T ProcessBlock(BlockStatement statement);
+    T ProcessIf(IfStatement statement);
 }
