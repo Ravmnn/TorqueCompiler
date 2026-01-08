@@ -4,6 +4,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
+using Torque.Compiler.Tokens;
+using Torque.Compiler.AST.Expressions;
+using Torque.Compiler.AST.Statements;
+
 
 namespace Torque.Compiler;
 
@@ -306,7 +310,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessDefault(DefaultExpression expression)
-        => $"(defaultFor {expression.TypeName})";
+        => $"(defaultFor {expression.TypeSyntax})";
 
 
 

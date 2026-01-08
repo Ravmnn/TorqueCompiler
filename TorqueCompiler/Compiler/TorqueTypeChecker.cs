@@ -2,6 +2,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
+using Torque.Compiler.Tokens;
+using Torque.Compiler.Types;
+using Torque.Compiler.Symbols;
+using Torque.Compiler.AST.Statements;
+using Torque.Compiler.BoundAST.Expressions;
+using Torque.Compiler.BoundAST.Statements;
 using Torque.Compiler.Diagnostics;
 
 
@@ -429,7 +435,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public Type ProcessDefault(BoundDefaultExpression expression)
     {
-        expression.Type = TypeFromNonVoidTypeName(expression.Syntax.TypeName);
+        expression.Type = TypeFromNonVoidTypeName(expression.Syntax.TypeSyntax);
         return expression.Type;
     }
 
@@ -560,7 +566,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
         var signDiffers = from.IsSigned != to.IsSigned;
         var floatToInt = from.IsFloat && to.IsInteger; // float to int may result in loss of data
-        var sourceBigger = from.SizeOfThisInMemory() > to.SizeOfThisInMemory();
+        var sourceBigger = from.SizeOfTypeInMemory() > to.SizeOfTypeInMemory();
 
         if (signDiffers || floatToInt || sourceBigger)
             return false;
@@ -575,10 +581,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     #region Type Convertors
 
-    private Type TypeFromNonVoidTypeName(TypeName typeName)
+    private Type TypeFromNonVoidTypeName(TypeSyntax typeSyntax)
     {
-        var type = TypeFromTypeName(typeName);
-        ReportIfVoidTypeName(type, typeName.Base.TypeToken.Location);
+        var type = TypeFromTypeName(typeSyntax);
+        ReportIfVoidTypeName(type, typeSyntax.BaseType.TypeSymbol.Location);
 
         return type;
     }
@@ -586,36 +592,36 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
 
 
-    private Type TypeFromTypeName(TypeName typeName) => typeName switch
+    private Type TypeFromTypeName(TypeSyntax typeSyntax) => typeSyntax switch
     {
-        BaseTypeName baseTypeName => TypeFromBaseTypeName(baseTypeName),
+        BaseTypeSyntax baseTypeName => TypeFromBaseTypeName(baseTypeName),
 
         // all of the types above are descendant from "PointerTypeName", so it's necessary to first
         // check the most derivative first
-        FunctionTypeName functionTypeName => FunctionTypeFromTypeName(functionTypeName),
-        PointerTypeName pointerTypeName => TypeFromPointerTypeName(pointerTypeName),
+        FunctionTypeSyntax functionTypeName => FunctionTypeFromTypeName(functionTypeName),
+        PointerTypeSyntax pointerTypeName => TypeFromPointerTypeName(pointerTypeName),
 
         _ => throw new UnreachableException()
     };
 
 
-    private BaseType TypeFromBaseTypeName(BaseTypeName typeName)
+    private BaseType TypeFromBaseTypeName(BaseTypeSyntax typeSyntax)
     {
-        if (typeName.IsAuto)
-            Report(Diagnostic.TypeCheckerCatalog.CannotUseLetHere, location: typeName.TypeToken);
+        if (typeSyntax.IsAuto)
+            Report(Diagnostic.TypeCheckerCatalog.CannotUseLetHere, location: typeSyntax.TypeSymbol.Location);
 
-        return new BaseType(typeName.Base.TypeToken.TokenToPrimitive());
+        return new BaseType(typeSyntax.BaseType.TypeSymbol.SymbolToPrimitiveType());
     }
 
 
-    private PointerType TypeFromPointerTypeName(PointerTypeName pointerTypeName)
-        => new PointerType(TypeFromTypeName(pointerTypeName.Type));
+    private PointerType TypeFromPointerTypeName(PointerTypeSyntax pointerTypeSyntax)
+        => new PointerType(TypeFromTypeName(pointerTypeSyntax.InnerType));
 
 
-    private FunctionType FunctionTypeFromTypeName(FunctionTypeName typeName)
+    private FunctionType FunctionTypeFromTypeName(FunctionTypeSyntax typeSyntax)
     {
-        var parametersType = typeName.ParametersType.Select(TypeFromTypeName).ToArray();
-        var returnType = TypeFromTypeName(typeName.ReturnType);
+        var parametersType = typeSyntax.ParametersType.Select(TypeFromTypeName).ToArray();
+        var returnType = TypeFromTypeName(typeSyntax.ReturnType);
 
         return new FunctionType(returnType, parametersType);
     }

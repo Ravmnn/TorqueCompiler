@@ -1,6 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using Torque.Compiler.Symbols;
+using Torque.Compiler.AST.Expressions;
+using Torque.Compiler.AST.Statements;
+using Torque.Compiler.BoundAST.Expressions;
+using Torque.Compiler.BoundAST.Statements;
 using Torque.Compiler.Diagnostics;
 
 

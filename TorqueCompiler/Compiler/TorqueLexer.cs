@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using Torque.Compiler.Tokens;
 using Torque.Compiler.Diagnostics;
 
 
@@ -248,9 +249,9 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
         return lexeme switch
         {
-            _ when lexeme.IsKeyword() => TokenFromTokenType(Token.Keywords[lexeme]),
+            _ when lexeme.IsKeyword() => TokenFromTokenType(Keywords.General[lexeme]),
             _ when lexeme.IsType() => TokenFromTokenType(TokenType.Type),
-            _ when lexeme.IsBoolean() => TokenFromTokenType(TokenType.BoolValue, lexeme.ValueFromBool()),
+            _ when lexeme.IsLiteralBoolean() => TokenFromTokenType(TokenType.BoolValue, lexeme.ValueFromBool()),
 
             _ => TokenFromTokenType(TokenType.Identifier)
         };

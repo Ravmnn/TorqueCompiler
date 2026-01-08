@@ -8,6 +8,8 @@ using System.IO;
 using System.Linq;
 
 using Torque.Compiler;
+using Torque.Compiler.AST.Statements;
+using Torque.Compiler.BoundAST.Statements;
 using Torque.Compiler.Diagnostics;
 
 

@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
+using Torque.Compiler.Tokens;
+using Torque.Compiler.Symbols;
+
 
 namespace Torque.Compiler.Diagnostics;
 

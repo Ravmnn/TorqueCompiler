@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Text;
 
-using Torque.Compiler;
+using Torque.Compiler.Tokens;
 using Torque.Compiler.Diagnostics;
 
 

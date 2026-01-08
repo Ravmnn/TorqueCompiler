@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
+using Torque.Compiler.Tokens;
+using Torque.Compiler.Types;
+using Torque.Compiler.Symbols;
+using Torque.Compiler.AST.Expressions;
+using Torque.Compiler.AST.Statements;
 using Torque.Compiler.Diagnostics;
 
 
@@ -80,7 +85,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
 
-    private Statement VariableDeclaration(TypeName type, SymbolSyntax name)
+    private Statement VariableDeclaration(TypeSyntax type, SymbolSyntax name)
     {
         if (Match(TokenType.SemiColon))
             return new SugarDefaultDeclarationStatement(type, name);
@@ -95,7 +100,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
 
-    private Statement FunctionDeclaration(TypeName returnType, SymbolSyntax name)
+    private Statement FunctionDeclaration(TypeSyntax returnType, SymbolSyntax name)
     {
         ExpectLeftParen();
         var parameters = FunctionParameters();
@@ -277,7 +282,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         {
             var keyword = Previous();
             var type = ParseTypeName();
-            expression = new CastExpression(expression, type, new Span(expression.Location, type.Base.TypeToken));
+            expression = new CastExpression(expression, type, new Span(expression.Location, type.BaseType.TypeSymbol.Location));
         }
 
         return expression;
@@ -408,7 +413,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
         var expressions = GetOptionalArrayInitializationExpressions();
 
-        return new ArrayExpression(type, size, expressions, new Span(type.Base.TypeToken, rightSquareBracket));
+        return new ArrayExpression(type, size, expressions, new Span(type.BaseType.TypeSymbol.Location, rightSquareBracket));
     }
 
 
@@ -493,8 +498,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
     #region Type Name
 
-    private TypeName ParseTypeName()
-        => ParseTypeName(new Dictionary<TokenType, Func<TypeName, TypeName>>
+    private TypeSyntax ParseTypeName()
+        => ParseTypeName(new Dictionary<TokenType, Func<TypeSyntax, TypeSyntax>>
         {
             { TokenType.Star, ParsePointerTypeName },
             { TokenType.LeftSquareBracket, ParseArrayTypeName },
@@ -502,9 +507,10 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         });
 
 
-    private TypeName ParseTypeName(Dictionary<TokenType, Func<TypeName, TypeName>> processors)
+    private TypeSyntax ParseTypeName(Dictionary<TokenType, Func<TypeSyntax, TypeSyntax>> processors)
     {
-        TypeName type = new BaseTypeName(ExpectTypeName());
+        var typeNameSymbol = new SymbolSyntax(ExpectTypeName());
+        TypeSyntax type = new BaseTypeSyntax(typeNameSymbol);
 
         while (true)
         {
@@ -526,27 +532,27 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     }
 
 
-    private TypeName ParsePointerTypeName(TypeName type)
-        => new PointerTypeName(type, Previous());
+    private TypeSyntax ParsePointerTypeName(TypeSyntax type)
+        => new PointerTypeSyntax(type);
 
 
-    private TypeName ParseArrayTypeName(TypeName type)
+    private TypeSyntax ParseArrayTypeName(TypeSyntax type)
     {
         ExpectRightSquareBracket();
-        return new PointerTypeName(type);
+        return new PointerTypeSyntax(type);
     }
 
 
-    private TypeName ParseFunctionTypeName(TypeName type)
+    private TypeSyntax ParseFunctionTypeName(TypeSyntax type)
     {
         var parameters = ParseFunctionTypeNameParameters();
         ExpectRightParen();
 
-        return new FunctionTypeName(type, parameters);
+        return new FunctionTypeSyntax(type, parameters);
     }
 
 
-    private IReadOnlyList<TypeName> ParseFunctionTypeNameParameters()
+    private IReadOnlyList<TypeSyntax> ParseFunctionTypeNameParameters()
     {
         if (Check(TokenType.RightParen))
             return [];

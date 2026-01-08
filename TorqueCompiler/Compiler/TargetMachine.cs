@@ -31,22 +31,36 @@ public class TargetMachine
     {
         InitLLVM();
 
-        if (!LLVMTargetRef.TryGetTargetFromTriple(triple, out var target, out _))
-            throw new InvalidOperationException("LLVM doesn't support this target.");
+        var target = TargetFromTripleOrThrow(triple);
 
         Triple = triple;
-
         Target = target;
-        Machine = target.CreateTargetMachine(
+        Machine = CreateDefaultTargetMachine(triple, target);
+        DataLayout = Machine.CreateTargetDataLayout();
+        StringDataLayout = DataLayoutToStringOrThrow(DataLayout);
+    }
+
+
+    private static unsafe string DataLayoutToStringOrThrow(LLVMTargetDataRef dataLayout)
+    {
+        var ptr = LLVM.CopyStringRepOfTargetData(dataLayout);
+        return Marshal.PtrToStringAnsi((IntPtr)ptr) ?? throw new InvalidOperationException("Couldn't create data layout");
+    }
+
+
+    private static LLVMTargetMachineRef CreateDefaultTargetMachine(string triple, LLVMTargetRef target)
+        => target.CreateTargetMachine(
             triple, "generic", "",
-            LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault, LLVMRelocMode.LLVMRelocPIC,
-            LLVMCodeModel.LLVMCodeModelDefault
+            LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault, LLVMRelocMode.LLVMRelocPIC, LLVMCodeModel.LLVMCodeModelDefault
         );
 
-        DataLayout = Machine.CreateTargetDataLayout();
 
-        var ptr = LLVM.CopyStringRepOfTargetData(DataLayout);
-        StringDataLayout = Marshal.PtrToStringAnsi((IntPtr)ptr) ?? throw new InvalidOperationException("Couldn't create data layout");
+    private static LLVMTargetRef TargetFromTripleOrThrow(string triple)
+    {
+        if (!LLVMTargetRef.TryGetTargetFromTriple(triple, out var target, out _))
+            throw new InvalidOperationException("LLVM doesn't support this target");
+
+        return target;
     }
 
 

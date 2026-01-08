@@ -4,6 +4,8 @@ using System.Linq;
 
 using LLVMSharp.Interop;
 
+using Torque.Compiler.Symbols;
+
 
 namespace Torque.Compiler;
 

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 
+using Torque.Compiler.Tokens;
+
 
 namespace Torque.Compiler.Diagnostics;
 

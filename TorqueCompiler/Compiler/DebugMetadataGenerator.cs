@@ -2,9 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 
 using LLVMSharp.Interop;
+
+using Torque.Compiler.Types;
+
+
+using Type = Torque.Compiler.Types.Type;
 
 
 namespace Torque.Compiler;
@@ -173,7 +177,7 @@ public class DebugMetadataGenerator
         const int BitsInOneByte = 8;
 
         var typeMetadata = TypeToMetadata(type);
-        var sizeInBits = (uint)type.SizeOfThisInMemory(TargetData) * BitsInOneByte;
+        var sizeInBits = (uint)type.SizeOfTypeInMemory(TargetData) * BitsInOneByte;
 
         var debugReference = CreateAutoVariable(name, lineNumber, typeMetadata, sizeInBits);
         DeclareLocalVariable(alloca, debugReference, location);
@@ -257,7 +261,7 @@ public class DebugMetadataGenerator
         var name = type.ToString();
 
         var sbyteName = name.StringToSBytePtr();
-        var sizeInBits = type.SizeOfThisInMemoryAsBits(TargetData);
+        var sizeInBits = type.SizeOfTypeInMemoryAsBits(TargetData);
         var encoding = GetEncodingFromType(type);
 
         return type switch

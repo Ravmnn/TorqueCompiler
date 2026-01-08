@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 
+using Torque.Compiler.Types;
 using Torque.Compiler.Diagnostics;
 
 
