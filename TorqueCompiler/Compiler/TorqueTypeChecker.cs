@@ -9,6 +9,7 @@ using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Expressions;
 using Torque.Compiler.BoundAST.Statements;
 using Torque.Compiler.Diagnostics;
+using Torque.Compiler.Diagnostics.Catalogs;
 
 
 namespace Torque.Compiler;
@@ -27,7 +28,7 @@ public enum ImplicitCastMode
 
 
 public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
-    : DiagnosticReporter<Diagnostic.TypeCheckerCatalog>, IBoundStatementProcessor, IBoundExpressionProcessor<Type>
+    : DiagnosticReporter<TypeCheckerCatalog>, IBoundStatementProcessor, IBoundExpressionProcessor<Type>
 {
     public const PrimitiveType DefaultLiteralIntegerType = PrimitiveType.Int32;
     public const PrimitiveType DefaultLiteralFloatType = PrimitiveType.Float32;
@@ -121,7 +122,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         if (statement.Expression is null)
         {
             if (!_expectedReturnType!.IsVoid)
-                Report(Diagnostic.TypeCheckerCatalog.ExpectedAReturnValue, location: statement.Location);
+                Report(TypeCheckerCatalog.ExpectedAReturnValue, location: statement.Location);
 
             return;
         }
@@ -351,7 +352,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     {
         if (calleeType is not FunctionType functionType)
         {
-            Report(Diagnostic.TypeCheckerCatalog.CannotCallNonFunction, location: expression.Location);
+            Report(TypeCheckerCatalog.CannotCallNonFunction, location: expression.Location);
             return;
         }
 
@@ -396,7 +397,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         expression.Type = new PointerType(elementType); // to avoid any future hidden bug, force the use of the pointer type
 
         if (expression.Syntax.Size == 0)
-            Report(Diagnostic.TypeCheckerCatalog.CannotHaveAZeroSizedArray, location: expression.Location);
+            Report(TypeCheckerCatalog.CannotHaveAZeroSizedArray, location: expression.Location);
 
         if (expression.Elements is not null)
             MatchElementTypes(expression.Elements, elementType);
@@ -455,7 +456,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         if (TryImplicitCast(expected, expression, forceIfLiteral) is { } result)
             return result;
 
-        Report(Diagnostic.TypeCheckerCatalog.TypeDiffers, [expected.ToString(), expression.Type!.ToString()], location);
+        Report(TypeCheckerCatalog.TypeDiffers, [expected.ToString(), expression.Type!.ToString()], location);
         return expression;
     }
 
@@ -485,7 +486,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         if (type.IsPointer)
             return false;
 
-        Report(Diagnostic.TypeCheckerCatalog.PointerExpected, location: location);
+        Report(TypeCheckerCatalog.PointerExpected, location: location);
         return true;
     }
 
@@ -499,7 +500,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         if (!type.IsVoid || type is FunctionType)
             return false;
 
-        Report(Diagnostic.TypeCheckerCatalog.CannotUseVoidHere, location: location);
+        Report(TypeCheckerCatalog.CannotUseVoidHere, location: location);
         return true;
     }
 
@@ -509,7 +510,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         if (!type.IsVoid || type is FunctionType)
             return false;
 
-        Report(Diagnostic.TypeCheckerCatalog.ExpressionDoesNotReturnAnyValue, location: location);
+        Report(TypeCheckerCatalog.ExpressionDoesNotReturnAnyValue, location: location);
         return true;
     }
 
@@ -526,7 +527,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         if (expected == got)
             return false;
 
-        Report(Diagnostic.TypeCheckerCatalog.ArityDiffers, [expected, got], location);
+        Report(TypeCheckerCatalog.ArityDiffers, [expected, got], location);
         return true;
     }
 
@@ -608,7 +609,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     private BaseType TypeFromBaseTypeName(BaseTypeSyntax typeSyntax)
     {
         if (typeSyntax.IsAuto)
-            Report(Diagnostic.TypeCheckerCatalog.CannotUseLetHere, location: typeSyntax.TypeSymbol.Location);
+            Report(TypeCheckerCatalog.CannotUseLetHere, location: typeSyntax.TypeSymbol.Location);
 
         return new BaseType(typeSyntax.BaseType.TypeSymbol.SymbolToPrimitiveType());
     }

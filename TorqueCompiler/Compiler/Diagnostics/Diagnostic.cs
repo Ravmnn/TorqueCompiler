@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 using Torque.Compiler.Tokens;
+using Torque.Compiler.Diagnostics.Catalogs;
+using Torque.Compiler.Diagnostics.Catalogs.Resources;
 
 
 namespace Torque.Compiler.Diagnostics;
@@ -29,14 +32,13 @@ public enum DiagnosticScope
 
 
 
-public readonly partial struct Diagnostic()
+public readonly struct Diagnostic()
 {
     public required int Code { get; init; }
     public required DiagnosticScope Scope { get; init; }
     public required DiagnosticSeverity Severity { get; init; }
 
     public required string MessageId { get; init; }
-
 
 
     public IReadOnlyList<object> Arguments { get; init; } = [];
@@ -59,6 +61,20 @@ public readonly partial struct Diagnostic()
             Arguments = arguments ?? [],
             Location = location
         };
+    }
+
+
+    private static (T, DiagnosticScope, DiagnosticSeverity) GetFromCatalog<T>(int code)
+        where T : Enum
+    {
+        var enumType = typeof(T);
+        var item = (T)Enum.ToObject(enumType, code);
+
+        var name = Enum.GetName(enumType, item);
+        var field = enumType.GetField(name!, BindingFlags.Public | BindingFlags.Static);
+        var attribute = field!.GetCustomAttribute<ItemAttribute>()!;
+
+        return (item, attribute.Scope, attribute.Severity);
     }
 
 

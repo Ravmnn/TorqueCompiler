@@ -15,7 +15,6 @@ public abstract class DiagnosticReporter<T> where T : Enum
 {
     public List<Diagnostic> Diagnostics { get; } = [];
 
-
     public bool HasReports => Diagnostics.Count > 0;
 
 
@@ -31,7 +30,11 @@ public abstract class DiagnosticReporter<T> where T : Enum
 
 
     public virtual Diagnostic ReportSymbol(T item, SymbolSyntax? symbol = null)
-        => Report(item, symbol is not null ? [symbol.Value.Name] : null, symbol?.Location);
+    {
+        IReadOnlyList<object>? arguments = symbol is not null ? [symbol.Value.Name] : null;
+
+        return Report(item, arguments, symbol?.Location);
+    }
 
 
     public virtual Diagnostic Report(Diagnostic diagnostic)
@@ -52,7 +55,7 @@ public abstract class DiagnosticReporter<T> where T : Enum
 
 
     [DoesNotReturn]
-    public virtual void ReportTokenAndThrow(T item, SymbolSyntax? symbol = null)
+    public virtual void ReportSymbolAndThrow(T item, SymbolSyntax? symbol = null)
     {
         var diagnostic = ReportSymbol(item, symbol);
         throw new DiagnosticException(diagnostic);

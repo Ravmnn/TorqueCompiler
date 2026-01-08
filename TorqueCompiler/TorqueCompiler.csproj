@@ -15,53 +15,53 @@
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Update="Compiler\Diagnostics\LexerDiagnostics.resx">
-        <Generator>ResXFileCodeGenerator</Generator>
-        <LastGenOutput>LexerDiagnostics.Designer.cs</LastGenOutput>
-      </EmbeddedResource>
-      <EmbeddedResource Update="Compiler\Diagnostics\ParserDiagnostics.resx">
-        <Generator>ResXFileCodeGenerator</Generator>
-        <LastGenOutput>ParserDiagnostics.Designer.cs</LastGenOutput>
-      </EmbeddedResource>
-      <EmbeddedResource Update="Compiler\Diagnostics\BinderDiagnostics.resx">
+      <EmbeddedResource Update="Compiler\Diagnostics\Catalogs\Resources\BinderDiagnostics.resx">
         <Generator>ResXFileCodeGenerator</Generator>
         <LastGenOutput>SymbolResolver.Designer.cs</LastGenOutput>
       </EmbeddedResource>
-      <EmbeddedResource Update="Compiler\Diagnostics\TypeCheckerDiagnostics.resx">
-        <Generator>ResXFileCodeGenerator</Generator>
-        <LastGenOutput>TypeCheckerDiagnostics.Designer.cs</LastGenOutput>
-      </EmbeddedResource>
-      <EmbeddedResource Update="Compiler\Diagnostics\ControlFlowAnalyzerDiagnostics.resx">
+      <EmbeddedResource Update="Compiler\Diagnostics\Catalogs\Resources\ControlFlowAnalyzerDiagnostics.resx">
         <Generator>ResXFileCodeGenerator</Generator>
         <LastGenOutput>ControlFlowDiagnostics.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Compiler\Diagnostics\Catalogs\Resources\LexerDiagnostics.resx">
+        <Generator>ResXFileCodeGenerator</Generator>
+        <LastGenOutput>LexerDiagnostics.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Compiler\Diagnostics\Catalogs\Resources\ParserDiagnostics.resx">
+        <Generator>ResXFileCodeGenerator</Generator>
+        <LastGenOutput>ParserDiagnostics.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Compiler\Diagnostics\Catalogs\Resources\TypeCheckerDiagnostics.resx">
+        <Generator>ResXFileCodeGenerator</Generator>
+        <LastGenOutput>TypeCheckerDiagnostics.Designer.cs</LastGenOutput>
       </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="Compiler\Diagnostics\LexerDiagnostics.Designer.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>LexerDiagnostics.resx</DependentUpon>
-      </Compile>
-      <Compile Update="Compiler\Diagnostics\ParserDiagnostics.Designer.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>ParserDiagnostics.resx</DependentUpon>
-      </Compile>
-      <Compile Update="Compiler\Diagnostics\BinderDiagnostics.Designer.cs">
+      <Compile Update="Compiler\Diagnostics\Catalogs\Resources\BinderDiagnostics.Designer.cs">
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>BinderDiagnostics.resx</DependentUpon>
       </Compile>
-      <Compile Update="Compiler\Diagnostics\TypeCheckerDiagnostics.Designer.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>TypeCheckerDiagnostics.resx</DependentUpon>
-      </Compile>
-      <Compile Update="Compiler\Diagnostics\ControlFlowAnalyzerDiagnostics.Designer.cs">
+      <Compile Update="Compiler\Diagnostics\Catalogs\Resources\ControlFlowAnalyzerDiagnostics.Designer.cs">
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>ControlFlowAnalyzerDiagnostics.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Compiler\Diagnostics\Catalogs\Resources\LexerDiagnostics.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>LexerDiagnostics.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Compiler\Diagnostics\Catalogs\Resources\ParserDiagnostics.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>ParserDiagnostics.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Compiler\Diagnostics\Catalogs\Resources\TypeCheckerDiagnostics.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>TypeCheckerDiagnostics.resx</DependentUpon>
       </Compile>
     </ItemGroup>
 

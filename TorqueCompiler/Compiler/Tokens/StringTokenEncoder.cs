@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Torque.Compiler.Diagnostics;
+using Torque.Compiler.Diagnostics.Catalogs;
 
 
 namespace Torque.Compiler.Tokens;
@@ -33,7 +34,7 @@ public struct SingleEscapeSequence(char name, byte value) : IEscapeSequenceProce
 
 
 
-public class StringTokenEncoder(string text) : DiagnosticReporter<Diagnostic.LexerCatalog>
+public class StringTokenEncoder(string text) : DiagnosticReporter<LexerCatalog>
 {
     public static IReadOnlyList<IEscapeSequenceProcessor> DefaultEscapeProcessors { get; } =
     [
@@ -122,7 +123,7 @@ public class StringTokenEncoder(string text) : DiagnosticReporter<Diagnostic.Lex
         var processor = DefaultEscapeProcessors.FirstOrDefault(processor => processor.Name == name);
 
         if (processor is null)
-            Report(Diagnostic.LexerCatalog.UnknownEscapeSequence, location: GetCurrentLocation());
+            Report(LexerCatalog.UnknownEscapeSequence, location: GetCurrentLocation());
 
         return processor;
     }

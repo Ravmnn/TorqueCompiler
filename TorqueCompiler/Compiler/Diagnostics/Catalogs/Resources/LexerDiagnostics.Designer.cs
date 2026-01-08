@@ -7,34 +7,34 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Torque.Compiler.Diagnostics {
+namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
     using System;
-    
-    
+
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class ControlFlowAnalyzerDiagnostics {
-        
+    internal class LexerDiagnostics {
+
         private static System.Resources.ResourceManager resourceMan;
-        
+
         private static System.Globalization.CultureInfo resourceCulture;
-        
+
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal ControlFlowAnalyzerDiagnostics() {
+        internal LexerDiagnostics() {
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.Equals(null, resourceMan)) {
-                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Torque.Compiler.Diagnostics.ControlFlowAnalyzerDiagnostics", typeof(ControlFlowAnalyzerDiagnostics).Assembly);
+                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Torque.Compiler.Diagnostics.Catalogs.Resources.LexerDiagnostics", typeof(LexerDiagnostics).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
             }
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Globalization.CultureInfo Culture {
             get {
@@ -44,16 +44,46 @@ namespace Torque.Compiler.Diagnostics {
                 resourceCulture = value;
             }
         }
-        
-        internal static string FunctionMustReturnFromAllPaths {
+
+        internal static string UnexpectedToken {
             get {
-                return ResourceManager.GetString("FunctionMustReturnFromAllPaths", resourceCulture);
+                return ResourceManager.GetString("UnexpectedToken", resourceCulture);
             }
         }
-        
-        internal static string FunctionCannotReturnAValue {
+
+        internal static string UnclosedMultilineComment {
             get {
-                return ResourceManager.GetString("FunctionCannotReturnAValue", resourceCulture);
+                return ResourceManager.GetString("UnclosedMultilineComment", resourceCulture);
+            }
+        }
+
+        internal static string SingleCharacterEmpty {
+            get {
+                return ResourceManager.GetString("SingleCharacterEmpty", resourceCulture);
+            }
+        }
+
+        internal static string UnclosedSingleCharacterString {
+            get {
+                return ResourceManager.GetString("UnclosedSingleCharacterString", resourceCulture);
+            }
+        }
+
+        internal static string UnknownEscapeSequence {
+            get {
+                return ResourceManager.GetString("UnknownEscapeSequence", resourceCulture);
+            }
+        }
+
+        internal static string SingleCharacterMoreThanOne {
+            get {
+                return ResourceManager.GetString("SingleCharacterMoreThanOne", resourceCulture);
+            }
+        }
+
+        internal static string MoreThanOneDotInFloatNumber {
+            get {
+                return ResourceManager.GetString("MoreThanOneDotInFloatNumber", resourceCulture);
             }
         }
     }

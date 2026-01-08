@@ -3,6 +3,7 @@ using System.Linq;
 
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Diagnostics;
+using Torque.Compiler.Diagnostics.Catalogs;
 
 
 namespace Torque.Compiler;
@@ -10,7 +11,7 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCatalog>
+public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 {
     private int _startInLine;
     private int _endInLine;
@@ -116,7 +117,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         if (char.IsAsciiDigit(character))
             return Number();
 
-        Report(Diagnostic.LexerCatalog.UnexpectedToken);
+        Report(LexerCatalog.UnexpectedToken);
         return null;
     }
 
@@ -138,13 +139,13 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
     private void ReportCharErrors(IReadOnlyList<byte> data, Span quoteLocation)
     {
         if (data.Count == 0)
-            Report(Diagnostic.LexerCatalog.SingleCharacterEmpty);
+            Report(LexerCatalog.SingleCharacterEmpty);
 
         if (AtEnd())
-            Report(Diagnostic.LexerCatalog.UnclosedSingleCharacterString, location: quoteLocation);
+            Report(LexerCatalog.UnclosedSingleCharacterString, location: quoteLocation);
 
         else if (data.Count > 1)
-            Report(Diagnostic.LexerCatalog.SingleCharacterMoreThanOne);
+            Report(LexerCatalog.SingleCharacterMoreThanOne);
     }
 
 
@@ -223,7 +224,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
         if (AtEnd())
         {
-            Report(Diagnostic.LexerCatalog.UnclosedMultilineComment, location: startLocation);
+            Report(LexerCatalog.UnclosedMultilineComment, location: startLocation);
             return;
         }
 
@@ -275,7 +276,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
         var isFloat = lexeme.Contains('.');
 
         if (lexeme.Count(character => character == '.') > 1)
-            Report(Diagnostic.LexerCatalog.MoreThanOneDotInFloatNumber);
+            Report(LexerCatalog.MoreThanOneDotInFloatNumber);
 
         object? value;
 
@@ -310,7 +311,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<Diagnostic.LexerCat
 
 
 
-    public override Diagnostic Report(Diagnostic.LexerCatalog item, IReadOnlyList<object>? arguments = null, Span? location = null)
+    public override Diagnostic Report(LexerCatalog item, IReadOnlyList<object>? arguments = null, Span? location = null)
         => base.Report(item, arguments, location ?? GetCurrentLocation());
 
 

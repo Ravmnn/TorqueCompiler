@@ -7,34 +7,34 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Torque.Compiler.Diagnostics {
+namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
     using System;
-    
-    
+
+
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class LexerDiagnostics {
-        
+    internal class BinderDiagnostics {
+
         private static System.Resources.ResourceManager resourceMan;
-        
+
         private static System.Globalization.CultureInfo resourceCulture;
-        
+
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal LexerDiagnostics() {
+        internal BinderDiagnostics() {
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.Equals(null, resourceMan)) {
-                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Torque.Compiler.Diagnostics.LexerDiagnostics", typeof(LexerDiagnostics).Assembly);
+                    System.Resources.ResourceManager temp = new System.Resources.ResourceManager("Torque.Compiler.Diagnostics.Catalogs.Resources.BinderDiagnostics", typeof(BinderDiagnostics).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
             }
         }
-        
+
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Globalization.CultureInfo Culture {
             get {
@@ -44,46 +44,22 @@ namespace Torque.Compiler.Diagnostics {
                 resourceCulture = value;
             }
         }
-        
-        internal static string UnexpectedToken {
+
+        internal static string MultipleSymbolDeclaration {
             get {
-                return ResourceManager.GetString("UnexpectedToken", resourceCulture);
+                return ResourceManager.GetString("MultipleSymbolDeclaration", resourceCulture);
             }
         }
-        
-        internal static string UnclosedMultilineComment {
+
+        internal static string UndeclaredSymbol {
             get {
-                return ResourceManager.GetString("UnclosedMultilineComment", resourceCulture);
+                return ResourceManager.GetString("UndeclaredSymbol", resourceCulture);
             }
         }
-        
-        internal static string SingleCharacterEmpty {
+
+        internal static string SymbolIsNotAValue {
             get {
-                return ResourceManager.GetString("SingleCharacterEmpty", resourceCulture);
-            }
-        }
-        
-        internal static string UnclosedSingleCharacterString {
-            get {
-                return ResourceManager.GetString("UnclosedSingleCharacterString", resourceCulture);
-            }
-        }
-        
-        internal static string UnknownEscapeSequence {
-            get {
-                return ResourceManager.GetString("UnknownEscapeSequence", resourceCulture);
-            }
-        }
-        
-        internal static string SingleCharacterMoreThanOne {
-            get {
-                return ResourceManager.GetString("SingleCharacterMoreThanOne", resourceCulture);
-            }
-        }
-        
-        internal static string MoreThanOneDotInFloatNumber {
-            get {
-                return ResourceManager.GetString("MoreThanOneDotInFloatNumber", resourceCulture);
+                return ResourceManager.GetString("SymbolIsNotAValue", resourceCulture);
             }
         }
     }

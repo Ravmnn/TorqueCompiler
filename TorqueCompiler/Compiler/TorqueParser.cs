@@ -9,6 +9,7 @@ using Torque.Compiler.Symbols;
 using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.Diagnostics;
+using Torque.Compiler.Diagnostics.Catalogs;
 
 
 namespace Torque.Compiler;
@@ -16,7 +17,7 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diagnostic.ParserCatalog>
+public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<ParserCatalog>
 {
     private readonly List<Statement> _statements = [];
     private int _current;
@@ -90,7 +91,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         if (Match(TokenType.SemiColon))
             return new SugarDefaultDeclarationStatement(type, name);
 
-        Expect(TokenType.Equal, Diagnostic.ParserCatalog.ExpectAssignmentOperator);
+        Expect(TokenType.Equal, ParserCatalog.ExpectAssignmentOperator);
         var value = Expression();
         ExpectEndOfStatement();
 
@@ -148,7 +149,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
             if (HasReports) // something already went wrong, ignore
                 return null;
 
-            ReportAndThrow(Diagnostic.ParserCatalog.UnexpectedToken);
+            ReportAndThrow(ParserCatalog.UnexpectedToken);
             throw new UnreachableException();
 
 
@@ -189,13 +190,13 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
     private Statement Block()
     {
         var block = new List<Statement>();
-        var start = Expect(TokenType.LeftCurlyBracket, Diagnostic.ParserCatalog.ExpectBlock);
+        var start = Expect(TokenType.LeftCurlyBracket, ParserCatalog.ExpectBlock);
 
         while (!AtEnd() && !Check(TokenType.RightCurlyBracket))
             if (Declaration() is { } declaration)
                 block.Add(declaration);
 
-        Expect(TokenType.RightCurlyBracket, Diagnostic.ParserCatalog.UnclosedBlock);
+        Expect(TokenType.RightCurlyBracket, ParserCatalog.UnclosedBlock);
 
         return new BlockStatement(block, start.Location);
     }
@@ -359,7 +360,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
         if (PrimaryOrNull() is { } expression)
             return expression;
 
-        ReportAndThrow(Diagnostic.ParserCatalog.ExpectExpression);
+        ReportAndThrow(ParserCatalog.ExpectExpression);
         throw new UnreachableException();
     }
 
@@ -589,13 +590,13 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
     [DoesNotReturn]
-    public override void ReportAndThrow(Diagnostic.ParserCatalog item, IReadOnlyList<object>? arguments = null, Span? location = null)
+    public override void ReportAndThrow(ParserCatalog item, IReadOnlyList<object>? arguments = null, Span? location = null)
         => base.ReportAndThrow(item, arguments, location ?? Peek().Location);
 
 
 
 
-    private Token Expect(TokenType token, Diagnostic.ParserCatalog item, Span? location = null)
+    private Token Expect(TokenType token, ParserCatalog item, Span? location = null)
     {
         if (Check(token))
             return Advance();
@@ -606,40 +607,40 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Diag
 
 
     private Token ExpectEndOfStatement()
-        => Expect(TokenType.SemiColon, Diagnostic.ParserCatalog.ExpectSemicolonAfterStatement);
+        => Expect(TokenType.SemiColon, ParserCatalog.ExpectSemicolonAfterStatement);
 
 
     private Token ExpectIdentifier()
-        => Expect(TokenType.Identifier, Diagnostic.ParserCatalog.ExpectIdentifier);
+        => Expect(TokenType.Identifier, ParserCatalog.ExpectIdentifier);
 
 
     private Token ExpectTypeName()
-        => Expect(TokenType.Type, Diagnostic.ParserCatalog.ExpectTypeName);
+        => Expect(TokenType.Type, ParserCatalog.ExpectTypeName);
 
 
     private Token ExpectLeftParen()
-        => Expect(TokenType.LeftParen, Diagnostic.ParserCatalog.ExpectLeftParen);
+        => Expect(TokenType.LeftParen, ParserCatalog.ExpectLeftParen);
 
     private Token ExpectRightParen()
-        => Expect(TokenType.RightParen, Diagnostic.ParserCatalog.ExpectRightParen);
+        => Expect(TokenType.RightParen, ParserCatalog.ExpectRightParen);
 
 
     private Token ExpectLeftSquareBracket()
-        => Expect(TokenType.LeftSquareBracket, Diagnostic.ParserCatalog.ExpectLeftSquareBracket);
+        => Expect(TokenType.LeftSquareBracket, ParserCatalog.ExpectLeftSquareBracket);
 
     private Token ExpectRightSquareBracket()
-        => Expect(TokenType.RightSquareBracket, Diagnostic.ParserCatalog.ExpectRightSquareBracket);
+        => Expect(TokenType.RightSquareBracket, ParserCatalog.ExpectRightSquareBracket);
 
 
     private Token ExpectLeftCurlyBracket()
-        => Expect(TokenType.LeftCurlyBracket, Diagnostic.ParserCatalog.ExpectLeftCurlyBracket);
+        => Expect(TokenType.LeftCurlyBracket, ParserCatalog.ExpectLeftCurlyBracket);
 
     private Token ExpectRightCurlyBracket()
-        => Expect(TokenType.RightCurlyBracket, Diagnostic.ParserCatalog.ExpectRightCurlyBracket);
+        => Expect(TokenType.RightCurlyBracket, ParserCatalog.ExpectRightCurlyBracket);
 
 
     private Token ExpectLiteralInteger()
-        => Expect(TokenType.IntegerValue, Diagnostic.ParserCatalog.ExpectLiteralInteger);
+        => Expect(TokenType.IntegerValue, ParserCatalog.ExpectLiteralInteger);
 
     #endregion
 

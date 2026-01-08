@@ -2,6 +2,7 @@ using System.Collections.Generic;
 
 using Torque.Compiler.Types;
 using Torque.Compiler.Diagnostics;
+using Torque.Compiler.Diagnostics.Catalogs;
 
 
 namespace Torque.Compiler;
@@ -9,7 +10,7 @@ namespace Torque.Compiler;
 
 
 
-public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs) : DiagnosticReporter<Diagnostic.ControlFlowAnalyzerCatalog>
+public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs) : DiagnosticReporter<ControlFlowAnalyzerCatalog>
 {
     public IReadOnlyList<ControlFlowGraph> Graphs { get; } = graphs;
 
@@ -36,7 +37,7 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
         if (functionType.IsVoid || AllExecutionPathOfGraphReturns(graph.Entry))
             return false;
 
-        Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionMustReturnFromAllPaths, location: graph.FunctionDeclaration.Location);
+        Report(ControlFlowAnalyzerCatalog.FunctionMustReturnFromAllPaths, location: graph.FunctionDeclaration.Location);
         return true;
     }
 
@@ -46,7 +47,7 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
         if (!functionType.IsVoid || !AnyExecutionPathOfGraphReturns(graph.Entry))
             return false;
 
-        Report(Diagnostic.ControlFlowAnalyzerCatalog.FunctionCannotReturnAValue, location: graph.FunctionDeclaration.Location);
+        Report(ControlFlowAnalyzerCatalog.FunctionCannotReturnAValue, location: graph.FunctionDeclaration.Location);
         return true;
     }
 
