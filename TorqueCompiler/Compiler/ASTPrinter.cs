@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -16,25 +15,17 @@ namespace Torque.Compiler;
 
 public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<string>
 {
-    private uint _indentDegree;
+    private int _indentDegree;
 
 
 
 
     public string Print(IReadOnlyList<Statement> statements)
-    {
-        var builder = new StringBuilder();
-
-        foreach (var statement in statements)
-            builder.Append(Process(statement));
-
-        return builder.ToString();
-    }
+        => statements.ItemsToStringThenJoin("", Process);
 
 
     public string Print(Statement statement)
         => Print([statement]);
-
 
 
     public string Print(Expression expression)
@@ -43,7 +34,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
 
-    private string Stringify(string name, IReadOnlyList<Expression> expressions)
+    private string Stringify(string name, params IReadOnlyList<Expression> expressions)
     {
         if (expressions.Count == 1)
             return UnaryStringify(name, expressions[0]);
@@ -66,20 +57,13 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     private string MultiOperandStringify(string name, IReadOnlyList<Expression> expressions)
     {
         var builder = new StringBuilder();
+        var processedExpressionsString = expressions.ItemsToStringThenJoin(" ", Process);
 
         builder.Append($"({name}");
-
-        foreach (var expression in expressions)
-        {
-            builder.Append(' ');
-            Process(expression);
-        }
-
-        builder.Append(')');
+        builder.Append($"{processedExpressionsString})");
 
         return builder.ToString();
     }
-
 
 
     private void IncreaseIndent()
@@ -95,12 +79,9 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
     private string Indent()
     {
-        var indent = "";
+        const int IndentationSize = 4;
 
-        for (var i = 0; i < _indentDegree; i++)
-            indent += "    ";
-
-        return indent;
+        return new string(' ', IndentationSize * _indentDegree);
     }
 
 
@@ -138,10 +119,9 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     public string ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
     {
         var builder = new StringBuilder();
+        var parametersString = statement.Parameters.ItemsToStringThenJoin(", ", param => $"{param.Type} {param.Name}");
 
-        builder.Append($"{BeginStatement()}{statement.ReturnType} {statement.Name}(");
-        builder.Append(JoinWithComma(statement.Parameters, param => $"{param.Type} {param.Name}"));
-        builder.Append($") {NewlineChar()}");
+        builder.Append($"{BeginStatement()}{statement.ReturnType} {statement.Name}({parametersString}){NewlineChar()}");
         builder.Append($"{Process(statement.Body)}{EndStatement()}");
 
         return builder.ToString();
@@ -151,20 +131,21 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessReturn(ReturnStatement statement)
-        => $"{BeginStatement()}return{(statement.Expression is null ? "" : $" {Process(statement.Expression)}")}{EndStatement()}";
-
-
+    {
+        var expressionString = statement.Expression is null ? "" : $" {Process(statement.Expression)}";
+        return $"{BeginStatement()}return{expressionString}{EndStatement()}";
+    }
 
 
     public string ProcessBlock(BlockStatement blockStatement)
     {
         var builder = new StringBuilder();
+        var statementsString = blockStatement.Statements.ItemsToStringThenJoin("", Process);
 
         builder.Append($"{BeginStatement()}{{{NewlineChar()}");
         IncreaseIndent();
 
-        foreach (var statement in blockStatement.Statements)
-            builder.Append(Process(statement));
+        builder.Append(statementsString);
 
         DecreaseIndent();
         builder.Append($"{Indent()}}}{EndStatement()}");
@@ -180,21 +161,25 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         var builder = new StringBuilder();
 
         builder.Append($"{BeginStatement()}if {Process(statement.Condition)}{NewlineChar()}");
-
-        IncreaseIndent();
-        builder.Append(Process(statement.ThenStatement));
-        DecreaseIndent();
+        builder.Append(IndentProcessUnindent(statement.ThenStatement));
 
         if (statement.ElseStatement is not null)
         {
             builder.Append($"{BeginStatement()}else{NewlineChar()}");
-
-            IncreaseIndent();
-            builder.Append(Process(statement.ElseStatement));
-            DecreaseIndent();
+            builder.Append(IndentProcessUnindent(statement.ElseStatement));
         }
 
         return builder.ToString();
+    }
+
+
+    private string IndentProcessUnindent(Statement statement)
+    {
+        IncreaseIndent();
+        var result= Process(statement);
+        DecreaseIndent();
+
+        return result;
     }
 
 
@@ -213,7 +198,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessBinary(BinaryExpression expression)
-        => Stringify(OperatorFromTokenType(expression.Operator), [expression.Left, expression.Right]);
+        => Stringify(OperatorFromTokenType(expression.Operator), expression.Left, expression.Right);
 
 
 
@@ -225,19 +210,19 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessComparison(ComparisonExpression expression)
-        => BinaryStringify(OperatorFromTokenType(expression.Operator), expression.Left, expression.Right);
+        => Stringify(OperatorFromTokenType(expression.Operator), expression.Left, expression.Right);
 
 
 
 
     public string ProcessEquality(EqualityExpression expression)
-        => BinaryStringify(OperatorFromTokenType(expression.Operator), expression.Left, expression.Right);
+        => Stringify(OperatorFromTokenType(expression.Operator), expression.Left, expression.Right);
 
 
 
 
     public string ProcessLogic(LogicExpression expression)
-        => BinaryStringify(OperatorFromTokenType(expression.Operator), expression.Left, expression.Right);
+        => Stringify(OperatorFromTokenType(expression.Operator), expression.Left, expression.Right);
 
 
 
@@ -249,25 +234,25 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessAddress(AddressExpression expression)
-        => $"(&{Process(expression.Expression)})";
+        => Stringify(OperatorFromTokenType(expression.Operator), expression.Expression);
 
 
 
 
     public string ProcessUnary(UnaryExpression expression)
-        => UnaryStringify(OperatorFromTokenType(expression.Operator), expression.Right);
+        => Stringify(OperatorFromTokenType(expression.Operator), expression.Right);
 
 
 
 
     public string ProcessAssignment(AssignmentExpression expression)
-        => BinaryStringify("=", expression.Target, expression.Value);
+        => Stringify("=", expression.Target, expression.Value);
 
 
 
 
     public string ProcessPointerAccess(PointerAccessExpression expression)
-        => UnaryStringify("*", expression.Pointer);
+        => Stringify("*", expression.Pointer);
 
 
 
@@ -275,10 +260,9 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     public string ProcessCall(CallExpression expression)
     {
         var builder = new StringBuilder();
+        var argumentsString = expression.Arguments.ItemsToStringThenJoin(", ", Process);
 
-        builder.Append($"{Process(expression.Callee)}(");
-        builder.Append(JoinWithComma(expression.Arguments, Process));
-        builder.Append(')');
+        builder.Append($"{Process(expression.Callee)}({argumentsString})");
 
         return builder.ToString();
     }
@@ -295,9 +279,10 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     public string ProcessArray(ArrayExpression expression)
     {
         var expressionsString = expression.Elements?.Select(Process);
-        var elementsString = expressionsString is not null ? $" {{ {JoinWithComma(expressionsString.ToList(), str => str)} }}" : "";
+        var elementsString = expressionsString?.ItemsToStringThenJoin(", ", item => item);
+        var initializationListString = expressionsString is not null ? $" {{ {elementsString} }}" : "";
 
-        return $"({expression.ElementType} array[{expression.Size}]{elementsString})";
+        return $"({expression.ElementType} array[{expression.Size}]{initializationListString})";
     }
 
 
@@ -319,34 +304,13 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
 
-    private static string JoinWithComma<T>(IReadOnlyList<T> elements, Func<T, string> processor)
-    {
-        var builder = new StringBuilder();
-
-        for (var i = 0; i < elements.Count; i++)
-        {
-            var element = elements[i];
-            var atEnd = i + 1 >= elements.Count;
-
-            builder.Append($"{processor(element)}{(!atEnd ? ", " : "")}");
-        }
-
-        return builder.ToString();
-    }
-
-
-
-
-
-
-
-
     private static string OperatorFromTokenType(TokenType type) => type switch
     {
         TokenType.Plus => "+",
         TokenType.Minus => "-",
         TokenType.Star => "*",
         TokenType.Slash => "/",
+        TokenType.Ampersand => "&",
 
         TokenType.GreaterThan => ">",
         TokenType.GreaterThanOrEqual => ">=",

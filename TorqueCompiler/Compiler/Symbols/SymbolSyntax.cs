@@ -12,6 +12,14 @@ public readonly struct SymbolSyntax(string name, Span location)
     public Span Location { get; } = location;
 
 
+
+
     public SymbolSyntax(Token token) : this(token.Lexeme, token.Location)
     { }
+
+
+
+
+    public override string ToString()
+        => Name;
 }

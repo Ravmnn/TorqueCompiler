@@ -25,10 +25,6 @@ public static class TypeExtensions
     {
         _ when type.IsVoid => 0,
 
-        _ => SizeOfLLVMTypeInMemory(type.ToLLVMType(), targetData)
+        _ => type.ToLLVMType().SizeOfThisInMemory(targetData)
     };
-
-
-    public static int SizeOfLLVMTypeInMemory(this LLVMTypeRef type, LLVMTargetDataRef? targetData = null)
-        => (int)TargetMachine.GetDataLayoutOfOrGlobal(targetData).ABISizeOfType(type);
 }

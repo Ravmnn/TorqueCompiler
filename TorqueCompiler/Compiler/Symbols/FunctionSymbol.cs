@@ -26,4 +26,14 @@ public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbo
     public FunctionSymbol(SymbolSyntax symbol, Scope declarationScope)
         : this(symbol.Name, null, [], symbol.Location, declarationScope)
     {}
+
+
+
+
+    public override string ToString()
+    {
+        var parametersString = string.Join(", ", Parameters.ItemsToString());
+
+        return $"{Type?.ReturnType} {Name}({parametersString})";
+    }
 }

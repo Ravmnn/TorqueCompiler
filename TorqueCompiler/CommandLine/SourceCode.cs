@@ -1,4 +1,4 @@
-namespace Torque.Compiler.Diagnostics;
+namespace Torque.CommandLine;
 
 
 

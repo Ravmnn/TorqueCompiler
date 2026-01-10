@@ -34,4 +34,10 @@ public abstract class Symbol(string name, Span location, Scope declarationScope)
         LLVMType = type;
         LLVMDebugMetadata = debugMetadata;
     }
+
+
+
+
+    public override string ToString()
+        => Name;
 }

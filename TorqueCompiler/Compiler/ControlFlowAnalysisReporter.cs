@@ -64,6 +64,12 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
         if (start.Successors.Count == 0)
             return false;
 
+        return AllExecutionPathOfSuccessorsReturns(start);
+    }
+
+
+    private bool AllExecutionPathOfSuccessorsReturns(BasicBlock start)
+    {
         foreach (var successor in start.Successors)
             if (!successor.State.HasReturn)
                 if (!AllExecutionPathOfGraphReturns(successor))
@@ -73,14 +79,14 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
     }
 
 
+
+
     private bool AnyExecutionPathOfGraphReturns(BasicBlock start)
     {
-        foreach (var sucessor in start.Successors)
-        {
-            if (!sucessor.State.HasReturn)
-                if (AnyExecutionPathOfGraphReturns(sucessor))
+        foreach (var successor in start.Successors)
+            if (!successor.State.HasReturn)
+                if (AnyExecutionPathOfGraphReturns(successor))
                     return true;
-        }
 
         return start.State.HasReturn;
     }

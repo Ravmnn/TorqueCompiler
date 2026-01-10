@@ -25,24 +25,26 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
     public IReadOnlyList<ControlFlowGraph> Build()
     {
         Reset();
-
-        foreach (var function in FunctionDeclarations)
-        {
-            ResetBlocks();
-
-            Process(function);
-            _graphs.Add(_currentGraph!);
-        }
-
+        BuildAllFunctions();
         RemoveEmptyBlocks();
 
         return _graphs;
     }
 
 
+    private void BuildAllFunctions()
+    {
+        foreach (var function in FunctionDeclarations)
+        {
+            ResetBlocks();
+            Process(function);
+            _graphs.Add(_currentGraph!);
+        }
+    }
+
+
     private void Reset()
     {
-
         _currentGraph = null;
         _graphs.Clear();
 
@@ -102,7 +104,7 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
         AddStatementToCurrentBlock(statement);
 
         _currentBlock.State.HasReturn = true;
-        _currentBlock = NewBlockFromLast();
+        _currentBlock = NewBlockWithPredecessorAsLastBlock();
     }
 
 
@@ -120,27 +122,23 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
     public void ProcessIf(BoundIfStatement statement)
     {
         AddStatementToCurrentBlock(statement);
-
-        var origin = _currentBlock;
         var joinPredecessors = new List<BasicBlock>();
 
-        AttachNewBlockFromAndProcess(statement.ThenStatement, origin);
-        joinPredecessors.Add(_currentBlock);
+        ProcessThenAndElseStatements(statement, _currentBlock, joinPredecessors);
 
-        if (statement.ElseStatement is not null)
-        {
-            AttachNewBlockFromAndProcess(statement.ElseStatement, origin);
-            joinPredecessors.Add(_currentBlock);
-        }
-        else
-            joinPredecessors.Add(origin);
-
-        _currentBlock = NewBlockFrom(joinPredecessors);
+        _currentBlock = NewBlockWithPredecessors(joinPredecessors);
     }
 
 
+    private void ProcessThenAndElseStatements(BoundIfStatement statement, BasicBlock origin, List<BasicBlock> joinPredecessors)
+    {
+        joinPredecessors.Add(AttachNewBlockWithPredecessorsAndProcess(statement.ThenStatement, origin));
 
-
+        if (statement.ElseStatement is not null)
+            joinPredecessors.Add(AttachNewBlockWithPredecessorsAndProcess(statement.ElseStatement, origin));
+        else
+            joinPredecessors.Add(origin);
+    }
 
 
 
@@ -151,9 +149,9 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
 
 
-    private BasicBlock AttachNewBlockFromAndProcess(BoundStatement statement, params IReadOnlyList<BasicBlock> predecessors)
+    private BasicBlock AttachNewBlockWithPredecessorsAndProcess(BoundStatement statement, params IReadOnlyList<BasicBlock> predecessors)
     {
-        AttachNewBlockFrom(predecessors);
+        AttachNewBlockWithPredecessors(predecessors);
         Process(statement);
 
         return _currentBlock;
@@ -162,12 +160,12 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
 
 
-    private BasicBlock AttachNewBlockFromLast()
-        => _currentBlock = NewBlockFromLast();
+    private BasicBlock AttachNewBlockWithPredecessorsAsLastBlock()
+        => _currentBlock = NewBlockWithPredecessorAsLastBlock();
 
 
-    private BasicBlock AttachNewBlockFrom(params IReadOnlyList<BasicBlock> predecessors)
-        => _currentBlock = NewBlockFrom(predecessors);
+    private BasicBlock AttachNewBlockWithPredecessors(params IReadOnlyList<BasicBlock> predecessors)
+        => _currentBlock = NewBlockWithPredecessors(predecessors);
 
 
     private BasicBlock AttachNewBlock()
@@ -176,21 +174,25 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
 
 
-    private BasicBlock NewBlockFromLast()
-        => NewBlockFrom(_currentBlock);
+    private BasicBlock NewBlockWithPredecessorAsLastBlock()
+        => NewBlockWithPredecessors(_currentBlock);
 
 
-    private BasicBlock NewBlockFrom(params IReadOnlyList<BasicBlock> predecessors)
+    private BasicBlock NewBlockWithPredecessors(params IReadOnlyList<BasicBlock> predecessors)
     {
         var block = NewBlock();
 
         foreach (var predecessor in predecessors)
-        {
-            predecessor.Successors.Add(block);
-            block.Predecessor.Add(predecessor);
-        }
+            AddPredecessorToBlock(predecessor, block);
 
         return block;
+    }
+
+
+    private static void AddPredecessorToBlock(BasicBlock predecessor, BasicBlock block)
+    {
+        predecessor.Successors.Add(block);
+        block.Predecessor.Add(predecessor);
     }
 
 

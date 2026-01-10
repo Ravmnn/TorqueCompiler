@@ -59,23 +59,6 @@ public static class PrimitiveTypeExtensions
 
 
 
-    public static int SizeOfThisInMemory(this LLVMTypeRef type, LLVMTargetDataRef? targetData = null)
-        => (int)TargetMachine.GetDataLayoutOfOrGlobal(targetData).ABISizeOfType(type);
-
-
     public static int SizeOfThisInMemory(this PrimitiveType type, LLVMTargetDataRef? targetData = null)
-        => (int)TargetMachine.GetDataLayoutOfOrGlobal(targetData).ABISizeOfType(type.PrimitiveTypeToLLVMType());
-
-
-    // public static int SizeOfThisInBits(this PrimitiveType type) => type switch
-    // {
-    //     PrimitiveType.Void => 0,
-    //     PrimitiveType.Bool => 1,
-    //     PrimitiveType.Char or PrimitiveType.Int8 or PrimitiveType.UInt8 => 8,
-    //     PrimitiveType.Int16 or PrimitiveType.UInt16 or PrimitiveType.Float16 => 16,
-    //     PrimitiveType.Int32 or PrimitiveType.UInt32 or PrimitiveType.Float32 => 32,
-    //     PrimitiveType.Int64 or PrimitiveType.UInt64 or PrimitiveType.Float64 => 64,
-    //
-    //     _ => throw new ArgumentException("Invalid primitive type")
-    // };
+        => type.PrimitiveTypeToLLVMType().SizeOfThisInMemory();
 }

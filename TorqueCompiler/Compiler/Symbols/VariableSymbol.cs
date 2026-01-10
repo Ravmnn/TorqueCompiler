@@ -20,4 +20,10 @@ public class VariableSymbol(string name, Type? type, Span location, Scope declar
     public VariableSymbol(SymbolSyntax symbol, Scope declarationScope)
         : this(symbol.Name, null, symbol.Location, declarationScope)
     {}
+
+
+
+
+    public override string ToString()
+        => $"{Type} {Name}";
 }

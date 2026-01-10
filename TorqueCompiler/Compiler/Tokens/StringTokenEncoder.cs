@@ -10,39 +10,15 @@ namespace Torque.Compiler.Tokens;
 
 
 
-public interface IEscapeSequenceProcessor
-{
-    char Name { get; }
-    int Arity { get; }
-
-
-    byte Get(string argument);
-}
-
-
-public struct SingleEscapeSequence(char name, byte value) : IEscapeSequenceProcessor
-{
-    public char Name { get; } = name;
-    public int Arity => 0;
-
-    public byte Value { get; } = value;
-
-
-    public byte Get(string argument) => Value;
-}
-
-
-
-
 public class StringTokenEncoder(string text) : DiagnosticReporter<LexerCatalog>
 {
-    public static IReadOnlyList<IEscapeSequenceProcessor> DefaultEscapeProcessors { get; } =
+    public static IReadOnlyList<IEscapeSequence> DefaultEscapeProcessors { get; } =
     [
-        new SingleEscapeSequence('0', 0),
-        new SingleEscapeSequence('t', 9),
-        new SingleEscapeSequence('n', 10),
-        new SingleEscapeSequence('r', 13),
-        new SingleEscapeSequence('e', 27),
+        new SingleEscapeSequence('0', (byte)'\0'),
+        new SingleEscapeSequence('t', (byte)'\t'),
+        new SingleEscapeSequence('n', (byte)'\n'),
+        new SingleEscapeSequence('r', (byte)'\r'),
+        new SingleEscapeSequence('e', (byte)'\e'),
 
         new SingleEscapeSequence('\'', (byte)'\''),
         new SingleEscapeSequence('"', (byte)'"'),
@@ -66,37 +42,55 @@ public class StringTokenEncoder(string text) : DiagnosticReporter<LexerCatalog>
         var data = new List<byte>();
 
         while (!AtEnd())
-        {
-            _start = _end;
-            var current = Text[_end];
-            _end++;
-
-            if (current == '\\')
-                data.Add(ProcessEscapeSequence());
-            else
-                data.Add((byte)current);
-
-        }
+            data.Add(GetNextCharacterOrEscapeSequenceByte());
 
         return data;
     }
 
 
-    private byte ProcessEscapeSequence()
+    private byte GetNextCharacterOrEscapeSequenceByte()
     {
-        var name = Text[_end++];
-        var processor = GetEscapeSequenceProcessorByName(name);
-        var argument = string.Empty;
+        var character = GetNextCharacter();
+        return GetCharacterOrEscapeSequenceByte(character);
+    }
 
-        if (processor is null)
+
+    private char GetNextCharacter()
+    {
+        _start = _end;
+        return Advance();
+    }
+
+
+    private byte GetCharacterOrEscapeSequenceByte(char character)
+    {
+        if (character == '\\')
+            return GetEscapeSequenceByte();
+
+        return (byte)character;
+    }
+
+
+    private byte GetEscapeSequenceByte()
+    {
+        var name = Advance();
+        var sequence = GetEscapeSequenceByNameOrReportIfNull(name);
+
+        if (sequence is null)
             return 0;
 
-        if (processor.Arity > 0)
-            argument = GetArgument(processor.Arity);
+        var argument = GetArgumentFromArity(sequence.Arity);
 
-        FillArgumentWithZeros(ref argument, processor);
+        return sequence.GetByte(argument);
+    }
 
-        return processor.Get(argument);
+
+    private string GetArgumentFromArity(int arity)
+    {
+        var argument = arity > 0 ? GetArgument(arity) : string.Empty;
+
+        FillArgumentWithZeros(ref argument, arity);
+        return argument;
     }
 
 
@@ -104,23 +98,28 @@ public class StringTokenEncoder(string text) : DiagnosticReporter<LexerCatalog>
     {
         var argument = string.Empty;
 
-        for (var o = 0; o < arity && _end < Text.Length; o++, _end++)
-            argument += Text[_end];
+        for (var i = 0; i < arity && !AtEnd(); i++)
+            argument += Advance();
 
         return argument;
     }
 
 
-    private static void FillArgumentWithZeros(ref string argument, IEscapeSequenceProcessor processor)
+    private static void FillArgumentWithZeros(ref string argument, int arity)
     {
-        if (argument.Length < processor.Arity)
-            argument += new string('0', processor.Arity - argument.Length);
+        if (argument.Length >= arity)
+            return;
+
+        var zeroAmount = arity - argument.Length;
+        argument += new string('0', zeroAmount);
     }
 
 
-    private IEscapeSequenceProcessor? GetEscapeSequenceProcessorByName(char name)
+
+
+    private IEscapeSequence? GetEscapeSequenceByNameOrReportIfNull(char name)
     {
-        var processor = DefaultEscapeProcessors.FirstOrDefault(processor => processor.Name == name);
+        var processor = GetEscapeSequenceByName(name);
 
         if (processor is null)
             Report(LexerCatalog.UnknownEscapeSequence, location: GetCurrentLocation());
@@ -129,12 +128,26 @@ public class StringTokenEncoder(string text) : DiagnosticReporter<LexerCatalog>
     }
 
 
+    private IEscapeSequence? GetEscapeSequenceByName(char name)
+        => DefaultEscapeProcessors.FirstOrDefault(processor => processor.Name == name);
 
 
     private Span GetCurrentLocation()
         => new Span(_start, _end, 0);
 
 
+
+
+    private char Advance()
+        => AtEnd() ? Previous() : Text[_end++];
+
+
+    private char Peek()
+        => AtEnd() ? Previous() : Text[_end];
+
+
+    private char Previous()
+        => Text[_end - 1];
 
 
     private bool AtEnd()
