@@ -107,11 +107,11 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
 
     private BoundStatement ProcessLexicalBlock(BlockStatement statement)
-        => Scope.ProcessInnerScope(ref _scope, () => ProcessBlockToBound(statement));
+        => Scope.ForInnerScope(ref _scope, () => ProcessBlockToBound(statement));
 
 
     private BoundStatement ProcessFunctionBlock(BlockStatement statement, IReadOnlyList<FunctionParameterDeclaration> parameters)
-        => Scope.ProcessInnerScope(ref _scope, () =>
+        => Scope.ForInnerScope(ref _scope, () =>
         {
             DeclareFunctionParameters(parameters);
             return ProcessBlockToBound(statement);

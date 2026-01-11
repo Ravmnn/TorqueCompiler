@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 
 using LLVMSharp.Interop;
 
+using Torque.Compiler.Symbols;
+using Torque.Compiler.Tokens;
 using Torque.Compiler.Types;
 
 
@@ -40,15 +43,15 @@ public class DebugMetadataGenerator
     public LLVMMetadataRef CompileUnit;
 
 
-   public TorqueCompiler Compiler { get; }
+    public TorqueCompiler Compiler { get; }
 
-   public LLVMModuleRef Module => Compiler.Module;
-   public LLVMBuilderRef Builder => Compiler.Builder;
-   public LLVMTargetDataRef TargetData => Compiler.DataLayout;
+    public LLVMModuleRef Module => Compiler.Module;
+    public LLVMBuilderRef Builder => Compiler.Builder;
+    public LLVMTargetDataRef TargetData => Compiler.DataLayout;
 
 
-   public Scope GlobalScope => Compiler.GlobalScope;
-   public Scope Scope => Compiler.Scope;
+    public Scope GlobalScope => Compiler.GlobalScope;
+    public Scope Scope => Compiler.Scope;
 
 
 
@@ -56,7 +59,7 @@ public class DebugMetadataGenerator
     public DebugMetadataGenerator(TorqueCompiler compiler)
     {
         Compiler = compiler;
-        Compiler.Module.AddModuleFlag("Debug Info Version", LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorWarning, LLVM.DebugMetadataVersion());
+        AddDebugInfoVersion();
 
         InitializeDebugBuilder();
 
@@ -65,16 +68,37 @@ public class DebugMetadataGenerator
     }
 
 
-    private unsafe void InitializeDebugBuilder()
+    private void AddDebugInfoVersion()
+        => Compiler.Module.AddModuleFlag("Debug Info Version", LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorWarning, LLVM.DebugMetadataVersion());
+
+
+    private void InitializeDebugBuilder()
     {
         ThrowIfInvalidFileInfo();
+        InitializeLLVMDebugProperties(Compiler.File!);
+    }
 
-        var file = Compiler.File!.Name;
-        var directoryPath = Compiler.File.Directory?.FullName ?? "/";
+
+    private void ThrowIfInvalidFileInfo()
+    {
+        if (Compiler.File is null || !Compiler.File.Exists)
+            throw new InvalidOperationException("Debug metadata generator requires a valid compiler file info");
+    }
+
+
+    private unsafe void InitializeLLVMDebugProperties(FileInfo fileInfo)
+    {
+        var file = fileInfo.Name;
+        var directoryPath = fileInfo.Directory!.FullName;
 
         DebugBuilder = LLVM.CreateDIBuilder(Module);
         File = DebugBuilder.CreateFile(file, directoryPath);
-        CompileUnit = DebugBuilder.CreateCompileUnit(
+        CompileUnit = NewCompileUnit();
+    }
+
+
+    private LLVMMetadataRef NewCompileUnit()
+        => DebugBuilder.CreateCompileUnit(
             LLVMDWARFSourceLanguage.LLVMDWARFSourceLanguageC,
             File,
             "Torque Compiler dev",
@@ -89,14 +113,6 @@ public class DebugMetadataGenerator
             null!,
             null!
         );
-    }
-
-
-    private void ThrowIfInvalidFileInfo()
-    {
-        if (Compiler.File is null || !Compiler.File.Exists)
-            throw new InvalidOperationException("Debug metadata generator requires a valid compiler file info");
-    }
 
 
 
@@ -107,48 +123,32 @@ public class DebugMetadataGenerator
 
 
 
-    public unsafe LLVMMetadataRef SetLocation(int line, int column)
-    {
-        column = Math.Max(1, column); // LLVM uses 1-based column indices
-
-        var location = CreateDebugLocation(line, column);
-        LLVM.SetCurrentDebugLocation2(Builder, location);
-
-        return location;
-    }
-
-
-    public unsafe void SetLocation()
-        => LLVM.SetCurrentDebugLocation2(Builder, null);
-
-
-    public unsafe LLVMMetadataRef CreateDebugLocation(int line, int column)
-        => LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, Scope.DebugMetadata!.Value, null);
-
-
-    public unsafe LLVMMetadataRef CreateLexicalScope(int line, int column)
-    {
-        // this function assumes "TorqueCompiler.Scope" is the new scope to insert debug metadata
-
-        var parentScope = Scope.Parent!.DebugMetadata!.Value;
-        var scopeReference = LLVM.DIBuilderCreateLexicalBlock(DebugBuilder, parentScope, File, (uint)line, (uint)column);
-        return scopeReference;
-    }
-
-
-
-
     public unsafe LLVMMetadataRef GenerateFunction(LLVMValueRef function, string name, int lineNumber, FunctionType type)
+    {
+        var debugFunctionType = FunctionTypeToLLVMSubroutineType(type);
+
+        var functionMetadata = CreateFunction(name, lineNumber, debugFunctionType);
+        LLVM.SetSubprogram(function, functionMetadata);
+
+        return functionMetadata;
+    }
+
+
+    private LLVMMetadataRef FunctionTypeToLLVMSubroutineType(FunctionType type)
     {
         var typeArray = CreateFunctionTypeArray(type);
         var metadataTypeArray = TypesToMetadataArray(typeArray);
 
         var debugFunctionType = CreateSubroutineType(metadataTypeArray);
-        var functionMetadata = CreateFunction(name, lineNumber, debugFunctionType);
 
-        LLVM.SetSubprogram(function, functionMetadata);
+        return debugFunctionType;
+    }
 
-        return functionMetadata;
+
+    private static IReadOnlyList<Type> CreateFunctionTypeArray(FunctionType type)
+    {
+        var typeArray = new Type[] { type.ReturnType };
+        return typeArray.Concat(type.ParametersType).ToArray();
     }
 
 
@@ -163,24 +163,16 @@ public class DebugMetadataGenerator
         );
 
 
-    private static IReadOnlyList<Type> CreateFunctionTypeArray(FunctionType type)
+
+
+    public unsafe LLVMMetadataRef GenerateLocalVariable(VariableSymbol variable)
     {
-        var typeArray = new Type[] { type.ReturnType };
-        return typeArray.Concat(type.ParametersType).ToArray();
-    }
+        var typeMetadata = TypeToMetadata(variable.Type!);
+        var sizeInBits = (uint)variable.Type!.SizeOfTypeInMemoryAsBits(TargetData);
+        var llvmLocation = CreateDebugLocation(variable.Location);
 
-
-
-
-    public unsafe LLVMMetadataRef GenerateLocalVariable(string name, Type type, int lineNumber, LLVMValueRef alloca, LLVMMetadataRef location)
-    {
-        const int BitsInOneByte = 8;
-
-        var typeMetadata = TypeToMetadata(type);
-        var sizeInBits = (uint)type.SizeOfTypeInMemory(TargetData) * BitsInOneByte;
-
-        var debugReference = CreateAutoVariable(name, lineNumber, typeMetadata, sizeInBits);
-        DeclareLocalVariable(alloca, debugReference, location);
+        var debugReference = CreateAutoVariable(variable.Name, variable.Location.Line, typeMetadata, sizeInBits);
+        DeclareLocalVariable(variable.LLVMReference!.Value, debugReference, llvmLocation);
 
         return debugReference;
     }
@@ -195,12 +187,13 @@ public class DebugMetadataGenerator
 
 
 
-    public unsafe LLVMMetadataRef GenerateParameter(string name, Type type, int lineNumber, int index, LLVMValueRef alloca, LLVMMetadataRef location)
+    public unsafe LLVMMetadataRef GenerateParameter(VariableSymbol parameter, int index)
     {
-        var typeMetadata = TypeToMetadata(type);
+        var typeMetadata = TypeToMetadata(parameter.Type!);
+        var llvmLocation = CreateDebugLocation(parameter.Location);
 
-        var debugReference = CreateParameterVariable(name, lineNumber, index, typeMetadata);
-        DeclareLocalVariable(alloca, debugReference, location);
+        var debugReference = CreateParameterVariable(parameter.Name, parameter.Location.Line, index, typeMetadata);
+        DeclareLocalVariable(parameter.LLVMReference!.Value, debugReference, llvmLocation);
 
         return debugReference;
     }
@@ -245,6 +238,43 @@ public class DebugMetadataGenerator
 
 
 
+    public unsafe LLVMMetadataRef SetCurrentLocation(int line, int column)
+    {
+        column = Math.Max(1, column); // DWARF uses 1-based column indices
+
+        var location = CreateDebugLocation(line, column);
+        LLVM.SetCurrentDebugLocation2(Builder, location);
+
+        return location;
+    }
+
+
+    public unsafe void SetCurrentLocation()
+        => LLVM.SetCurrentDebugLocation2(Builder, null);
+
+
+    public LLVMMetadataRef CreateDebugLocation(Span location)
+        => CreateDebugLocation(location.Line, location.Start);
+
+
+    public unsafe LLVMMetadataRef CreateDebugLocation(int line, int column)
+        => LLVM.DIBuilderCreateDebugLocation(Module.Context, (uint)line, (uint)column, Scope.DebugMetadata!.Value, null);
+
+
+
+
+    public unsafe LLVMMetadataRef CreateLexicalScope(int line, int column)
+    {
+        // this function assumes "TorqueCompiler.Scope" is the new scope to insert debug metadata
+
+        var parentScope = Scope.Parent!.DebugMetadata!.Value;
+        var scopeReference = LLVM.DIBuilderCreateLexicalBlock(DebugBuilder, parentScope, File, (uint)line, (uint)column);
+        return scopeReference;
+    }
+
+
+
+
     public IReadOnlyList<LLVMMetadataRef> TypesToMetadataArray(IReadOnlyList<Type> types)
     {
         var metadataArray = new LLVMMetadataRef[types.Count];
@@ -256,36 +286,43 @@ public class DebugMetadataGenerator
     }
 
 
-    public unsafe LLVMMetadataRef TypeToMetadata(Type type)
+    public LLVMMetadataRef TypeToMetadata(Type type)
     {
         var name = type.ToString();
 
-        var sbyteName = name.StringToSBytePtr();
         var sizeInBits = type.SizeOfTypeInMemoryAsBits(TargetData);
         var encoding = GetEncodingFromType(type);
 
-        return type switch
+        return TypeToMetadata(type, name, sizeInBits, encoding);
+    }
+
+
+    private LLVMMetadataRef TypeToMetadata(Type type, string name, int sizeInBits, int encoding)
+        => type switch
         {
-            BaseType => BasicTypeMetadata(sbyteName, name.Length, sizeInBits, encoding),
-            PointerType pointerType => PointerTypeMetadata(pointerType.Type, sbyteName, name.Length, sizeInBits),
+            BaseType => CreateBasicTypeMetadata(name, sizeInBits, encoding),
+            PointerType pointerType => CreatePointerTypeMetadata(pointerType.Type, name, sizeInBits), // TODO: add function type
 
             _ => throw new UnreachableException()
         };
-    }
 
 
-    private unsafe LLVMMetadataRef PointerTypeMetadata(Type elementType, sbyte* sbyteName, int nameLength, int sizeInBits)
+
+
+    public unsafe LLVMMetadataRef CreatePointerTypeMetadata(Type elementType, string name, int sizeInBits)
     {
         var elementTypeMetadata = TypeToMetadata(elementType);
-        return LLVM.DIBuilderCreatePointerType(DebugBuilder, elementTypeMetadata, (ulong)sizeInBits, (uint)sizeInBits, 0, sbyteName, (uint)nameLength);
+        return LLVM.DIBuilderCreatePointerType(DebugBuilder, elementTypeMetadata, (ulong)sizeInBits, (uint)sizeInBits, 0, name.StringToSBytePtr(), (uint)name.Length);
     }
 
 
-    private unsafe LLVMMetadataRef BasicTypeMetadata(sbyte* sbyteName, int nameLength, int sizeInBits, int encoding)
-        => LLVM.DIBuilderCreateBasicType(DebugBuilder, sbyteName, (uint)nameLength, (ulong)sizeInBits, (uint)encoding, LLVMDIFlags.LLVMDIFlagZero);
+    public unsafe LLVMMetadataRef CreateBasicTypeMetadata(string name, int sizeInBits, int encoding)
+        => LLVM.DIBuilderCreateBasicType(DebugBuilder, name.StringToSBytePtr(), (uint)name.Length, (ulong)sizeInBits, (uint)encoding, LLVMDIFlags.LLVMDIFlagZero);
 
 
-    private static int GetEncodingFromType(Type type) => type.Base.Type switch
+
+
+    public static int GetEncodingFromType(Type type) => type.Base.Type switch
     {
         _ when type.IsPointer || type.IsFunction => DebugMetadataTypeEncodings.Address,
 

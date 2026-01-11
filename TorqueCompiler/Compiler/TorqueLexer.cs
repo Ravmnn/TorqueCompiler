@@ -94,13 +94,13 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
             case '[': return TokenFromTokenType(TokenType.LeftSquareBracket);
             case ']': return TokenFromTokenType(TokenType.RightSquareBracket);
 
-            case '\'': return Char();
+            case '\'': return ScanChar();
 
             case '#':
                 if (Match('>'))
-                    MultilineComment();
+                    ScanMultilineComment();
                 else
-                    Comment();
+                    ScanComment();
 
                 return null;
         }
@@ -112,10 +112,10 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
     private Token? TokenizeLiteralOrReport(char character)
     {
         if (char.IsAsciiLetter(character))
-            return Identifier();
+            return ScanIdentifier();
 
         if (char.IsAsciiDigit(character))
-            return Number();
+            return ScanNumber();
 
         Report(LexerCatalog.UnexpectedToken);
         return null;
@@ -124,7 +124,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
 
 
-    private Token Char()
+    private Token ScanChar()
     {
         var quoteLocation = GetCurrentLocation();
         var text = ScanStringText('\'');
@@ -188,25 +188,35 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
     }
 
 
-    private void AddStringEncoderDiagnosticsToThis(StringTokenEncoder encoder, Span stringQuote)
+    private void AddStringEncoderDiagnosticsToThis(StringTokenEncoder encoder, Span stringStartQuoteLocation)
     {
         var diagnostics = encoder.Diagnostics;
 
         for (var i = 0; i < diagnostics.Count; i++)
-        {
-            var diagnostic = diagnostics[i];
-            var location = diagnostic.Location!.Value;
-            diagnostics[i] = diagnostic with { Location = // "+ 1" here is to jump the quote
-                new Span(stringQuote.Start + location.Start + 1, stringQuote.End + location.End, stringQuote.Line) };
-        }
+            diagnostics[i] = ConvertStringEncoderDiagnosticsToThis(diagnostics[i], stringStartQuoteLocation);
 
         Diagnostics.AddRange(diagnostics);
     }
 
 
+    private static Diagnostic ConvertStringEncoderDiagnosticsToThis(Diagnostic diagnostic, Span stringStartQuoteLocation)
+    {
+        var location = diagnostic.Location!.Value;
+
+        return diagnostic with
+        {
+            Location = new Span(
+                stringStartQuoteLocation.Start + location.Start + 1,
+                stringStartQuoteLocation.End + location.End,
+                stringStartQuoteLocation.Line
+            )
+        };
+    }
 
 
-    private void Comment() => AdvanceComment();
+
+
+    private void ScanComment() => AdvanceComment();
 
     private void AdvanceComment()
     {
@@ -217,7 +227,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
 
 
-    private void MultilineComment()
+    private void ScanMultilineComment()
     {
         var startLocation = GetCurrentLocation();
         AdvanceMultilineComment();
@@ -242,7 +252,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
 
 
-    private Token Identifier()
+    private Token ScanIdentifier()
     {
         AdvanceIdentifier();
 
@@ -268,17 +278,29 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
 
 
-    private Token Number()
+    private Token ScanNumber()
     {
         AdvanceWhileDigit();
+        return TokenFromNumber(GetCurrentTokenLexeme());
+    }
 
-        var lexeme = GetCurrentTokenLexeme();
-        var isFloat = lexeme.Contains('.');
 
+    private Token TokenFromNumber(string lexeme)
+    {
         if (lexeme.Count(character => character == '.') > 1)
             Report(LexerCatalog.MoreThanOneDotInFloatNumber);
 
+        var value = GetValueFromNumber(lexeme);
+        var tokenType = value is double ? TokenType.FloatValue : TokenType.IntegerValue;
+
+        return TokenFromTokenType(tokenType, value);
+    }
+
+
+    private static object GetValueFromNumber(string lexeme)
+    {
         object? value;
+        var isFloat = lexeme.Contains('.');
 
         // don't use ternary operator or any other expression, as they implicitly convert the value to "double"
         if (isFloat)
@@ -286,13 +308,13 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
         else
             value = lexeme.ValueFromInteger();
 
-        return TokenFromTokenType(isFloat ? TokenType.FloatValue : TokenType.IntegerValue, value);
+        return value;
     }
 
 
     private void AdvanceWhileDigit()
     {
-        while (Peek() is { } character)
+        while (Peek() is var character)
         {
             if (!char.IsAsciiDigit(character) && character != '.')
                 break;
@@ -306,7 +328,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
 
     private bool IsNextDigit()
-        => PeekNext() is { } next && char.IsAsciiDigit(next);
+        => PeekNext() is var next && char.IsAsciiDigit(next);
 
 
 

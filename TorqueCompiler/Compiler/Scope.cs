@@ -25,11 +25,11 @@ public class Scope(Scope? parent = null)
 
 
 
-    public static T ProcessInnerScope<T>(ref Scope scope, Func<T> func)
-        => ProcessInnerScope(ref scope, scope, func);
+    public static T ForInnerScope<T>(ref Scope scope, Func<T> func)
+        => ForInnerScope(ref scope, scope, func);
 
 
-    public static T ProcessInnerScope<T>(ref Scope scope, Scope newScope, Func<T> func)
+    public static T ForInnerScope<T>(ref Scope scope, Scope newScope, Func<T> func)
     {
         var oldScope = scope;
         scope = new Scope(newScope);
@@ -42,9 +42,7 @@ public class Scope(Scope? parent = null)
     }
 
 
-
-
-    public static void ProcessInnerScope(ref Scope scope, Scope newScope, Action action)
+    public static void ForInnerScope(ref Scope scope, Scope newScope, Action action)
     {
         var oldScope = scope;
 
@@ -74,9 +72,8 @@ public class Scope(Scope? parent = null)
 
     public Symbol? TryGetSymbol(string name)
     {
-        foreach (var symbol in Symbols)
-            if (symbol.Name == name)
-                return symbol;
+        if (Symbols.Find(item => item.Name == name) is { } symbol)
+            return symbol;
 
         return Parent?.TryGetSymbol(name);
     }
@@ -84,9 +81,8 @@ public class Scope(Scope? parent = null)
 
     public Symbol? TryGetSymbol(LLVMValueRef reference)
     {
-        foreach (var symbol in Symbols)
-            if (symbol.LLVMReference == reference)
-                return symbol;
+        if (Symbols.Find(item => item.LLVMReference == reference) is { } symbol)
+            return symbol;
 
         return Parent?.TryGetSymbol(reference);
     }

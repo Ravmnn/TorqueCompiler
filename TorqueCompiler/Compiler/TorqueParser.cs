@@ -33,19 +33,29 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         Reset();
 
         while (!AtEnd())
-        {
-            try
-            {
-                if (Declaration() is { } declaration)
-                    _statements.Add(declaration);
-            }
-            catch (DiagnosticException)
-            {
-                Synchronize();
-            }
-        }
+            ParseDeclarationOrSynchronize();
 
         return _statements;
+    }
+
+
+    private void ParseDeclarationOrSynchronize()
+    {
+        try
+        {
+            ParseDeclaration();
+        }
+        catch (DiagnosticException)
+        {
+            Synchronize();
+        }
+    }
+
+
+    private void ParseDeclaration()
+    {
+        if (Declaration() is { } declaration)
+            _statements.Add(declaration);
     }
 
 
@@ -75,12 +85,12 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     private Statement GenericDeclaration()
     {
         var type = ParseTypeName();
-        var name = new SymbolSyntax(ExpectIdentifier());
+        var symbol = new SymbolSyntax(ExpectIdentifier());
 
         if (Check(TokenType.LeftParen))
-            return FunctionDeclaration(type, name);
+            return FunctionDeclaration(type, symbol);
 
-        return VariableDeclaration(type, name);
+        return VariableDeclaration(type, symbol);
     }
 
 
@@ -121,9 +131,9 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         return DoWhileComma(() =>
         {
             var type = ParseTypeName();
-            var name = new SymbolSyntax(ExpectIdentifier());
+            var symbol = new SymbolSyntax(ExpectIdentifier());
 
-            return new FunctionParameterDeclaration(name, type);
+            return new FunctionParameterDeclaration(symbol, type);
         });
     }
 
@@ -213,12 +223,19 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         var rightParen = ExpectRightParen();
 
         var thenStatement = Statement()!;
-        Statement? elseStatement = null;
+        var elseStatement = ElseOrNull();
 
+        var location = new Span(keyword, rightParen);
+        return new IfStatement(condition, thenStatement, elseStatement, location);
+    }
+
+
+    private Statement? ElseOrNull()
+    {
         if (Match(TokenType.KwElse))
-            elseStatement = Statement();
+            return Statement();
 
-        return new IfStatement(condition, thenStatement, elseStatement, new Span(keyword, rightParen));
+        return null;
     }
 
     #endregion
@@ -281,9 +298,10 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
         while (Match(TokenType.KwAs))
         {
-            var keyword = Previous();
             var type = ParseTypeName();
-            expression = new CastExpression(expression, type, new Span(expression.Location, type.BaseType.TypeSymbol.Location));
+            var location = new Span(expression.Location, type.BaseType.TypeSymbol.Location);
+
+            expression = new CastExpression(expression, type, location);
         }
 
         return expression;
@@ -318,8 +336,9 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         {
             var index = Expression();
             var rightSquareBracket = ExpectRightSquareBracket();
+            var location = new Span(expression.Location, rightSquareBracket);
 
-            expression = new IndexingExpression(expression, index, new Span(expression.Location, rightSquareBracket));
+            expression = new IndexingExpression(expression, index, location);
         }
 
         return expression;
@@ -336,8 +355,9 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         {
             var arguments = Arguments();
             var parenRight = ExpectRightParen();
+            var location = new Span(expression.Location, parenRight);
 
-            expression = new CallExpression(expression, arguments, new Span(expression.Location, parenRight));
+            expression = new CallExpression(expression, arguments, location);
         }
 
         return expression;
@@ -409,12 +429,13 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
             return null;
 
         ExpectLeftSquareBracket();
-        var size = (ulong)ExpectLiteralInteger().Value!; // TODO: size should be able to be inferred from the initialization list
+        var size = (ulong)ExpectLiteralInteger().Value!; // TODO: array length should be able to be inferred from the initialization list
         var rightSquareBracket = ExpectRightSquareBracket();
 
         var expressions = GetOptionalArrayInitializationExpressions();
+        var location = new Span(type.BaseType.TypeSymbol.Location, rightSquareBracket);
 
-        return new ArrayExpression(type, size, expressions, new Span(type.BaseType.TypeSymbol.Location, rightSquareBracket));
+        return new ArrayExpression(type, size, expressions, location);
     }
 
 
@@ -514,22 +535,23 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         TypeSyntax type = new BaseTypeSyntax(typeNameSymbol);
 
         while (true)
-        {
-            var shouldContinue = false;
-
-            foreach (var (token, processor) in processors)
-                if (Match(token))
-                {
-                    type = processor(type);
-                    shouldContinue = true;
-                    break;
-                }
-
-            if (!shouldContinue)
+            if (!ModifyCurrentTypeNameFromProcessors(ref type, processors))
                 break;
-        }
 
         return type;
+    }
+
+
+    private bool ModifyCurrentTypeNameFromProcessors(ref TypeSyntax type, Dictionary<TokenType, Func<TypeSyntax, TypeSyntax>> processors)
+    {
+        foreach (var (token, processor) in processors)
+            if (Match(token))
+            {
+                type = processor(type);
+                return true;
+            }
+
+        return false;
     }
 
 
