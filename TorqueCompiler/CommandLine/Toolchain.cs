@@ -23,7 +23,8 @@ public static class Toolchain
         var tempFile = Path.GetTempFileName();
         File.WriteAllText(tempFile, bitCode);
 
-        ProcessInvoke.ExecuteAndWait("/bin/llc", $"{tempFile} -o \"{outputFileName}\" -filetype={fileType} {debugString}");
+        // uses LLVM 20.0
+        ProcessInvoke.ExecuteAndWait("/bin/llc-20", $"{tempFile} -o \"{outputFileName}\" -filetype={fileType} {debugString}");
 
         File.Delete(tempFile);
     }

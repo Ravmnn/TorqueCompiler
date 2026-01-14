@@ -9,10 +9,10 @@ namespace Torque.Compiler.AST.Expressions;
 
 
 
-public class ArrayExpression(TypeSyntax elementType, ulong size, IReadOnlyList<Expression>? elements, Span location) : Expression(location)
+public class ArrayExpression(TypeSyntax elementType, ulong length, IReadOnlyList<Expression>? elements, Span location) : Expression(location)
 {
     public TypeSyntax ElementType { get; } = elementType;
-    public ulong Size { get; } = size;
+    public ulong Length { get; } = length;
     public IReadOnlyList<Expression>? Elements { get; } = elements;
 
 

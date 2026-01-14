@@ -1,5 +1,13 @@
+void get()
+{
+    
+}
+
+
 int main(int argc, char** argv)
 {
+    get();
+
     let num1 = 10;
     let num2 = num1 * 999;
     let preresult = num1 * num1 * num2;

@@ -140,11 +140,11 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     public string ProcessBlock(BlockStatement blockStatement)
     {
         var builder = new StringBuilder();
-        var statementsString = blockStatement.Statements.ItemsToStringThenJoin("", Process);
 
         builder.Append($"{BeginStatement()}{{{NewlineChar()}");
         IncreaseIndent();
 
+        var statementsString = blockStatement.Statements.ItemsToStringThenJoin("", Process);
         builder.Append(statementsString);
 
         DecreaseIndent();
@@ -161,23 +161,29 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         var builder = new StringBuilder();
 
         builder.Append($"{BeginStatement()}if {Process(statement.Condition)}{NewlineChar()}");
-        builder.Append(IndentProcessUnindent(statement.ThenStatement));
+        builder.Append(ForIndentDo(statement.ThenStatement));
 
         if (statement.ElseStatement is not null)
         {
             builder.Append($"{BeginStatement()}else{NewlineChar()}");
-            builder.Append(IndentProcessUnindent(statement.ElseStatement));
+            builder.Append(ForIndentDo(statement.ElseStatement));
         }
 
         return builder.ToString();
     }
 
 
-    private string IndentProcessUnindent(Statement statement)
+    private string ForIndentDo(Statement statement)
     {
-        IncreaseIndent();
+        var isBlock = statement is BlockStatement;
+
+        if (!isBlock)
+            IncreaseIndent();
+
         var result= Process(statement);
-        DecreaseIndent();
+
+        if (!isBlock)
+            DecreaseIndent();
 
         return result;
     }
@@ -282,7 +288,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         var elementsString = expressionsString?.ItemsToStringThenJoin(", ", item => item);
         var initializationListString = expressionsString is not null ? $" {{ {elementsString} }}" : "";
 
-        return $"({expression.ElementType} array[{expression.Size}]{initializationListString})";
+        return $"({expression.ElementType} array[{expression.Length}]{initializationListString})";
     }
 
 

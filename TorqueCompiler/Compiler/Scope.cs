@@ -25,11 +25,11 @@ public class Scope(Scope? parent = null)
 
 
 
-    public static T ForInnerScope<T>(ref Scope scope, Func<T> func)
-        => ForInnerScope(ref scope, scope, func);
+    public static T ForInnerScopeDo<T>(ref Scope scope, Func<T> func)
+        => ForInnerScopeDo(ref scope, scope, func);
 
 
-    public static T ForInnerScope<T>(ref Scope scope, Scope newScope, Func<T> func)
+    public static T ForInnerScopeDo<T>(ref Scope scope, Scope newScope, Func<T> func)
     {
         var oldScope = scope;
         scope = new Scope(newScope);
@@ -42,7 +42,7 @@ public class Scope(Scope? parent = null)
     }
 
 
-    public static void ForInnerScope(ref Scope scope, Scope newScope, Action action)
+    public static void ForInnerScopeDo(ref Scope scope, Scope newScope, Action action)
     {
         var oldScope = scope;
 

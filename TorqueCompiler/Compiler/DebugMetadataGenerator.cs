@@ -123,12 +123,12 @@ public class DebugMetadataGenerator
 
 
 
-    public unsafe LLVMMetadataRef GenerateFunction(LLVMValueRef function, string name, int lineNumber, FunctionType type)
+    public unsafe LLVMMetadataRef GenerateFunction(FunctionSymbol function)
     {
-        var debugFunctionType = FunctionTypeToLLVMSubroutineType(type);
+        var debugFunctionType = FunctionTypeToLLVMSubroutineType(function.Type!);
 
-        var functionMetadata = CreateFunction(name, lineNumber, debugFunctionType);
-        LLVM.SetSubprogram(function, functionMetadata);
+        var functionMetadata = CreateFunction(function.Name, function.Location.Line, debugFunctionType);
+        LLVM.SetSubprogram(function.LLVMReference!, functionMetadata);
 
         return functionMetadata;
     }
