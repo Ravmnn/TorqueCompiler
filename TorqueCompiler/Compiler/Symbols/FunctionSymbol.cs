@@ -20,6 +20,8 @@ public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbo
 
     public IReadOnlyList<VariableSymbol> Parameters { get; set; } = parameters;
 
+    public bool IsExternal { get; set; }
+
 
 
 

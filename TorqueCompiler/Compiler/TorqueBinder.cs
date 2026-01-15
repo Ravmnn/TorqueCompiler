@@ -83,14 +83,27 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     {
         ReportIfMultipleDeclaration(statement.Name);
 
-        var functionSymbol = new FunctionSymbol(statement.Name, Scope);
+        var functionSymbol = new FunctionSymbol(statement.Name, Scope) { IsExternal = statement.IsExternal };
         Scope.Symbols.Add(functionSymbol);
 
-        var body = (ProcessFunctionBlock(statement.Body, statement.Parameters) as BoundBlockStatement)!;
-
-        functionSymbol.Parameters = body.Scope.GetLocalParameters();
+        var body = ProcessFunctionBlockIfNotExternal(statement, functionSymbol);
 
         return new BoundFunctionDeclarationStatement(statement, body, functionSymbol);
+    }
+
+
+    private BoundBlockStatement? ProcessFunctionBlockIfNotExternal(FunctionDeclarationStatement statement, FunctionSymbol functionSymbol)
+    {
+        if (statement.IsExternal)
+            return null;
+
+        // when a function is marked as external, its parameter symbols are not going to be used,
+        // so declaring then is also unnecessary
+
+        var body = (ProcessFunctionBlock(statement.Body!, statement.Parameters) as BoundBlockStatement)!;
+        functionSymbol.Parameters = body.Scope.GetLocalParameters();
+
+        return body;
     }
 
 

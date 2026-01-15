@@ -70,4 +70,7 @@
     <data name="ExpectRightCurlyBracket" xml:space="preserve">
         <value>Expect "}"</value>
     </data>
+    <data name="OnlyFunctionsCanBeExternal" xml:space="preserve">
+        <value>Only functions can be marked as "external"</value>
+    </data>
 </root>

@@ -125,19 +125,33 @@ public class DebugMetadataGenerator
 
     public unsafe LLVMMetadataRef GenerateFunction(FunctionSymbol function)
     {
-        var debugFunctionType = CreateFunctionTypeMetadata(function.Type!);
-
-        var functionMetadata = CreateFunction(function.Name, function.Location.Line, debugFunctionType);
+        var functionMetadata = CreateFunction(function);
         LLVM.SetSubprogram(function.LLVMReference!, functionMetadata);
 
         return functionMetadata;
     }
 
 
-    private LLVMMetadataRef CreateFunction(string name, int lineNumber, LLVMMetadataRef debugFunctionType)
+    private LLVMMetadataRef CreateFunction(FunctionSymbol function)
+    {
+        var debugFunctionType = CreateFunctionTypeMetadata(function.Type!);
+        return CreateFunction(function.Name, function.Location.Line, debugFunctionType, !function.IsExternal);
+    }
+
+
+    private LLVMMetadataRef CreateFunction(string name, int lineNumber, LLVMMetadataRef debugFunctionType, bool isDefinition = true)
         => DebugBuilder.CreateFunction(
-            Scope.DebugMetadata!.Value, name, name, File, (uint)lineNumber, debugFunctionType, 0, 1,
-            (uint)lineNumber, LLVMDIFlags.LLVMDIFlagZero, 0
+            Scope.DebugMetadata!.Value,
+            name,
+            name,
+            File,
+            (uint)lineNumber,
+            debugFunctionType,
+            0,
+            isDefinition.BoolToInt(),
+            (uint)lineNumber,
+            LLVMDIFlags.LLVMDIFlagZero,
+            0
         );
 
 

@@ -36,6 +36,9 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
     {
         foreach (var function in FunctionDeclarations)
         {
+            if (function.IsExternal)
+                continue;
+
             ResetBlocks();
             Process(function);
             _graphs.Add(_currentGraph!);
@@ -93,7 +96,7 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
         _currentGraph = new ControlFlowGraph(statement);
         _currentGraph.Entry = AttachNewBlock();
 
-        Process(statement.Body);
+        Process(statement.Body!);
     }
 
 

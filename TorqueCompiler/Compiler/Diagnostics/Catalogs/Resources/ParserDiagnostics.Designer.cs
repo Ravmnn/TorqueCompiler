@@ -9,21 +9,21 @@
 
 namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
     using System;
-
-
+    
+    
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class ParserDiagnostics {
-
+        
         private static System.Resources.ResourceManager resourceMan;
-
+        
         private static System.Globalization.CultureInfo resourceCulture;
-
+        
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal ParserDiagnostics() {
         }
-
+        
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Resources.ResourceManager ResourceManager {
             get {
@@ -34,7 +34,7 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 return resourceMan;
             }
         }
-
+        
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Globalization.CultureInfo Culture {
             get {
@@ -44,100 +44,106 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 resourceCulture = value;
             }
         }
-
+        
         internal static string ExpectBlock {
             get {
                 return ResourceManager.GetString("ExpectBlock", resourceCulture);
             }
         }
-
+        
         internal static string ExpectSemicolonAfterStatement {
             get {
                 return ResourceManager.GetString("ExpectSemicolonAfterStatement", resourceCulture);
             }
         }
-
+        
         internal static string ExpectExpression {
             get {
                 return ResourceManager.GetString("ExpectExpression", resourceCulture);
             }
         }
-
+        
         internal static string ExpectIdentifier {
             get {
                 return ResourceManager.GetString("ExpectIdentifier", resourceCulture);
             }
         }
-
+        
         internal static string ExpectTypeName {
             get {
                 return ResourceManager.GetString("ExpectTypeName", resourceCulture);
             }
         }
-
+        
         internal static string ExpectTypeSpecifier {
             get {
                 return ResourceManager.GetString("ExpectTypeSpecifier", resourceCulture);
             }
         }
-
+        
         internal static string ExpectAssignmentOperator {
             get {
                 return ResourceManager.GetString("ExpectAssignmentOperator", resourceCulture);
             }
         }
-
+        
         internal static string ExpectLeftParen {
             get {
                 return ResourceManager.GetString("ExpectLeftParen", resourceCulture);
             }
         }
-
+        
         internal static string ExpectRightParen {
             get {
                 return ResourceManager.GetString("ExpectRightParen", resourceCulture);
             }
         }
-
+        
         internal static string UnclosedBlock {
             get {
                 return ResourceManager.GetString("UnclosedBlock", resourceCulture);
             }
         }
-
+        
         internal static string UnexpectedToken {
             get {
                 return ResourceManager.GetString("UnexpectedToken", resourceCulture);
             }
         }
-
+        
         internal static string ExpectLeftSquareBracket {
             get {
                 return ResourceManager.GetString("ExpectLeftSquareBracket", resourceCulture);
             }
         }
-
+        
         internal static string ExpectRightSquareBracket {
             get {
                 return ResourceManager.GetString("ExpectRightSquareBracket", resourceCulture);
             }
         }
-
+        
         internal static string ExpectLiteralInteger {
             get {
                 return ResourceManager.GetString("ExpectLiteralInteger", resourceCulture);
             }
         }
-
+        
         internal static string ExpectLeftCurlyBracket {
             get {
                 return ResourceManager.GetString("ExpectLeftCurlyBracket", resourceCulture);
             }
         }
-
+        
         internal static string ExpectRightCurlyBracket {
             get {
                 return ResourceManager.GetString("ExpectRightCurlyBracket", resourceCulture);
+            }
+        }
+        
+        internal static string OnlyFunctionsCanBeExternal {
+            get {
+                return ResourceManager.GetString("OnlyFunctionsCanBeExternal", resourceCulture);
             }
         }
     }

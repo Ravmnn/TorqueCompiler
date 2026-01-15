@@ -74,21 +74,31 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     #region Statements
 
-    private Statement? Declaration() => Peek().Type switch
+    private Statement? Declaration()
     {
-        TokenType.Type => GenericDeclaration(),
+        var peek = Peek();
 
-        _ => Statement()
-    };
+        return peek switch
+        {
+            // TODO: when add more modifiers, improve the way you process them
+            _ when peek.Type == TokenType.Type || MatchAnyModifier() => GenericDeclaration(),
+
+            _ => Statement()
+        };
+    }
 
 
     private Statement GenericDeclaration()
     {
+        var isExternal = CheckPrevious(TokenType.KwExternal);
         var type = ParseTypeName();
         var symbol = new SymbolSyntax(ExpectIdentifier());
 
         if (Check(TokenType.LeftParen))
-            return FunctionDeclaration(type, symbol);
+            return FunctionDeclaration(type, symbol, isExternal);
+
+        if (isExternal)
+            Report(ParserCatalog.OnlyFunctionsCanBeExternal, location: symbol.Location);
 
         return VariableDeclaration(type, symbol);
     }
@@ -111,13 +121,18 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
 
 
-    private Statement FunctionDeclaration(TypeSyntax returnType, SymbolSyntax name)
+    private Statement FunctionDeclaration(TypeSyntax returnType, SymbolSyntax name, bool isExternal = false)
     {
         ExpectLeftParen();
         var parameters = FunctionParameters();
         ExpectRightParen();
 
-        var body = (Block() as BlockStatement)!;
+        BlockStatement? body = null;
+
+        if (!isExternal)
+            body = (Block() as BlockStatement)!;
+        else
+            ExpectEndOfStatement();
 
         return new FunctionDeclarationStatement(returnType, name, parameters, body);
     }
@@ -460,6 +475,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     private Expression ParseDefault()
     {
         var keyword = Previous();
+        ExpectLeftParen();
         var typeName = ParseTypeName();
         var rightParen = ExpectRightParen();
 
@@ -697,6 +713,16 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
 
 
+    private bool MatchAnyModifier()
+    {
+        if (!Peek().Lexeme.IsModifier())
+            return false;
+
+        Advance();
+        return true;
+    }
+
+
     private bool Match(params IReadOnlyList<TokenType> tokens)
     {
         foreach (var token in tokens)
@@ -709,6 +735,15 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         }
 
         return false;
+    }
+
+
+    private bool CheckPrevious(TokenType token, int amount = 1)
+    {
+        if (_current == 0)
+            return false;
+
+        return Previous(amount).Type == token;
     }
 
 

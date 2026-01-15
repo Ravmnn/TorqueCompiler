@@ -101,9 +101,17 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         var parametersType = ParametersTypeFromParametersDeclaration(statement.Syntax.Parameters);
 
         SetFunctionAndParametersSymbolsType(statement.Symbol, returnType, parametersType);
+        ProcessFunctionBlockIfNotExternal(statement, returnType);
+    }
+
+
+    private void ProcessFunctionBlockIfNotExternal(BoundFunctionDeclarationStatement statement, Type returnType)
+    {
+        if (statement.IsExternal)
+            return;
 
         _expectedReturnType = returnType;
-        Process(statement.Body);
+        Process(statement.Body!);
         _expectedReturnType = null;
     }
 
@@ -111,7 +119,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     private void SetFunctionAndParametersSymbolsType(FunctionSymbol symbol, Type returnType, IReadOnlyList<Type> parametersType)
     {
         symbol.Type = new FunctionType(returnType, parametersType);
-        SetFunctionSymbolParametersType(symbol, parametersType);
+        SetFunctionSymbolParametersTypeIfNotExternal(symbol, parametersType);
     }
 
 
@@ -119,8 +127,11 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         => parameters.Select(parameter => TypeFromNonVoidTypeName(parameter.Type)).ToArray();
 
 
-    private void SetFunctionSymbolParametersType(FunctionSymbol symbol, IReadOnlyList<Type> parametersType)
+    private void SetFunctionSymbolParametersTypeIfNotExternal(FunctionSymbol symbol, IReadOnlyList<Type> parametersType)
     {
+        if (symbol.IsExternal)
+            return;
+
         for (var i = 0; i < parametersType.Count; i++)
             symbol.Parameters[i].Type = parametersType[i];
     }

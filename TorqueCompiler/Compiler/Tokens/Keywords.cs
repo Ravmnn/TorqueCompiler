@@ -36,17 +36,23 @@ public static class Keywords
         { "half", PrimitiveType.Float16 },
         { "float", PrimitiveType.Float32 },
         { "double", PrimitiveType.Float64 },
-        { "ptrsize", PrimitiveType.PtrSize }
+        { "usize", PrimitiveType.PtrSize }
     };
 
 
     public static readonly IReadOnlyDictionary<string, TokenType> General = new Dictionary<string, TokenType>
     {
+        { "return", TokenType.KwReturn },
         { "if", TokenType.KwIf },
         { "else", TokenType.KwElse },
-        { "return", TokenType.KwReturn },
         { "as", TokenType.KwAs },
         { "array", TokenType.KwArray },
         { "default", TokenType.KwDefault }
+    };
+
+
+    public static readonly IReadOnlyDictionary<string, TokenType> Modifiers = new Dictionary<string, TokenType>
+    {
+        { "external", TokenType.KwExternal }
     };
 }

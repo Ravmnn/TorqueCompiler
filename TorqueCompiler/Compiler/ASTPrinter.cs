@@ -121,8 +121,11 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         var builder = new StringBuilder();
         var parametersString = statement.Parameters.ItemsToStringThenJoin(", ", param => $"{param.Type} {param.Name}");
 
-        builder.Append($"{BeginStatement()}{statement.ReturnType} {statement.Name}({parametersString}){NewlineChar()}");
-        builder.Append($"{Process(statement.Body)}{EndStatement()}");
+        var externalString = statement.IsExternal ? "external " : "";
+        var blockString = statement.IsExternal ? "" : Process(statement.Body!);
+
+        builder.Append($"{BeginStatement()}{externalString}{statement.ReturnType} {statement.Name}({parametersString}){NewlineChar()}");
+        builder.Append($"{blockString}{EndStatement()}");
 
         return builder.ToString();
     }

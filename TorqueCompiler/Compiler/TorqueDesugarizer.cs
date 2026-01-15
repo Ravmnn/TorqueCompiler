@@ -52,7 +52,7 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
 
     public Statement ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
         => new FunctionDeclarationStatement(statement.ReturnType, statement.Name, statement.Parameters,
-            (Process(statement.Body) as BlockStatement)!);
+            statement.IsExternal ? null : (Process(statement.Body!) as BlockStatement)!);
 
 
 

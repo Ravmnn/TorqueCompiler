@@ -1,6 +1,60 @@
+external byte* fdopen(int fileDescriptor, char* mode);
+external int64 getline(char** buffer, usize* bufferSize, byte* fileDescriptor);
+external int printf(char* content);
+
+
+byte* stdin() { return fdopen(0, "r"); }
+
+
+char* readln(char* prompt)
+{
+    let buffer = default(char*);
+    let bufferSize = default(usize);
+
+    if (prompt != default(char*))
+        printf(prompt);
+
+    let length = getline(&buffer, &bufferSize, stdin());
+    buffer[length - 1] = '\0';
+
+    return buffer;
+}
+
+
+void println(char* content)
+{
+    printf(content);
+    printf("\n");
+}
+
+
+
+
+void getFavoriteFoods(char** buffer)
+{
+    println("what are your favorite foods?");
+    
+    buffer[0] = readln("> ");
+    buffer[1] = readln("> ");
+    buffer[2] = readln("> ");
+}
+
+
+void printFavoriteFoods(char** foods)
+{
+    println("your favorite foods are:");
+    println(foods[0]);
+    println(foods[1]);
+    println(foods[2]);
+}
+
+
 int main(int argc, char** argv)
 {
-    let string = "hello, world";
+    let foods = char* array[3];
+ 
+    getFavoriteFoods(foods);
+    printFavoriteFoods(foods);
 
     return 0;
 }

@@ -13,12 +13,14 @@ public readonly record struct FunctionParameterDeclaration(SymbolSyntax Name, Ty
 
 
 public class FunctionDeclarationStatement(TypeSyntax returnType, SymbolSyntax name, IReadOnlyList<FunctionParameterDeclaration> parameters,
-    BlockStatement body) : Statement(name.Location)
+    BlockStatement? body) : Statement(name.Location)
 {
     public TypeSyntax ReturnType { get; } = returnType;
     public SymbolSyntax Name { get; } = name;
     public IReadOnlyList<FunctionParameterDeclaration> Parameters { get; } = parameters;
-    public BlockStatement Body { get; } = body;
+    public BlockStatement? Body { get; } = body;
+
+    public bool IsExternal => Body is null;
 
 
 

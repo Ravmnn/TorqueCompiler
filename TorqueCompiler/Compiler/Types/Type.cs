@@ -49,7 +49,7 @@ public abstract class Type
     public bool IsUnsigned => !IsSigned;
 
     public bool IsFloat => IsBase && Base.Type is PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64;
-    public bool IsInteger => IsBase && !IsFloat;
+    public bool IsInteger => (IsBase || IsPointer) && !IsFloat;
     public bool IsChar => IsBase && Base.Type == PrimitiveType.Char;
     public bool IsBool => IsBase && Base.Type == PrimitiveType.Bool;
 

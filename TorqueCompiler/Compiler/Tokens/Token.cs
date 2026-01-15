@@ -23,7 +23,9 @@ public enum TokenType
     IntegerValue, FloatValue, BoolValue, CharValue, StringValue,
     Type,
 
-    KwIf, KwElse, KwReturn, KwAs, KwArray, KwDefault
+    KwExternal, KwReturn,
+    KwIf, KwElse,
+    KwAs, KwArray, KwDefault
 }
 
 

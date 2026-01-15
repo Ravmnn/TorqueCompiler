@@ -149,18 +149,21 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var functionSymbol = statement.Symbol;
 
         var llvmFunctionType = functionSymbol.Type!.ToRawLLVMType();
-
         var llvmReference = Module.AddFunction(functionSymbol.Name, llvmFunctionType);
-        functionSymbol.SetLLVMProperties(llvmReference, llvmFunctionType, null);
+        llvmReference.Linkage = LLVMLinkage.LLVMExternalLinkage;
 
+        functionSymbol.SetLLVMProperties(llvmReference, llvmFunctionType, null);
         functionSymbol.LLVMDebugMetadata = DebugGenerateFunction(functionSymbol);
 
-        ProcessFunctionBody(statement.Body, functionSymbol);
+        ProcessFunctionBodyIfNotExternal(statement.Body, functionSymbol);
     }
 
 
-    private void ProcessFunctionBody(BoundBlockStatement body, FunctionSymbol functionSymbol)
+    private void ProcessFunctionBodyIfNotExternal(BoundBlockStatement? body, FunctionSymbol functionSymbol)
     {
+        if (body is null)
+            return;
+
         var reference = functionSymbol.LLVMReference!.Value;
         var entry = reference.AppendBasicBlock("entry");
         Builder.PositionAtEnd(entry);
@@ -313,12 +316,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private LLVMValueRef ValueFromLiteral(Type type, object value, LLVMTypeRef llvmType) => type.Base.Type switch
     {
+        _ when type.IsString => StringFromLiteral((value as IReadOnlyList<byte>)!),
+
         _ when type.IsChar => Constant.Integer((byte)value, LLVMTypeRef.Int8),
         _ when type.IsBool => Constant.Boolean((bool)value),
         _ when type.IsInteger => Constant.Integer((ulong)value, llvmType),
         _ when type.IsFloat => Constant.Real((double)value, llvmType),
-
-        _ when type.IsString => StringFromLiteral((value as IReadOnlyList<byte>)!),
 
         _ => throw new UnreachableException()
     };
