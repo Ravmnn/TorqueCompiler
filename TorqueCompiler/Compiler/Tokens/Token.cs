@@ -20,7 +20,7 @@ public enum TokenType
     Equality, Inequality, LogicAnd, LogicOr,
 
     Identifier,
-    IntegerValue, FloatValue, BoolValue, CharValue,
+    IntegerValue, FloatValue, BoolValue, CharValue, StringValue,
     Type,
 
     KwIf, KwElse, KwReturn, KwAs, KwArray, KwDefault

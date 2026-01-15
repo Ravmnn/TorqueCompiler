@@ -43,4 +43,7 @@
     <data name="MoreThanOneDotInFloatNumber" xml:space="preserve">
         <value>A float number cannot have more than one decimal specifier</value>
     </data>
+    <data name="UnclosedString" xml:space="preserve">
+        <value>String is not closed</value>
+    </data>
 </root>

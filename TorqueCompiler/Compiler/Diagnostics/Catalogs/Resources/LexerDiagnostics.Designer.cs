@@ -9,21 +9,21 @@
 
 namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
     using System;
-
-
+    
+    
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class LexerDiagnostics {
-
+        
         private static System.Resources.ResourceManager resourceMan;
-
+        
         private static System.Globalization.CultureInfo resourceCulture;
-
+        
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal LexerDiagnostics() {
         }
-
+        
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Resources.ResourceManager ResourceManager {
             get {
@@ -34,7 +34,7 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 return resourceMan;
             }
         }
-
+        
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Globalization.CultureInfo Culture {
             get {
@@ -44,46 +44,52 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 resourceCulture = value;
             }
         }
-
+        
         internal static string UnexpectedToken {
             get {
                 return ResourceManager.GetString("UnexpectedToken", resourceCulture);
             }
         }
-
+        
         internal static string UnclosedMultilineComment {
             get {
                 return ResourceManager.GetString("UnclosedMultilineComment", resourceCulture);
             }
         }
-
+        
         internal static string SingleCharacterEmpty {
             get {
                 return ResourceManager.GetString("SingleCharacterEmpty", resourceCulture);
             }
         }
-
+        
         internal static string UnclosedSingleCharacterString {
             get {
                 return ResourceManager.GetString("UnclosedSingleCharacterString", resourceCulture);
             }
         }
-
+        
         internal static string UnknownEscapeSequence {
             get {
                 return ResourceManager.GetString("UnknownEscapeSequence", resourceCulture);
             }
         }
-
+        
         internal static string SingleCharacterMoreThanOne {
             get {
                 return ResourceManager.GetString("SingleCharacterMoreThanOne", resourceCulture);
             }
         }
-
+        
         internal static string MoreThanOneDotInFloatNumber {
             get {
                 return ResourceManager.GetString("MoreThanOneDotInFloatNumber", resourceCulture);
+            }
+        }
+        
+        internal static string UnclosedString {
+            get {
+                return ResourceManager.GetString("UnclosedString", resourceCulture);
             }
         }
     }

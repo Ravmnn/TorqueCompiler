@@ -1,26 +1,6 @@
-int sum(int x, int y)
-{
-    return x + y;
-}
-
-
 int main(int argc, char** argv)
 {
-    let sumf = sum;
-    let sumResult = sumf(10, 43);
-
-    let num1 = 10;
-    let num2 = num1 * 999;
-    let preresult = num1 * num1 * num2;
-    let result = preresult / 3.14159;
-
-    if (true)
-        return 0;
-    else
-    {
-        if (true)
-            return 0;
-    }
+    let string = "hello, world";
 
     return 0;
 }

@@ -11,5 +11,6 @@ public enum LexerCatalog
     [Item(DiagnosticScope.Lexer)] SingleCharacterMoreThanOne,
     [Item(DiagnosticScope.Lexer)] UnclosedSingleCharacterString,
     [Item(DiagnosticScope.Lexer)] UnknownEscapeSequence,
-    [Item(DiagnosticScope.Lexer)] MoreThanOneDotInFloatNumber
+    [Item(DiagnosticScope.Lexer)] MoreThanOneDotInFloatNumber,
+    [Item(DiagnosticScope.Lexer)] UnclosedString
 }

@@ -48,10 +48,12 @@ public abstract class Type
     public bool IsSigned => Base.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 || IsFloat;
     public bool IsUnsigned => !IsSigned;
 
-    public bool IsFloat => Base.Type is PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64;
-    public bool IsInteger => !IsFloat;
-    public bool IsChar => Base.Type == PrimitiveType.Char;
-    public bool IsBool => Base.Type == PrimitiveType.Bool;
+    public bool IsFloat => IsBase && Base.Type is PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64;
+    public bool IsInteger => IsBase && !IsFloat;
+    public bool IsChar => IsBase && Base.Type == PrimitiveType.Char;
+    public bool IsBool => IsBase && Base.Type == PrimitiveType.Bool;
+
+    public bool IsString => this is PointerType { Type.IsChar: true };
 
     public bool IsBase => this is BaseType;
     public bool IsPointer => this is PointerType;
@@ -65,7 +67,6 @@ public abstract class Type
 
 
 
-    public static implicit operator PrimitiveType(Type type) => type.Base.Type;
     public static implicit operator Type(PrimitiveType type) => new BaseType(type);
 
 

@@ -209,8 +209,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     }
 
 
-    private PrimitiveType TypeOfLiteralObject(object literal) => literal switch
+    private Type TypeOfLiteralObject(object literal) => literal switch
     {
+        IReadOnlyList<byte> => StringLiteralType(),
+
         bool => PrimitiveType.Bool,
         byte => PrimitiveType.Char,
         double => DefaultLiteralFloatType,
@@ -218,6 +220,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
         _ => throw new UnreachableException()
     };
+
+
+    private static PointerType StringLiteralType()
+        => new PointerType(PrimitiveType.Char);
 
 
 

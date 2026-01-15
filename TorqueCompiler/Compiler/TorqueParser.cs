@@ -387,7 +387,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Expression? PrimaryOrNull() => Peek().Type switch
     {
-        _ when Match(TokenType.IntegerValue, TokenType.FloatValue, TokenType.BoolValue, TokenType.CharValue) => ParseLiteral(),
+        _ when CurrentIsLiteral() => ParseLiteral(),
 
         _ when Match(TokenType.Identifier) => new SymbolExpression(new SymbolSyntax(Previous())),
         _ when Match(TokenType.LeftParen) => ParseGroupExpression(),
@@ -398,6 +398,10 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
         _ => null
     };
+
+
+    private bool CurrentIsLiteral()
+        => Match(TokenType.IntegerValue, TokenType.FloatValue, TokenType.BoolValue, TokenType.CharValue, TokenType.StringValue);
 
 
 

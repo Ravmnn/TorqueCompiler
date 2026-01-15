@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -95,6 +96,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
             case ']': return TokenFromTokenType(TokenType.RightSquareBracket);
 
             case '\'': return ScanChar();
+            case '\"': return ScanString();
 
             case '#':
                 if (Match('>'))
@@ -129,7 +131,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
         var quoteLocation = GetCurrentLocation();
         var text = ScanStringText('\'');
 
-        var data = EncodeString(text, quoteLocation);
+        var data = EncodeStringToASCII(text, quoteLocation);
         ReportCharErrors(data, quoteLocation);
 
         return TokenFromTokenType(TokenType.CharValue, data[0]);
@@ -147,6 +149,29 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
         else if (data.Count > 1)
             Report(LexerCatalog.SingleCharacterMoreThanOne);
     }
+
+
+
+
+    private Token ScanString()
+    {
+        var quoteLocation = GetCurrentLocation();
+        var text = ScanStringText('\"');
+
+        var data = EncodeStringToASCII(text, quoteLocation);
+        ReportStringErrors(quoteLocation);
+
+        return TokenFromTokenType(TokenType.StringValue, data);
+    }
+
+
+    private void ReportStringErrors(Span quoteLocation)
+    {
+        if (AtEnd())
+            Report(LexerCatalog.UnclosedString, location: quoteLocation);
+    }
+
+
 
 
     private string ScanStringText(char delimiter)
@@ -178,7 +203,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
     }
 
 
-    private IReadOnlyList<byte> EncodeString(string text, Span quoteLocation)
+    private IReadOnlyList<byte> EncodeStringToASCII(string text, Span quoteLocation)
     {
         var encoder = new StringTokenEncoder(text);
         var data = encoder.ToASCII();

@@ -105,8 +105,6 @@ public static class Torque
         if (Failed)
             return null;
 
-        // TODO: override object.ToString in some objects to improve readability
-
         // control flow analysis
         var functionDeclarations = boundStatements.Cast<BoundFunctionDeclarationStatement>().ToArray();
         var graphs = new ControlFlowGraphBuilder(functionDeclarations).Build();

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-
+using System.Text;
 using LLVMSharp.Interop;
 
 using Torque.Compiler.Tokens;
@@ -311,15 +311,25 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
 
-    private static LLVMValueRef ValueFromLiteral(Type type, object value, LLVMTypeRef llvmType) => type.Base.Type switch
+    private LLVMValueRef ValueFromLiteral(Type type, object value, LLVMTypeRef llvmType) => type.Base.Type switch
     {
         _ when type.IsChar => Constant.Integer((byte)value, LLVMTypeRef.Int8),
         _ when type.IsBool => Constant.Boolean((bool)value),
         _ when type.IsInteger => Constant.Integer((ulong)value, llvmType),
         _ when type.IsFloat => Constant.Real((double)value, llvmType),
 
+        _ when type.IsString => StringFromLiteral((value as IReadOnlyList<byte>)!),
+
         _ => throw new UnreachableException()
     };
+
+
+    private LLVMValueRef StringFromLiteral(IReadOnlyList<byte> @string)
+    {
+        var chars = Encoding.ASCII.GetChars(@string.ToArray());
+
+        return Builder.BuildGlobalStringPtr(chars, "literal.string");
+    }
 
 
 
