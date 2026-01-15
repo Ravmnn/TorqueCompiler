@@ -17,17 +17,25 @@ public static class Toolchain
             return;
         }
 
+        CompileUsingTempFile(outputFileName, bitCode, outputType, debug);
+    }
+
+
+    private static void CompileUsingTempFile(string outputFileName, string bitCode, OutputType outputType, bool debug)
+    {
         var fileType = outputType == OutputType.Object ? "obj" : "asm";
         var debugString = debug ? "-O0" : string.Empty;
+        
+        TempFiles.ForTempFileDo(file =>
+        {
+            File.WriteAllText(file, bitCode);
 
-        var tempFile = Path.GetTempFileName();
-        File.WriteAllText(tempFile, bitCode);
-
-        // uses LLVM 20.0
-        ProcessInvoke.ExecuteAndWait("/bin/llc-20", $"{tempFile} -o \"{outputFileName}\" -filetype={fileType} {debugString}");
-
-        File.Delete(tempFile);
+            // uses LLVM 20.0
+            ProcessInvoke.ExecuteAndWait("/bin/llc-20", $"{file} -o \"{outputFileName}\" -filetype={fileType} {debugString}");
+        });
     }
+
+
 
 
     public static void Link(IReadOnlyList<string> files, string outputFileName, bool debug = false)

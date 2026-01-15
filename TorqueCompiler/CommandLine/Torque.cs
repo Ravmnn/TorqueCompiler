@@ -31,14 +31,7 @@ public static class Torque
     {
         try
         {
-            s_settings = settings;
-
-            SourceCode.Source = File.ReadAllText(s_settings.File.FullName);
-            SourceCode.FileName = settings.File.Name;
-
-            // TODO: make this choice of the user
-            const string Triple = "x86_64-pc-linux-gnu";
-            TargetMachine.SetGlobal(Triple);
+            InitializeGlobals(settings);
 
             if (CompileToBitCode() is not { } bitCode)
                 return;
@@ -50,6 +43,21 @@ public static class Torque
             Console.WriteLine($"Internal Error: {exception}");
         }
     }
+
+
+    private static void InitializeGlobals(CompileCommandSettings settings)
+    {
+        s_settings = settings;
+
+        SourceCode.Source = File.ReadAllText(s_settings.File.FullName);
+        SourceCode.FileName = settings.File.Name;
+
+        // TODO: make this choice of the user
+        const string Triple = "x86_64-pc-linux-gnu";
+        TargetMachine.SetGlobal(Triple);
+    }
+
+
 
 
     private static string? CompileToBitCode()
@@ -162,13 +170,14 @@ public static class Torque
         if (!s_settings.PrintASM)
             return false;
 
-        var tempFile = Path.GetTempFileName();
-        Toolchain.Compile(tempFile, bitCode, OutputType.Assembly);
+        TempFiles.ForTempFileDo(file =>
+        {
+            Toolchain.Compile(file, bitCode, OutputType.Assembly);
 
-        var assembly = File.ReadAllText(tempFile);
-        File.Delete(tempFile);
+            var assembly = File.ReadAllText(file);
+            Console.WriteLine(assembly);
+        });
 
-        Console.WriteLine(assembly);
         return true;
     }
 
@@ -190,11 +199,15 @@ public static class Torque
             return;
 
         foreach (var diagnostic in diagnostics)
-        {
-            Console.WriteLine(DiagnosticFormatter.Format(diagnostic));
+            LogDiagnostic(diagnostic);
+    }
 
-            if (diagnostic.Severity == DiagnosticSeverity.Error)
-                Failed = true;
-        }
+
+    private static void LogDiagnostic(Diagnostic diagnostic)
+    {
+        Console.WriteLine(DiagnosticFormatter.Format(diagnostic));
+
+        if (diagnostic.Severity == DiagnosticSeverity.Error)
+            Failed = true;
     }
 }
