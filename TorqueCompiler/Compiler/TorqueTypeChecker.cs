@@ -624,6 +624,16 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     #region Type Convertors
 
+    private Type ValidateTypeToVariable(Type type) => type switch
+    {
+        FunctionType functionType => new PointerType(type),
+
+        _ => type
+    };
+
+
+
+
     private Type TypeFromNonVoidTypeName(TypeSyntax typeSyntax)
     {
         var type = TypeFromTypeName(typeSyntax);

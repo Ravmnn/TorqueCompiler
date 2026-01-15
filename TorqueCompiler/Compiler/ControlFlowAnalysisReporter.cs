@@ -51,8 +51,6 @@ public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs)
         return true;
     }
 
-    // TODO: clean code everywhere
-
 
 
 

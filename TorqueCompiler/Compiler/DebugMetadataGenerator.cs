@@ -125,35 +125,13 @@ public class DebugMetadataGenerator
 
     public unsafe LLVMMetadataRef GenerateFunction(FunctionSymbol function)
     {
-        var debugFunctionType = FunctionTypeToLLVMSubroutineType(function.Type!);
+        var debugFunctionType = CreateFunctionTypeMetadata(function.Type!);
 
         var functionMetadata = CreateFunction(function.Name, function.Location.Line, debugFunctionType);
         LLVM.SetSubprogram(function.LLVMReference!, functionMetadata);
 
         return functionMetadata;
     }
-
-
-    private LLVMMetadataRef FunctionTypeToLLVMSubroutineType(FunctionType type)
-    {
-        var typeArray = CreateFunctionTypeArray(type);
-        var metadataTypeArray = TypesToMetadataArray(typeArray);
-
-        var debugFunctionType = CreateSubroutineType(metadataTypeArray);
-
-        return debugFunctionType;
-    }
-
-
-    private static IReadOnlyList<Type> CreateFunctionTypeArray(FunctionType type)
-    {
-        var typeArray = new Type[] { type.ReturnType };
-        return typeArray.Concat(type.ParametersType).ToArray();
-    }
-
-
-    private LLVMMetadataRef CreateSubroutineType(IReadOnlyList<LLVMMetadataRef> metadataTypeArray)
-        => DebugBuilder.CreateSubroutineType(File, metadataTypeArray.ToArray(), LLVMDIFlags.LLVMDIFlagZero);
 
 
     private LLVMMetadataRef CreateFunction(string name, int lineNumber, LLVMMetadataRef debugFunctionType)
@@ -301,19 +279,51 @@ public class DebugMetadataGenerator
         => type switch
         {
             BaseType => CreateBasicTypeMetadata(name, sizeInBits, encoding),
-            PointerType pointerType => CreatePointerTypeMetadata(pointerType.Type, name, sizeInBits), // TODO: add function type
+
+            FunctionType functionType => CreatePointerToFunctionTypeMetadata(functionType),
+            PointerType pointerType => CreatePointerTypeMetadata(TypeToMetadata(pointerType.Type), name, sizeInBits),
 
             _ => throw new UnreachableException()
         };
 
 
-
-
-    public unsafe LLVMMetadataRef CreatePointerTypeMetadata(Type elementType, string name, int sizeInBits)
+    private LLVMMetadataRef CreatePointerToFunctionTypeMetadata(FunctionType type)
     {
-        var elementTypeMetadata = TypeToMetadata(elementType);
-        return LLVM.DIBuilderCreatePointerType(DebugBuilder, elementTypeMetadata, (ulong)sizeInBits, (uint)sizeInBits, 0, name.StringToSBytePtr(), (uint)name.Length);
+        var pointerToFunctionType = new PointerType(type);
+        var functionTypeMetadata = CreateFunctionTypeMetadata(type);
+
+        var name = pointerToFunctionType.ToString();
+        var sizeInBits = pointerToFunctionType.SizeOfTypeInMemoryAsBits();
+
+        return CreatePointerTypeMetadata(functionTypeMetadata, name, sizeInBits);
     }
+
+
+
+    private LLVMMetadataRef CreateFunctionTypeMetadata(FunctionType type)
+    {
+        var typeArray = CreateFunctionTypeArray(type);
+        var metadataTypeArray = TypesToMetadataArray(typeArray);
+
+        var debugFunctionType = CreateFunctionTypeMetadata(metadataTypeArray);
+
+        return debugFunctionType;
+    }
+
+
+    private static IReadOnlyList<Type> CreateFunctionTypeArray(FunctionType type)
+    {
+        var typeArray = new Type[] { type.ReturnType };
+        return typeArray.Concat(type.ParametersType).ToArray();
+    }
+
+
+    private LLVMMetadataRef CreateFunctionTypeMetadata(IReadOnlyList<LLVMMetadataRef> metadataTypeArray)
+        => DebugBuilder.CreateSubroutineType(File, metadataTypeArray.ToArray(), LLVMDIFlags.LLVMDIFlagZero);
+
+
+    public unsafe LLVMMetadataRef CreatePointerTypeMetadata(LLVMMetadataRef elementType, string name, int sizeInBits)
+        => LLVM.DIBuilderCreatePointerType(DebugBuilder, elementType, (ulong)sizeInBits, (uint)sizeInBits, 0, name.StringToSBytePtr(), (uint)name.Length);
 
 
     public unsafe LLVMMetadataRef CreateBasicTypeMetadata(string name, int sizeInBits, int encoding)

@@ -1,12 +1,13 @@
-void get()
+int sum(int x, int y)
 {
-    
+    return x + y;
 }
 
 
 int main(int argc, char** argv)
 {
-    get();
+    let sumf = sum;
+    let sumResult = sumf(10, 43);
 
     let num1 = 10;
     let num2 = num1 * 999;

@@ -25,7 +25,7 @@ public static class Toolchain
     {
         var fileType = outputType == OutputType.Object ? "obj" : "asm";
         var debugString = debug ? "-O0" : string.Empty;
-        
+
         TempFiles.ForTempFileDo(file =>
         {
             File.WriteAllText(file, bitCode);

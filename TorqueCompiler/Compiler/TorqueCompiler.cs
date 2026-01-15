@@ -837,7 +837,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private LLVMValueRef Call(LLVMValueRef function, LLVMTypeRef functionType, IReadOnlyList<LLVMValueRef> arguments)
     {
-        // TODO: check if this works with void functions
         var returnValueName = functionType.ReturnType.Kind == LLVMTypeKind.LLVMVoidTypeKind ? "" : "return.value";
         return Builder.BuildCall2(functionType, function, arguments.ToArray(), returnValueName);
     }
