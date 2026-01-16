@@ -10,6 +10,7 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 
 using Torque.Compiler;
+using Torque.Compiler.Target;
 
 
 namespace Torque.CommandLine;
@@ -65,7 +66,7 @@ public class CompileCommandSettings : CommandSettings
 
 
 
-    [CommandOption("--debug")]
+    [CommandOption("-d|--debug")]
     [Description("Generate debug information")]
     public bool Debug { get; init; }
 
@@ -85,14 +86,6 @@ public class CompileCommandSettings : CommandSettings
     [CommandOption("--print-asm")]
     [Description("Print Assembly and quit")]
     public bool PrintASM { get; init; }
-
-
-
-
-    [CommandOption("--implicit-casts")]
-    [Description("Defines which implicit casts can be performed")]
-    [DefaultValue(ImplicitCastMode.Safe)]
-    public ImplicitCastMode ImplicitCasts { get; init; }
 
 
 

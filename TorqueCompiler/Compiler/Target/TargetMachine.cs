@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using LLVMSharp.Interop;
 
 
-namespace Torque.Compiler;
+namespace Torque.Compiler.Target;
 
 
 
@@ -50,8 +50,12 @@ public class TargetMachine
 
     private static LLVMTargetMachineRef CreateDefaultTargetMachine(string triple, LLVMTargetRef target)
         => target.CreateTargetMachine(
-            triple, "generic", "", // TODO: enabling PIC (or not) should be an option of the CLI, but enabled by default
-            LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault, LLVMRelocMode.LLVMRelocPIC, LLVMCodeModel.LLVMCodeModelDefault
+            triple,
+            "generic",
+            "", // TODO: enabling PIC (or not) should be an option of the CLI, but enabled by default
+            LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault,
+            LLVMRelocMode.LLVMRelocPIC,
+            LLVMCodeModel.LLVMCodeModelDefault
         );
 
 

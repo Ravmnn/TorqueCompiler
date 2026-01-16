@@ -44,8 +44,6 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public IReadOnlyList<BoundStatement> Statements { get; } = statements;
 
-    public ImplicitCastMode ImplicitCastMode { get; set; } = ImplicitCastMode.Safe;
-
 
 
 
@@ -608,20 +606,17 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     private bool CanImplicitCast(Type from, Type to, bool forceForBaseTypes = false)
     {
-        var allCasts = ImplicitCastMode == ImplicitCastMode.All;
-        var noCasts = ImplicitCastMode == ImplicitCastMode.None;
-
         var sameTypes = from == to;
         var bothBase = from.IsBase && to.IsBase;
         var anyIsAuto = from.IsAuto || to.IsAuto;
 
-        if (allCasts || sameTypes || anyIsAuto)
+        if (sameTypes || anyIsAuto)
             return true;
 
         if (bothBase && forceForBaseTypes)
             return true;
 
-        if (noCasts || !bothBase)
+        if (!bothBase)
             return false;
 
         var signDiffers = from.IsSigned != to.IsSigned;

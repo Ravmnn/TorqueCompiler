@@ -1,4 +1,4 @@
-namespace Torque.CommandLine;
+namespace Torque.Compiler.Target;
 
 
 
@@ -6,6 +6,7 @@ namespace Torque.CommandLine;
 public enum OperationalSystemType
 {
     Unknown,
+
     Windows,
     Linux,
     Darwin

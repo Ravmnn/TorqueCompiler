@@ -1,6 +1,7 @@
 using LLVMSharp.Interop;
 
 using Torque.Compiler.Types;
+using Torque.Compiler.Target;
 
 
 namespace Torque.Compiler;

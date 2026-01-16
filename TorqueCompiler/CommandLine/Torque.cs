@@ -11,6 +11,7 @@ using Torque.Compiler;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Statements;
 using Torque.Compiler.Diagnostics;
+using Torque.Compiler.Target;
 
 
 namespace Torque.CommandLine;
@@ -52,13 +53,9 @@ public static class Torque
         SourceCode.Source = File.ReadAllText(s_settings.File.FullName);
         SourceCode.FileName = settings.File.Name;
 
-        var triple = BuildTripleFromSettings(settings);
-        TargetMachine.SetGlobal(triple);
+        var targetTriple = TargetTriple.FromCompileSettings(settings);
+        TargetMachine.SetGlobal(targetTriple.ToString());
     }
-
-
-    private static string BuildTripleFromSettings(CompileCommandSettings settings)
-        => $"{settings.Architecture}-{settings.Vendor}-{settings.OperationalSystem}-{settings.Environment}".ToLower();
 
 
 
@@ -101,7 +98,7 @@ public static class Torque
 
 
         // type check
-        var typeChecker = new TorqueTypeChecker(boundStatements) { ImplicitCastMode = s_settings.ImplicitCasts };
+        var typeChecker = new TorqueTypeChecker(boundStatements);
         typeChecker.Check();
         LogDiagnostics(typeChecker.Diagnostics);
 

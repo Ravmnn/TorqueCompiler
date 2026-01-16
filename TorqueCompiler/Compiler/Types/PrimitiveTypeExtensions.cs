@@ -5,6 +5,7 @@ using LLVMSharp.Interop;
 
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Symbols;
+using Torque.Compiler.Target;
 
 
 namespace Torque.Compiler.Types;

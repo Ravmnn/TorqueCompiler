@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+
 using LLVMSharp.Interop;
 
 using Torque.Compiler.Tokens;
@@ -14,6 +15,7 @@ using Torque.Compiler.Types;
 using Torque.Compiler.Symbols;
 using Torque.Compiler.BoundAST.Expressions;
 using Torque.Compiler.BoundAST.Statements;
+using Torque.Compiler.Target;
 
 
 using Type = Torque.Compiler.Types.Type;
