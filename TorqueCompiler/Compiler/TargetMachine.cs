@@ -58,7 +58,7 @@ public class TargetMachine
     private static LLVMTargetRef TargetFromTripleOrThrow(string triple)
     {
         if (!LLVMTargetRef.TryGetTargetFromTriple(triple, out var target, out _))
-            throw new InvalidOperationException("LLVM doesn't support this target");
+            throw new InvalidOperationException($"LLVM doesn't support the target \"{triple}\"");
 
         return target;
     }

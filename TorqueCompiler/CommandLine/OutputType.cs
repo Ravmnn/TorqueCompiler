@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 
 
 namespace Torque.CommandLine;
@@ -24,6 +25,6 @@ public static class OutputTypeExtensions
         OutputType.Assembly => "asm",
         OutputType.BitCode => "bc",
 
-        _ => throw new ArgumentException("Invalid output type.")
+        _ => throw new UnreachableException()
     };
 }

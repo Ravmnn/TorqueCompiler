@@ -52,10 +52,13 @@ public static class Torque
         SourceCode.Source = File.ReadAllText(s_settings.File.FullName);
         SourceCode.FileName = settings.File.Name;
 
-        // TODO: make this choice of the user
-        const string Triple = "x86_64-pc-linux-gnu";
-        TargetMachine.SetGlobal(Triple);
+        var triple = BuildTripleFromSettings(settings);
+        TargetMachine.SetGlobal(triple);
     }
+
+
+    private static string BuildTripleFromSettings(CompileCommandSettings settings)
+        => $"{settings.Architecture}-{settings.Vendor}-{settings.OperationalSystem}-{settings.Environment}".ToLower();
 
 
 

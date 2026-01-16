@@ -39,6 +39,32 @@ public class CompileCommandSettings : CommandSettings
 
 
 
+    [CommandOption("--target-arch")]
+    [Description("The CPU architecture to generate instructions")]
+    [DefaultValue(ArchitectureType.X86_64)]
+    public ArchitectureType Architecture { get; init; }
+
+
+    [CommandOption("--target-os")]
+    [Description("The OS target type")]
+    [DefaultValue(OperationalSystemType.Linux)]
+    public OperationalSystemType OperationalSystem { get; init; }
+
+
+    [CommandOption("--target-environment")]
+    [Description("The environment target type")]
+    [DefaultValue(EnvironmentType.GNU)]
+    public EnvironmentType Environment { get; init; }
+
+
+    [CommandOption("--target-vendor")]
+    [Description("The vendor target type")]
+    [DefaultValue(VendorType.PC)]
+    public VendorType Vendor { get; init; }
+
+
+
+
     [CommandOption("--debug")]
     [Description("Generate debug information")]
     public bool Debug { get; init; }
