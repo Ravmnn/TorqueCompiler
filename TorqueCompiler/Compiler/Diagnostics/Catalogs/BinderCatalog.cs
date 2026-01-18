@@ -11,5 +11,9 @@ public enum BinderCatalog
     [Item(DiagnosticScope.Binder)] MustBeAssignmentReference,
     [Item(DiagnosticScope.Binder)] OnlyDeclarationsCanExistInFileScope,
     [Item(DiagnosticScope.Binder)] FunctionsMustBeAtFileScope,
-    [Item(DiagnosticScope.Binder)] ValueMustBeAddressable
+    [Item(DiagnosticScope.Binder)] ValueMustBeAddressable,
+    [Item(DiagnosticScope.Binder)] MultipleSameModifiers,
+    [Item(DiagnosticScope.Binder)] InvalidModifierTarget,
+    [Item(DiagnosticScope.Binder)] FunctionMustHaveABody,
+    [Item(DiagnosticScope.Binder)] ExternalFunctionCannotHaveABody,
 }

@@ -43,4 +43,16 @@
     <data name="ValueMustBeAddressable" xml:space="preserve">
         <value>Value must be an addressable value</value>
     </data>
+    <data name="MultipleSameModifiers" xml:space="preserve">
+        <value>A declaration cannot have multiple modifiers of the same type</value>
+    </data>
+    <data name="InvalidModifierTarget" xml:space="preserve">
+        <value>Invalid modifier target</value>
+    </data>
+    <data name="FunctionMustHaveABody" xml:space="preserve">
+        <value>Function must have a body</value>
+    </data>
+    <data name="ExternalFunctionCannotHaveABody" xml:space="preserve">
+        <value>A function marked as external cannot have a body</value>
+    </data>
 </root>

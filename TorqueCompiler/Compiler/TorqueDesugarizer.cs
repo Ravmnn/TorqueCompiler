@@ -51,10 +51,12 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
 
 
     public Statement ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
-        => new FunctionDeclarationStatement(statement.ReturnType, statement.Name, statement.Parameters,
-            statement.IsExternal ? null : (Process(statement.Body!) as BlockStatement)!);
+    {
+        var desugarizedBody = statement.Body is not null ? Process(statement.Body) : null;
+        statement.Body = (desugarizedBody as BlockStatement)!;
 
-
+        return statement;
+    }
 
 
     public Statement ProcessReturn(ReturnStatement statement)
@@ -66,7 +68,9 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
     public Statement ProcessBlock(BlockStatement statement)
     {
         var desugarizedStatements = statement.Statements.Select(Process).ToArray();
-        return new BlockStatement(desugarizedStatements, statement.Location);
+        statement.Statements = desugarizedStatements;
+
+        return statement;
     }
 
 
@@ -74,10 +78,13 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
 
     public Statement ProcessIf(IfStatement statement)
     {
-        var thenStatement = Process(statement.ThenStatement);
-        var elseStatement = statement.ElseStatement is not null ? Process(statement.ElseStatement) : null;
+        var desugarizedThenStatement = Process(statement.ThenStatement);
+        var desugarizedElseStatement = statement.ElseStatement is not null ? Process(statement.ElseStatement) : null;
 
-        return new IfStatement(statement.Condition, thenStatement, elseStatement, statement.Location);
+        statement.ThenStatement = desugarizedThenStatement;
+        statement.ElseStatement = desugarizedElseStatement;
+
+        return statement;
     }
 
 
@@ -90,6 +97,6 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
     public Statement ProcessDefaultDeclaration(SugarDefaultDeclarationStatement statement)
     {
         var defaultValue = new DefaultExpression(statement.Type, statement.Location);
-        return new DeclarationStatement(statement.Type, statement.Name, defaultValue);
+        return new DeclarationStatement(statement.Type, statement.Name, defaultValue) { Modifiers = statement.Modifiers };
     }
 }

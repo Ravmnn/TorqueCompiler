@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using Torque.Compiler.Tokens;
 using Torque.Compiler.Symbols;
 using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.AST.Statements;
@@ -48,6 +49,8 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         if (ReportIfNonDeclarationAtFileScope(statement) || ReportIfFunctionDeclarationAtLocalScope(statement))
             return null!;
 
+        ValidateDeclarationModifiers(statement);
+
         return statement.Process(this);
     }
 
@@ -94,19 +97,19 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     private BoundBlockStatement? ProcessFunctionBlockIfNotExternal(FunctionDeclarationStatement statement, FunctionSymbol functionSymbol)
     {
-        if (statement.IsExternal)
-            return null;
-
         // when a function is marked as external, its parameter symbols are not going to be used,
         // so declaring then is also unnecessary
 
-        var body = (ProcessFunctionBlock(statement.Body!, statement.Parameters) as BoundBlockStatement)!;
+        ValidateFunctionBody(statement);
+
+        if (statement.IsExternal || statement.Body is null)
+            return null;
+
+        var body = (ProcessFunctionBlockAndDeclareParameters(statement.Body!, statement.Parameters) as BoundBlockStatement)!;
         functionSymbol.Parameters = body.Scope.GetLocalParameters();
 
         return body;
     }
-
-
 
 
     public BoundStatement ProcessReturn(ReturnStatement statement)
@@ -123,7 +126,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         => Scope.ForInnerScopeDo(ref _scope, () => ProcessBlockToBound(statement));
 
 
-    private BoundStatement ProcessFunctionBlock(BlockStatement statement, IReadOnlyList<FunctionParameterDeclaration> parameters)
+    private BoundStatement ProcessFunctionBlockAndDeclareParameters(BlockStatement statement, IReadOnlyList<FunctionParameterDeclaration> parameters)
         => Scope.ForInnerScopeDo(ref _scope, () =>
         {
             DeclareFunctionParameters(parameters);
@@ -370,6 +373,47 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
         Report(BinderCatalog.FunctionsMustBeAtFileScope, location: statement.Location);
         return true;
+    }
+
+
+    private void ValidateDeclarationModifiers(Statement declaration)
+    {
+        if (declaration is not IModificable modificable)
+            return;
+
+        ReportIfHasDuplicateModifers(declaration, modificable);
+
+        foreach (var modifier in modificable.Modifiers)
+            ReportIfInvalidModifierTarget(modificable, modifier);
+    }
+
+
+    private void ReportIfHasDuplicateModifers(Statement declaration, IModificable modificable)
+    {
+        if (modificable.Modifiers.DistinctBy(modifier => modifier.Type).Count() != modificable.Modifiers.Count)
+            Report(BinderCatalog.MultipleSameModifiers, location: declaration.Location);
+    }
+
+
+    private void ReportIfInvalidModifierTarget(IModificable modificable, Modifier modifier)
+    {
+        var modifierTargets = ModifiersTarget.GetFor(modifier);
+
+        if (!modifierTargets.Any(target => target.HasFlag(modificable.ThisTargetIdentity)))
+            Report(BinderCatalog.InvalidModifierTarget, location: modifier.Location);
+    }
+
+
+    private void ValidateFunctionBody(FunctionDeclarationStatement statement)
+    {
+        var isExternal = statement.IsExternal;
+        var hasBody = statement.Body is not null;
+
+        if (isExternal && hasBody)
+            Report(BinderCatalog.ExternalFunctionCannotHaveABody, location: statement.Location);
+
+        else if (!isExternal && !hasBody)
+            Report(BinderCatalog.FunctionMustHaveABody, location: statement.Location);
     }
 
     #endregion

@@ -24,7 +24,7 @@ public enum TokenType
     Type,
 
     KwExternal,
-    KwReturn,
+        KwReturn,
     KwIf, KwElse,
     KwAs, KwArray, KwDefault
 }

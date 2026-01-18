@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Types;
@@ -23,7 +22,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     private readonly List<Statement> _statements = [];
     private int _current;
 
-    private readonly List<Token> _currentModifiers = [];
+    private readonly List<Modifier> _currentModifiers = [];
 
 
     public IReadOnlyList<Token> Tokens { get; } = tokens;
@@ -66,7 +65,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private void ParseDeclaration()
     {
-        if (Declaration() is { } declaration)
+        if (DeclarationWithModifiers() is { } declaration)
             _statements.Add(declaration);
     }
 
@@ -76,73 +75,47 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     private void ParseModifiersIfAny()
     {
         while (MatchAnyModifier())
-            ParsePreviousModifierAndAdd();
+            _currentModifiers.Add(new Modifier(Previous()));
     }
 
 
-    private void ParsePreviousModifierAndAdd()
-    {
-        var modifier = Previous();
-
-        if (GetActiveModifier(modifier.Type) is not null)
-            ReportAndThrow(ParserCatalog.MultipleSameModifiers, location: modifier);
-
-        _currentModifiers.Add(modifier);
-    }
-
-
-    private void RemoveCurrentModifiers()
+    private void ClearCurrentModifiers()
         => _currentModifiers.Clear();
-
-
-    private Token? ConsumeActiveModifier(TokenType modifier, ModifierTarget currentTarget)
-    {
-        if (GetActiveModifier(modifier) is not { } activeModifier)
-            return null;
-
-        ThrowIfInvalidModifierTarget(activeModifier, currentTarget);
-
-        _currentModifiers.Remove(activeModifier);
-        return activeModifier;
-    }
-
-
-    private void ThrowIfInvalidModifierTarget(Token activeModifier, ModifierTarget currentTarget)
-    {
-        var modifierTargets = ModifiersTarget.GetFor(activeModifier.Type);
-
-        if (!modifierTargets.Any(target => target.HasFlag(currentTarget)))
-            ReportAndThrow(ParserCatalog.InvalidModifierTarget, location: activeModifier);
-    }
-
-
-    private Token? GetActiveModifier(TokenType modifier)
-    {
-        var found = _currentModifiers.Find(current => current.Type == modifier);
-        return found == default ? null : found;
-    }
 
 
 
 
     #region Statements
 
-    private Statement? Declaration()
+    private Statement? DeclarationWithModifiers()
     {
         ParseModifiersIfAny();
+        var statement = DeclarationOrStatement();
+        ClearCurrentModifiers();
 
+        return statement;
+    }
+
+
+    private Statement? DeclarationOrStatement()
+    {
         var peek = Peek();
-        var statement = peek switch
+        return peek switch
         {
             _ when peek.Type == TokenType.Type => GenericDeclaration(),
 
             _ => Statement()
         };
-
-        RemoveCurrentModifiers();
-
-        return statement;
     }
+
+
+    private void AddModifiersToModificableDeclaration(Statement? statement)
+    {
+        if (statement is IModificable modificable)
+            modificable.Modifiers = _currentModifiers.ToArray(); // must be a copy
+    }
+
+
 
 
     private Statement GenericDeclaration()
@@ -150,13 +123,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         var type = ParseTypeName();
         var symbol = new SymbolSyntax(ExpectIdentifier());
 
-        var isFunction = Check(TokenType.LeftParen);
-        var currentTarget = isFunction ? ModifierTarget.Function : ModifierTarget.LocalVariable;
-
-        var isExternal = ConsumeActiveModifier(TokenType.KwExternal, currentTarget) is not null;
-
-        if (isFunction)
-            return FunctionDeclaration(type, symbol, isExternal);
+        if (Check(TokenType.LeftParen))
+            return FunctionDeclaration(type, symbol);
 
         return VariableDeclaration(type, symbol);
     }
@@ -166,9 +134,24 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Statement VariableDeclaration(TypeSyntax type, SymbolSyntax name)
     {
-        if (Match(TokenType.SemiColon))
-            return new SugarDefaultDeclarationStatement(type, name);
+        Statement? variable;
 
+        if (Match(TokenType.SemiColon))
+            variable = DefaultVariableDeclaration(type, name);
+        else
+            variable = CompleteVariableDeclaration(type, name);
+
+        AddModifiersToModificableDeclaration(variable);
+        return variable;
+    }
+
+
+    private static SugarDefaultDeclarationStatement DefaultVariableDeclaration(TypeSyntax type, SymbolSyntax name)
+        => new SugarDefaultDeclarationStatement(type, name);
+
+
+    private Statement CompleteVariableDeclaration(TypeSyntax type, SymbolSyntax name)
+    {
         Expect(TokenType.Equal, ParserCatalog.ExpectAssignmentOperator);
         var value = Expression();
         ExpectEndOfStatement();
@@ -179,20 +162,19 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
 
 
-    private Statement FunctionDeclaration(TypeSyntax returnType, SymbolSyntax name, bool isExternal = false)
+    private Statement FunctionDeclaration(TypeSyntax returnType, SymbolSyntax name)
     {
         ExpectLeftParen();
         var parameters = FunctionParameters();
         ExpectRightParen();
 
-        BlockStatement? body = null;
+        var function = new FunctionDeclarationStatement(returnType, name, parameters, null);
+        AddModifiersToModificableDeclaration(function);
 
-        if (!isExternal)
-            body = (Block() as BlockStatement)!;
-        else
-            ExpectEndOfStatement();
+        if (!Match(TokenType.SemiColon))
+            function.Body = (Block() as BlockStatement)!;
 
-        return new FunctionDeclarationStatement(returnType, name, parameters, body);
+        return function;
     }
 
 
@@ -276,7 +258,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         var start = Expect(TokenType.LeftCurlyBracket, ParserCatalog.ExpectBlock);
 
         while (!AtEnd() && !Check(TokenType.RightCurlyBracket))
-            if (Declaration() is { } declaration)
+            if (DeclarationWithModifiers() is { } declaration)
                 block.Add(declaration);
 
         Expect(TokenType.RightCurlyBracket, ParserCatalog.UnclosedBlock);

@@ -140,17 +140,5 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 return ResourceManager.GetString("ExpectRightCurlyBracket", resourceCulture);
             }
         }
-        
-        internal static string MultipleSameModifiers {
-            get {
-                return ResourceManager.GetString("MultipleSameModifiers", resourceCulture);
-            }
-        }
-        
-        internal static string InvalidModifierTarget {
-            get {
-                return ResourceManager.GetString("InvalidModifierTarget", resourceCulture);
-            }
-        }
     }
 }
