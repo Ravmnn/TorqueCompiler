@@ -17,16 +17,6 @@ namespace Torque.Compiler;
 
 
 
-public enum ImplicitCastMode
-{
-    None, // implicit casts are disabled
-    Safe, // only safe casts are performed (lower => higher, signed <=> signed, unsigned <=> unsigned)
-    All   // all possible casts are performed (lower <=> higher, signed <=> unsigned)
-}
-
-
-
-
 public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     : DiagnosticReporter<TypeCheckerCatalog>, IBoundStatementProcessor, IBoundExpressionProcessor<Type>
 {

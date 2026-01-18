@@ -9,7 +9,6 @@ using System.Threading;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-using Torque.Compiler;
 using Torque.Compiler.Target;
 
 
