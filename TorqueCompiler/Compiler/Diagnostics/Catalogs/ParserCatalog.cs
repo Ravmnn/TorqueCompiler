@@ -20,5 +20,6 @@ public enum ParserCatalog
     [Item(DiagnosticScope.Parser)] ExpectLiteralInteger,
     [Item(DiagnosticScope.Parser)] ExpectLeftCurlyBracket,
     [Item(DiagnosticScope.Parser)] ExpectRightCurlyBracket,
-    [Item(DiagnosticScope.Parser)] OnlyFunctionsCanBeExternal,
+    [Item(DiagnosticScope.Parser)] MultipleSameModifiers,
+    [Item(DiagnosticScope.Parser)] InvalidModifierTarget,
 }

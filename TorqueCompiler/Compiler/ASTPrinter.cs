@@ -201,7 +201,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string ProcessLiteral(LiteralExpression expression)
-        => expression.Value.ToString() ?? "invalid";
+        => expression.Token.Lexeme;
 
 
 

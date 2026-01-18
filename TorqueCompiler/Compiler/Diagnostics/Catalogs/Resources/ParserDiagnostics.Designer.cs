@@ -141,9 +141,15 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
             }
         }
         
-        internal static string OnlyFunctionsCanBeExternal {
+        internal static string MultipleSameModifiers {
             get {
-                return ResourceManager.GetString("OnlyFunctionsCanBeExternal", resourceCulture);
+                return ResourceManager.GetString("MultipleSameModifiers", resourceCulture);
+            }
+        }
+        
+        internal static string InvalidModifierTarget {
+            get {
+                return ResourceManager.GetString("InvalidModifierTarget", resourceCulture);
             }
         }
     }

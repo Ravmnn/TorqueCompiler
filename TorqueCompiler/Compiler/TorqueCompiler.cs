@@ -67,7 +67,13 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public TorqueCompiler(IReadOnlyList<BoundStatement> statements, Scope globalScope, FileInfo? file = null, bool generateDebugMetadata = false)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
+        // TODO: add support to generic code
+        // TODO: add interfaces
+
         // TODO: add importing system
+        // TODO: structs should have methods
+        // TODO: add structs
+
         File = file;
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
@@ -715,8 +721,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessArray(BoundArrayExpression expression)
     {
-        // TODO: a string ("text") must be a constant to improve speed, since its value is always known at compile-time
-
         var llvmArrayType = expression.ArrayType!.ToLLVMType();
         var arrayAddress = Builder.BuildAlloca(llvmArrayType, "array.address");
 

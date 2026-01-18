@@ -70,7 +70,10 @@
     <data name="ExpectRightCurlyBracket" xml:space="preserve">
         <value>Expect "}"</value>
     </data>
-    <data name="OnlyFunctionsCanBeExternal" xml:space="preserve">
-        <value>Only functions can be marked as "external"</value>
+    <data name="MultipleSameModifiers" xml:space="preserve">
+        <value>A declaration cannot have multiple modifiers of the same type</value>
+    </data>
+    <data name="InvalidModifierTarget" xml:space="preserve">
+        <value>Invalid modifier target</value>
     </data>
 </root>

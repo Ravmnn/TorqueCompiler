@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Types;
@@ -22,6 +23,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     private readonly List<Statement> _statements = [];
     private int _current;
 
+    private readonly List<Token> _currentModifiers = [];
+
 
     public IReadOnlyList<Token> Tokens { get; } = tokens;
 
@@ -37,6 +40,15 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
         return _statements;
     }
+
+
+    private void Reset()
+    {
+        _statements.Clear();
+        _current = 0;
+    }
+
+
 
 
     private void ParseDeclarationOrSynchronize()
@@ -59,15 +71,56 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     }
 
 
-    private void Reset()
+
+
+    private void ParseModifiersIfAny()
     {
-        _statements.Clear();
-        _current = 0;
+        while (MatchAnyModifier())
+            ParsePreviousModifierAndAdd();
     }
 
 
+    private void ParsePreviousModifierAndAdd()
+    {
+        var modifier = Previous();
+
+        if (GetActiveModifier(modifier.Type) is not null)
+            ReportAndThrow(ParserCatalog.MultipleSameModifiers, location: modifier);
+
+        _currentModifiers.Add(modifier);
+    }
 
 
+    private void RemoveCurrentModifiers()
+        => _currentModifiers.Clear();
+
+
+    private Token? ConsumeActiveModifier(TokenType modifier, ModifierTarget currentTarget)
+    {
+        if (GetActiveModifier(modifier) is not { } activeModifier)
+            return null;
+
+        ThrowIfInvalidModifierTarget(activeModifier, currentTarget);
+
+        _currentModifiers.Remove(activeModifier);
+        return activeModifier;
+    }
+
+
+    private void ThrowIfInvalidModifierTarget(Token activeModifier, ModifierTarget currentTarget)
+    {
+        var modifierTargets = ModifiersTarget.GetFor(activeModifier.Type);
+
+        if (!modifierTargets.Any(target => target.HasFlag(currentTarget)))
+            ReportAndThrow(ParserCatalog.InvalidModifierTarget, location: activeModifier);
+    }
+
+
+    private Token? GetActiveModifier(TokenType modifier)
+    {
+        var found = _currentModifiers.Find(current => current.Type == modifier);
+        return found == default ? null : found;
+    }
 
 
 
@@ -76,29 +129,34 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Statement? Declaration()
     {
-        var peek = Peek();
+        ParseModifiersIfAny();
 
-        return peek switch
+        var peek = Peek();
+        var statement = peek switch
         {
-            // TODO: when add more modifiers, improve the way you process them
-            _ when peek.Type == TokenType.Type || MatchAnyModifier() => GenericDeclaration(),
+            _ when peek.Type == TokenType.Type => GenericDeclaration(),
 
             _ => Statement()
         };
+
+        RemoveCurrentModifiers();
+
+        return statement;
     }
 
 
     private Statement GenericDeclaration()
     {
-        var isExternal = CheckPrevious(TokenType.KwExternal);
         var type = ParseTypeName();
         var symbol = new SymbolSyntax(ExpectIdentifier());
 
-        if (Check(TokenType.LeftParen))
-            return FunctionDeclaration(type, symbol, isExternal);
+        var isFunction = Check(TokenType.LeftParen);
+        var currentTarget = isFunction ? ModifierTarget.Function : ModifierTarget.LocalVariable;
 
-        if (isExternal)
-            Report(ParserCatalog.OnlyFunctionsCanBeExternal, location: symbol.Location);
+        var isExternal = ConsumeActiveModifier(TokenType.KwExternal, currentTarget) is not null;
+
+        if (isFunction)
+            return FunctionDeclaration(type, symbol, isExternal);
 
         return VariableDeclaration(type, symbol);
     }
@@ -424,7 +482,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     private Expression ParseLiteral()
     {
         var literal = Previous();
-        return new LiteralExpression(literal.Value!, literal.Location);
+        return new LiteralExpression(literal, literal.Location);
     }
 
 

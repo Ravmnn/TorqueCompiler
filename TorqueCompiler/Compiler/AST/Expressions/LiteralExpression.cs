@@ -6,9 +6,10 @@ namespace Torque.Compiler.AST.Expressions;
 
 
 
-public class LiteralExpression(object value, Span location) : Expression(location)
+public class LiteralExpression(Token token, Span location) : Expression(location)
 {
-    public object Value { get; } = value;
+    public Token Token { get; } = token;
+    public object Value => Token.Value!;
 
 
 
