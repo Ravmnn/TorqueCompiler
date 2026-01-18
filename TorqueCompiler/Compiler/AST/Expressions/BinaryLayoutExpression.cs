@@ -15,7 +15,7 @@ public interface IBinaryLayoutExpressionFactory
 public abstract class BinaryLayoutExpression(Expression left, Expression right, TokenType @operator, Span location)
     : Expression(location)
 {
-    public Expression Left { get; } = left;
-    public Expression Right { get; } = right;
+    public Expression Left { get; set; } = left;
+    public Expression Right { get; set; } = right;
     public TokenType Operator { get; } = @operator;
 }

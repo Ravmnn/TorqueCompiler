@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using Torque.Compiler.Tokens;
+using Torque.Compiler.Symbols;
+using Torque.Compiler.Types;
 using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.AST.Statements;
 
@@ -10,7 +13,9 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatementProcessor<Statement>, ISugarStatementProcessor
+public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
+    : IStatementProcessor<Statement>, IExpressionProcessor<Expression>,
+        ISugarStatementProcessor, ISugarExpressionProcessor
 {
     public IReadOnlyList<Statement> Statements { get; } = statements;
 
@@ -18,17 +23,26 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
 
 
     public IReadOnlyList<Statement> Desugarize()
-        => Statements.Select(Process).ToArray();
+        => Statements.Select(SugarProcess).ToArray();
 
 
 
 
-    public Statement Process(Statement statement)
+    private Statement SugarProcess(Statement statement)
+        => (this as ISugarStatementProcessor).Process(statement);
+
+    private Statement Process(Statement statement)
+        => (this as IStatementProcessor<Statement>).Process(statement);
+
+
+
+
+    Statement ISugarStatementProcessor.Process(Statement statement)
     {
-        if (statement is not SugarStatement sugarStatement)
-            return statement.Process(this);
+        if (statement is SugarStatement sugarStatement)
+            return sugarStatement.Process(this);
 
-        return sugarStatement.Process(this);
+        return statement.Process(this);
     }
 
 
@@ -39,20 +53,22 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
 
 
     public Statement ProcessExpression(ExpressionStatement statement)
-        => statement;
-
-
+    {
+        statement.Expression = SugarProcess(statement.Expression);
+        return statement;
+    }
 
 
     public Statement ProcessDeclaration(DeclarationStatement statement)
-        => statement;
-
-
+    {
+        statement.Value = SugarProcess(statement.Value);
+        return statement;
+    }
 
 
     public Statement ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
     {
-        var desugarizedBody = statement.Body is not null ? Process(statement.Body) : null;
+        var desugarizedBody = statement.Body is not null ? SugarProcess(statement.Body) : null;
         statement.Body = (desugarizedBody as BlockStatement)!;
 
         return statement;
@@ -60,29 +76,26 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
 
 
     public Statement ProcessReturn(ReturnStatement statement)
-        => statement;
-
-
+    {
+        statement.Expression = statement.Expression is not null ? SugarProcess(statement.Expression) : null;
+        return statement;
+    }
 
 
     public Statement ProcessBlock(BlockStatement statement)
     {
-        var desugarizedStatements = statement.Statements.Select(Process).ToArray();
+        var desugarizedStatements = statement.Statements.Select(SugarProcess).ToArray();
         statement.Statements = desugarizedStatements;
 
         return statement;
     }
 
 
-
-
     public Statement ProcessIf(IfStatement statement)
     {
-        var desugarizedThenStatement = Process(statement.ThenStatement);
-        var desugarizedElseStatement = statement.ElseStatement is not null ? Process(statement.ElseStatement) : null;
-
-        statement.ThenStatement = desugarizedThenStatement;
-        statement.ElseStatement = desugarizedElseStatement;
+        statement.Condition = SugarProcess(statement.Condition);
+        statement.ThenStatement = SugarProcess(statement.ThenStatement);
+        statement.ElseStatement = statement.ElseStatement is not null ? SugarProcess(statement.ElseStatement) : null;
 
         return statement;
     }
@@ -98,5 +111,150 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements) : IStatement
     {
         var defaultValue = new DefaultExpression(statement.Type, statement.Location);
         return new DeclarationStatement(statement.Type, statement.Name, defaultValue) { Modifiers = statement.Modifiers };
+    }
+
+
+
+
+
+
+
+
+    private Expression SugarProcess(Expression expression)
+        => (this as ISugarExpressionProcessor).Process(expression);
+
+    private Expression Process(Expression expression)
+        => (this as IExpressionProcessor<Expression>).Process(expression);
+
+
+
+
+    Expression ISugarExpressionProcessor.Process(Expression expression)
+    {
+        if (expression is SugarExpression sugarExpression)
+            return sugarExpression.Process(this);
+
+        return expression.Process(this);
+    }
+
+
+    Expression IExpressionProcessor<Expression>.Process(Expression expression)
+        => expression.Process(this);
+
+
+
+
+    public Expression ProcessLiteral(LiteralExpression expression)
+        => expression;
+
+
+    public Expression ProcessBinary(BinaryExpression expression)
+        => ProcessBinaryLayout(expression);
+
+
+    public Expression ProcessUnary(UnaryExpression expression)
+        => ProcessUnaryLayout(expression);
+
+
+    public Expression ProcessGrouping(GroupingExpression expression)
+    {
+        expression.Expression = SugarProcess(expression.Expression);
+        return expression;
+    }
+
+
+    public Expression ProcessComparison(ComparisonExpression expression)
+        => ProcessBinaryLayout(expression);
+
+
+    public Expression ProcessEquality(EqualityExpression expression)
+        => ProcessBinaryLayout(expression);
+
+
+    public Expression ProcessLogic(LogicExpression expression)
+        => ProcessBinaryLayout(expression);
+
+
+    public Expression ProcessSymbol(SymbolExpression expression)
+        => expression;
+
+
+    public Expression ProcessAddress(AddressExpression expression)
+        => ProcessUnaryLayout(expression);
+
+
+    public Expression ProcessAssignment(AssignmentExpression expression)
+        => ProcessBinaryLayout(expression);
+
+
+    public Expression ProcessPointerAccess(PointerAccessExpression expression)
+        => ProcessUnaryLayout(expression);
+
+
+    public Expression ProcessCall(CallExpression expression)
+    {
+        expression.Callee = SugarProcess(expression.Callee);
+        expression.Arguments = expression.Arguments.Select(SugarProcess).ToArray();
+        return expression;
+    }
+
+
+    public Expression ProcessCast(CastExpression expression)
+    {
+        expression.Expression = SugarProcess(expression.Expression);
+        return expression;
+    }
+
+
+    public Expression ProcessArray(ArrayExpression expression)
+    {
+        expression.Elements = expression.Elements?.Select(SugarProcess).ToArray();
+        return expression;
+    }
+
+
+    public Expression ProcessIndexing(IndexingExpression expression)
+    {
+        expression.Pointer = SugarProcess(expression.Pointer);
+        expression.Index = SugarProcess(expression.Index);
+        return expression;
+    }
+
+
+    public Expression ProcessDefault(DefaultExpression expression)
+        => expression;
+
+
+
+
+    private BinaryLayoutExpression ProcessBinaryLayout(BinaryLayoutExpression expression)
+    {
+        expression.Left = SugarProcess(expression.Left);
+        expression.Right = SugarProcess(expression.Right);
+        return expression;
+    }
+
+
+    private UnaryLayoutExpression ProcessUnaryLayout(UnaryLayoutExpression expression)
+    {
+        expression.Right = SugarProcess(expression.Right);
+        return expression;
+    }
+
+
+
+
+
+
+
+
+    public Expression ProcessNullptr(SugarNullptrExpression expression)
+        => new DefaultExpression(CreateGenericPointerTypeSyntax(expression.Location), expression.Location);
+
+
+    private static PointerTypeSyntax CreateGenericPointerTypeSyntax(Span location)
+    {
+        var byteLexeme = Keywords.PrimitiveTypes.First(pair => pair.Value == PrimitiveType.UInt8).Key;
+        return new PointerTypeSyntax(new BaseTypeSyntax(new SymbolSyntax(byteLexeme, location)));
     }
 }

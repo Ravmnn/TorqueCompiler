@@ -22,11 +22,6 @@ public static class TokenExtensions
         public bool IsLiteralBoolean()
             => token is "true" or "false";
 
-        public bool IsLiteralChar()
-            => token.StartsWith('\'') && token.EndsWith('\'');
-
-        public bool IsLiteralFloat()
-            => token.Contains('.');
 
         public ulong ValueFromInteger()
             => ulong.Parse(token);

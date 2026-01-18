@@ -9,7 +9,7 @@ namespace Torque.Compiler.AST.Expressions;
 
 public class CastExpression(Expression expression, TypeSyntax type, Span location) : Expression(location)
 {
-    public Expression Expression { get; } = expression;
+    public Expression Expression { get; set; } = expression;
     public TypeSyntax Type { get; } = type;
 
 

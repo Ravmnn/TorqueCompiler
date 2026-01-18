@@ -8,9 +8,7 @@ byte* stdin() { return fdopen(0, "r"); }
 
 int main(int argc, char** argv)
 {
-    external int myvar;
-
-    printf("hello, world!\n");
+    int* nothing = nullptr;
 
     return 0;
 }

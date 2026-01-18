@@ -8,8 +8,8 @@ namespace Torque.Compiler.AST.Expressions;
 
 public class IndexingExpression(Expression pointer, Expression index, Span location) : Expression(location)
 {
-    public Expression Pointer { get; } = pointer;
-    public Expression Index { get; } = index;
+    public Expression Pointer { get; set; } = pointer;
+    public Expression Index { get; set; } = index;
 
 
 

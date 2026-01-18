@@ -13,7 +13,7 @@ public class ArrayExpression(TypeSyntax elementType, ulong length, IReadOnlyList
 {
     public TypeSyntax ElementType { get; } = elementType;
     public ulong Length { get; } = length;
-    public IReadOnlyList<Expression>? Elements { get; } = elements;
+    public IReadOnlyList<Expression>? Elements { get; set; } = elements;
 
 
 

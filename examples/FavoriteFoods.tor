@@ -8,8 +8,8 @@ byte* stdin() { return fdopen(0, "r"); }
 
 char* readln(char* prompt)
 {
-    let buffer = default(char*);
-    let bufferSize = default(usize);
+    char* buffer;
+    usize bufferSize;
 
     if (prompt != default(char*))
         printf(prompt);

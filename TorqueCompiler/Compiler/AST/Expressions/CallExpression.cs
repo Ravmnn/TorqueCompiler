@@ -10,8 +10,8 @@ namespace Torque.Compiler.AST.Expressions;
 
 public class CallExpression(Expression callee, IReadOnlyList<Expression> arguments, Span location) : Expression(location)
 {
-    public Expression Callee { get; } = callee;
-    public IReadOnlyList<Expression> Arguments { get; } = arguments;
+    public Expression Callee { get; set; } = callee;
+    public IReadOnlyList<Expression> Arguments { get; set; } = arguments;
 
 
 

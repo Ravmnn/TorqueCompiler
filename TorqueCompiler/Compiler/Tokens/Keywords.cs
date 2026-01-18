@@ -47,7 +47,8 @@ public static class Keywords
         { "else", TokenType.KwElse },
         { "as", TokenType.KwAs },
         { "array", TokenType.KwArray },
-        { "default", TokenType.KwDefault }
+        { "default", TokenType.KwDefault },
+        { "nullptr", TokenType.KwNullptr }
     };
 
 

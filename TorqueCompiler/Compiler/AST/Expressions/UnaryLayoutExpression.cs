@@ -14,6 +14,6 @@ public interface IUnaryLayoutExpressionFactory
 
 public abstract class UnaryLayoutExpression(Expression right, TokenType @operator, Span location) : Expression(location)
 {
-    public Expression Right { get; } = right;
+    public Expression Right { get; set; } = right;
     public TokenType Operator { get; } = @operator;
 }

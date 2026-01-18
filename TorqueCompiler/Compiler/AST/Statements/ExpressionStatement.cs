@@ -8,7 +8,7 @@ namespace Torque.Compiler.AST.Statements;
 
 public class ExpressionStatement(Expression expression) : Statement(expression.Location)
 {
-    public Expression Expression { get; } = expression;
+    public Expression Expression { get; set; } = expression;
 
 
 

@@ -230,22 +230,11 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     public Type ProcessBinary(BoundBinaryExpression expression)
     {
         var leftType = Process(expression.Left);
-        var rightType = Process(expression.Right);
+        Process(expression.Right);
 
-        ImplicitCastLeftOrRightBinaryOperand(expression, leftType, rightType);
+        expression.Right = ImplicitCastOrReport(leftType, expression.Right);
 
         return expression.Type!;
-    }
-
-
-    private void ImplicitCastLeftOrRightBinaryOperand(BoundBinaryExpression expression, Type leftType, Type rightType)
-    {
-        var rightOperandCast = TryImplicitCast(leftType, expression.Right);
-
-        if (rightOperandCast is not null)
-            expression.Right = rightOperandCast;
-        else
-            expression.Left = ImplicitCastOrReport(rightType, expression.Left);
     }
 
 
@@ -509,13 +498,15 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
         var forceForBaseTypes = expression is BoundLiteralExpression && forceIfLiteral;
 
-        if (TryImplicitCast(got, expected, forceForBaseTypes) is { } type)
-            return new BoundImplicitCastExpression(expression, type);
+        if (TryImplicitCast(got, expected, forceForBaseTypes) is not null || GenericPointerToPointer(expected, expression))
+            return new BoundImplicitCastExpression(expression, expected);
 
         return null;
     }
 
 
+    private static bool GenericPointerToPointer(Type expected, BoundExpression expression)
+        => expected.IsPointer && expression.Type!.IsGenericPointer;
 
 
     private bool ReportIfNotAPointer(Type type, Span location)
@@ -616,7 +607,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         if (signDiffers || floatToInt || sourceBigger)
             return false;
 
-        return true;
+        return false;
     }
 
     #endregion
@@ -625,16 +616,6 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
 
     #region Type Convertors
-
-    private Type ValidateTypeToVariable(Type type) => type switch
-    {
-        FunctionType functionType => new PointerType(type),
-
-        _ => type
-    };
-
-
-
 
     private Type TypeFromNonVoidTypeName(TypeSyntax typeSyntax)
     {

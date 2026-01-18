@@ -57,6 +57,7 @@ public abstract class Type
 
     public bool IsBase => this is BaseType;
     public bool IsPointer => this is PointerType;
+    public bool IsGenericPointer => this is PointerType pointerType && pointerType.Type == PrimitiveType.UInt8;
     public bool IsFunction => this is FunctionType;
 
 

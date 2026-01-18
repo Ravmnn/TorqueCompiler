@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using Torque.Compiler.Tokens;
 using Torque.Compiler.Types;
 using Torque.Compiler.Symbols;
-using Torque.Compiler.Tokens;
 
 
 namespace Torque.Compiler.AST.Statements;
@@ -16,7 +16,7 @@ public readonly record struct FunctionParameterDeclaration(SymbolSyntax Name, Ty
 
 
 public class FunctionDeclarationStatement(TypeSyntax returnType, SymbolSyntax name, IReadOnlyList<FunctionParameterDeclaration> parameters,
-    BlockStatement? body) : Statement(name.Location), IModificable
+    BlockStatement? body) : Statement(name.Location), IDeclaration
 {
     public TypeSyntax ReturnType { get; } = returnType;
     public SymbolSyntax Name { get; } = name;

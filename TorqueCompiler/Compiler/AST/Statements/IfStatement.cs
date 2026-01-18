@@ -9,7 +9,7 @@ namespace Torque.Compiler.AST.Statements;
 
 public class IfStatement(Expression condition, Statement thenStatement, Statement? elseStatement, Span location) : Statement(location)
 {
-    public Expression Condition { get; } = condition;
+    public Expression Condition { get; set; } = condition;
     public Statement ThenStatement { get; set; } = thenStatement;
     public Statement? ElseStatement { get; set; } = elseStatement;
 

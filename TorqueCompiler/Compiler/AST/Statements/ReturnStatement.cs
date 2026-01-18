@@ -9,7 +9,7 @@ namespace Torque.Compiler.AST.Statements;
 
 public class ReturnStatement(Span location, Expression? expression = null) : Statement(location)
 {
-    public Expression? Expression { get; } = expression;
+    public Expression? Expression { get; set; } = expression;
 
 
 

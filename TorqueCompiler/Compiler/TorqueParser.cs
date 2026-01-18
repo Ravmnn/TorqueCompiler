@@ -444,12 +444,13 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     {
         _ when CurrentIsLiteral() => ParseLiteral(),
 
-        _ when Match(TokenType.Identifier) => new SymbolExpression(new SymbolSyntax(Previous())),
+        _ when Match(TokenType.Identifier) => ParseIdentifier(),
         _ when Match(TokenType.LeftParen) => ParseGroupExpression(),
 
         _ when Check(TokenType.Type) => TryParseArray(),
 
         _ when Match(TokenType.KwDefault) => ParseDefault(),
+        _ when Match(TokenType.KwNullptr) => ParseNullptr(),
 
         _ => null
     };
@@ -466,6 +467,14 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         var literal = Previous();
         return new LiteralExpression(literal, literal.Location);
     }
+
+
+
+
+    private SymbolExpression ParseIdentifier()
+        => new SymbolExpression(new SymbolSyntax(Previous()));
+
+
 
 
     private Expression ParseGroupExpression()
@@ -521,6 +530,12 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
         return new DefaultExpression(typeName, new Span(keyword, rightParen));
     }
+
+
+
+
+    private Expression ParseNullptr()
+        => new SugarNullptrExpression(Previous());
 
     #endregion
 

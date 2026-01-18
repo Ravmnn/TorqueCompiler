@@ -8,7 +8,7 @@ namespace Torque.Compiler.AST.Expressions;
 
 public class GroupingExpression(Expression expression, Span location) : Expression(location)
 {
-    public Expression Expression { get; } = expression;
+    public Expression Expression { get; set; } = expression;
 
 
 
