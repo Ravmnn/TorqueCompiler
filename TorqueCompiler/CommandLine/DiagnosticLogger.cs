@@ -48,4 +48,10 @@ public class DiagnosticLogger
         if (HasError)
             throw new InterruptCompileException();
     }
+
+
+
+
+    public void LogInternalError(Exception exception)
+        => Console.WriteLine($@"Internal Error: {exception}");
 }

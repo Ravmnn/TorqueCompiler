@@ -11,7 +11,7 @@ using Torque.Compiler;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Statements;
 using Torque.Compiler.Target;
-using Torque.Compiler.Tokens;
+using Torque.CommandLine.Toolchain;
 
 
 namespace Torque.CommandLine;
@@ -21,70 +21,74 @@ namespace Torque.CommandLine;
 
 public static class Torque
 {
-    private static CompileCommandSettings s_settings = null!;
+    private static CompileCommandSettings s_compileSettings = null!;
+    private static LinkCommandSettings s_linkSettings = null!;
 
     public static DiagnosticLogger Logger { get; set; } = new DiagnosticLogger();
 
 
 
 
-    public static void CompileToFile(CompileCommandSettings settings)
+    private static void InitializeGlobals(CompileCommandSettings settings)
     {
-        try
-        {
-            InitializeGlobals(settings);
-
-            if (CompileToBitCode() is { } bitCode)
-                Toolchain.Compile(GetOutputFileName(), bitCode, s_settings.OutputType, s_settings.Debug);
-        }
-        catch (InterruptCompileException)
-        { }
-        catch (Exception exception)
-        {
-            Console.WriteLine($"Internal Error: {exception}");
-        }
+        InitializeGlobalSourceCodeReference(settings.File);
+        InitializeGlobalTargetMachine(settings);
     }
 
 
-    private static void InitializeGlobals(CompileCommandSettings settings)
+    private static void InitializeGlobalSourceCodeReference(FileInfo file)
     {
-        s_settings = settings;
+        SourceCode.Source = File.ReadAllText(file.FullName);
+        SourceCode.FileName = file.Name;
+    }
 
-        SourceCode.Source = File.ReadAllText(s_settings.File.FullName);
-        SourceCode.FileName = settings.File.Name;
 
+    private static void InitializeGlobalTargetMachine(CompileCommandSettings settings)
+    {
         var targetTriple = TargetTriple.FromCompileSettings(settings);
         TargetMachine.SetGlobalTarget(targetTriple.ToString());
     }
 
 
-    private static string GetOutputFileName()
+
+
+    public static void Compile(CompileCommandSettings settings)
     {
-        var fileName = Path.GetFileNameWithoutExtension(s_settings.File.Name);
+        s_compileSettings = settings;
 
-        var outputExtension = s_settings.OutputType.OutputTypeToFileExtension();
-        var outputName = s_settings.Output ?? $"{fileName}.{outputExtension}";
+        try
+        {
+            InitializeGlobals(settings);
+            CompileSourceCodeToFile(settings);
+        }
+        catch (InterruptCompileException)
+        { }
+        catch (Exception exception)
+        {
+            Logger.LogInternalError(exception);
+        }
+    }
 
-        return outputName;
+
+    private static void CompileSourceCodeToFile(CompileCommandSettings settings)
+    {
+        if (CompileSourceCodeToBitCode() is not { } bitCode)
+            return;
+
+        var options = CompilerProgramOptions.FromCompileCommandSettings(settings);
+        ProgramToolchain.Compile(bitCode, GetOutputFileName(), options);
     }
 
 
 
 
-    private static string CompileBitCodeToAssembly(string bitCode) => TempFiles.ForTempFileDo(file =>
-    {
-        Toolchain.Compile(file, bitCode, OutputType.Assembly);
-        return File.ReadAllText(file);
-    });
-
-
-    private static string CompileToBitCode()
+    private static string CompileSourceCodeToBitCode()
     {
         var statements = BuildFinalAST();
         PrintASTIfRequested(statements);
 
         var (boundStatements, scope) = SemanticAnalysis(statements);
-        var bitCode = Compile(boundStatements, scope);
+        var bitCode = CompilerSteps.Compile(boundStatements, scope, s_compileSettings);
 
         PrintLLVMIfRequested(bitCode);
         PrintASMIfRequested(bitCode);
@@ -95,10 +99,10 @@ public static class Torque
 
     private static (IReadOnlyList<BoundStatement>, Scope) SemanticAnalysis(IReadOnlyList<Statement> statements)
     {
-        var (boundStatements, scope) = Bind(statements);
+        var (boundStatements, scope) = CompilerSteps.Bind(statements);
 
-        TypeCheck(boundStatements);
-        AnalyzeControlFlow(boundStatements);
+        CompilerSteps.TypeCheck(boundStatements);
+        CompilerSteps.AnalyzeControlFlow(boundStatements);
 
         return (boundStatements, scope);
     }
@@ -106,85 +110,22 @@ public static class Torque
 
     private static IReadOnlyList<Statement> BuildFinalAST()
     {
-        var tokens = Tokenixe();
-        var statements = Parse(tokens);
-        statements = Desugarize(statements);
+        var tokens = CompilerSteps.Tokenize();
+        var statements = CompilerSteps.Parse(tokens);
+        statements = CompilerSteps.Desugarize(statements);
 
         return statements;
     }
 
 
-
-
-    private static string Compile(IReadOnlyList<BoundStatement> boundStatements, Scope scope)
+    private static string GetOutputFileName()
     {
-        var compiler = new TorqueCompiler(boundStatements, scope, s_settings.File, s_settings.Debug);
-        var bitCode = compiler.Compile();
+        var fileName = Path.GetFileNameWithoutExtension(s_compileSettings.File.Name);
 
-        return bitCode;
-    }
+        var outputExtension = s_compileSettings.OutputType.OutputTypeToFileExtension();
+        var outputName = s_compileSettings.Output ?? $"{fileName}.{outputExtension}";
 
-
-    private static void AnalyzeControlFlow(IReadOnlyList<BoundStatement> boundStatements)
-    {
-        var functionDeclarations = boundStatements.Cast<BoundFunctionDeclarationStatement>().ToArray();
-        var graphs = new ControlFlowGraphBuilder(functionDeclarations).Build();
-
-        var controlFlowReporter = new ControlFlowAnalysisReporter(graphs);
-        controlFlowReporter.Report();
-
-        Logger.LogDiagnosticsAndInterruptIfAny(controlFlowReporter.Diagnostics);
-    }
-
-
-    private static void TypeCheck(IReadOnlyList<BoundStatement> boundStatements)
-    {
-        var typeChecker = new TorqueTypeChecker(boundStatements);
-        typeChecker.Check();
-
-        Logger.LogDiagnosticsAndInterruptIfAny(typeChecker.Diagnostics);
-    }
-
-
-    private static (IReadOnlyList<BoundStatement>, Scope) Bind(IReadOnlyList<Statement> statements)
-    {
-        var binder = new TorqueBinder(statements);
-        var boundStatements = binder.Bind();
-
-        Logger.LogDiagnosticsAndInterruptIfAny(binder.Diagnostics);
-
-        return (boundStatements, binder.Scope);
-    }
-
-
-    private static IReadOnlyList<Statement> Desugarize(IReadOnlyList<Statement> statements)
-    {
-        var desugarizer = new TorqueDesugarizer(statements);
-        statements = desugarizer.Desugarize(); // desugarizer cannot fail
-
-        return statements;
-    }
-
-
-    private static IReadOnlyList<Statement> Parse(IReadOnlyList<Token> tokens)
-    {
-        var parser = new TorqueParser(tokens);
-        var statements = parser.Parse();
-
-        Logger.LogDiagnosticsAndInterruptIfAny(parser.Diagnostics);
-
-        return statements;
-    }
-
-
-    private static IReadOnlyList<Token> Tokenixe()
-    {
-        var lexer = new TorqueLexer(SourceCode.Source!);
-        var tokens = lexer.Tokenize();
-
-        Logger.LogDiagnosticsAndInterruptIfAny(lexer.Diagnostics);
-
-        return tokens;
+        return outputName;
     }
 
 
@@ -192,7 +133,7 @@ public static class Torque
 
     private static void PrintASTIfRequested(IReadOnlyList<Statement> statements)
     {
-        if (!s_settings.PrintAST)
+        if (!s_compileSettings.PrintAST)
             return;
 
         Console.WriteLine(new ASTPrinter().Print(statements));
@@ -202,7 +143,7 @@ public static class Torque
 
     private static void PrintLLVMIfRequested(string bitCode)
     {
-        if (!s_settings.PrintLLVM)
+        if (!s_compileSettings.PrintLLVM)
             return;
 
         Console.WriteLine(bitCode);
@@ -212,7 +153,7 @@ public static class Torque
 
     private static void PrintASMIfRequested(string bitCode)
     {
-        if (!s_settings.PrintASM)
+        if (!s_compileSettings.PrintASM)
             return;
 
         var assembly = CompileBitCodeToAssembly(bitCode);
@@ -221,12 +162,26 @@ public static class Torque
     }
 
 
+    private static string CompileBitCodeToAssembly(string bitCode) => TempFiles.ForTempFileDo(file =>
+    {
+        var options = CompilerProgramOptions.FromCompileCommandSettings(s_compileSettings)
+            with { OutputType = OutputType.Assembly };
+
+        ProgramToolchain.Compile(bitCode, file, options);
+        return File.ReadAllText(file);
+    });
+
+
 
 
     public static void Link(LinkCommandSettings settings)
     {
+        s_linkSettings = settings;
+
         var fileNames = settings.Files.Select(file => file.FullName).ToArray();
-        Toolchain.Link(fileNames, settings.Output, settings.Debug);
+        var options = LinkerProgramOptions.FromLinkCommandSettings(settings);
+
+        ProgramToolchain.Link(fileNames, settings.Output, options);
     }
 
 
