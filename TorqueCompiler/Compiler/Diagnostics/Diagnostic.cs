@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 using Torque.Compiler.Tokens;
@@ -90,4 +91,8 @@ public readonly struct Diagnostic()
 
         _ => throw new InvalidOperationException("Invalid diagnostic scope")
     };
+
+
+    public string GetFormattedMessage()
+        => string.Format(GetMessage(), Arguments.ToArray());
 }

@@ -105,7 +105,7 @@ public class CompileCommand : Command<CompileCommandSettings>
 {
     protected override int Execute(CommandContext context, CompileCommandSettings settings, CancellationToken cancellationToken)
     {
-        Torque.Compile(settings);
+        Torque.CompileToFile(settings);
         return 0;
     }
 }

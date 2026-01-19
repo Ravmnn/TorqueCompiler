@@ -82,7 +82,7 @@ public class TargetMachine
 
 
 
-    public static void SetGlobal(string triple)
+    public static void SetGlobalTarget(string triple)
         => Global = new TargetMachine(triple);
 
 

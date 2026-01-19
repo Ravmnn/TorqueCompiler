@@ -68,10 +68,13 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add support to generic code
-        // TODO: add interfaces
 
-        // TODO: add importing system
+        // TODO: add operator overloading, custom implicit and explicit cast support as well
+        // TODO: add interfaces
         // TODO: structs should have methods
+
+        // TODO: add pre-processing support
+        // TODO: add importing system
         // TODO: add structs
 
         File = file;
