@@ -75,7 +75,11 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         // TODO: add pre-processing support
         // TODO: add importing system
+        // TODO: add enums
         // TODO: add structs
+        // TODO: add sizeof(T)
+        // TODO: functions should not be required to be declared before the caller
+        // TODO: add loops (while, for, loop)
 
         File = file;
 
@@ -935,25 +939,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private LLVMMetadataRef? DebugGenerateParameter(VariableSymbol parameter, int index)
         => Debug?.GenerateParameter(parameter, index);
-
-
-
-
-    // These methods are only necessary when the variable for some reason does not have an alloca (memory address).
-    // if the variable has an alloca, the debugger is able to track its memory address and, consequently
-    // its value. Since currently a variable cannot be created without alloca, they're useless
-    private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(string name, Span location)
-    {
-        var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
-        return Debug?.UpdateLocalVariableValue(name, llvmLocation!.Value);
-    }
-
-
-    private LLVMDbgRecordRef? DebugUpdateLocalVariableValue(LLVMValueRef reference, Span location)
-    {
-        var llvmLocation = Debug?.CreateDebugLocation(location.Line, location.Start);
-        return Debug?.UpdateLocalVariableValue(reference, llvmLocation!.Value);
-    }
 
 
 

@@ -35,14 +35,17 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
     private void BuildAllFunctions()
     {
         foreach (var function in FunctionDeclarations)
-        {
-            if (function.IsExternal)
-                continue;
+            if (!function.IsExternal)
+                BuildFunction(function);
 
-            ResetBlocks();
-            Process(function);
-            _graphs.Add(_currentGraph!);
-        }
+    }
+
+
+    private void BuildFunction(BoundFunctionDeclarationStatement function)
+    {
+        ResetBlocks();
+        Process(function);
+        _graphs.Add(_currentGraph!);
     }
 
 

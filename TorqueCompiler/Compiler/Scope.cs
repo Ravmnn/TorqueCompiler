@@ -61,11 +61,11 @@ public class Scope(Scope? parent = null)
 
 
     public Symbol GetSymbol(string name)
-        => TryGetSymbol(name) ?? throw new InvalidOperationException($"Invalid symbol \"{name}\".");
+        => TryGetSymbol(name) ?? throw new ArgumentException($"Invalid symbol \"{name}\".");
 
 
     public Symbol GetSymbol(LLVMValueRef reference)
-        => TryGetSymbol(reference) ?? throw new InvalidOperationException($"Invalid symbol reference \"{reference}\"");
+        => TryGetSymbol(reference) ?? throw new ArgumentException($"Invalid symbol reference \"{reference}\"");
 
 
 

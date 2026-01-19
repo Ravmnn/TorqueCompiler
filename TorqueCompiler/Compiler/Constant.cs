@@ -1,7 +1,6 @@
 using LLVMSharp.Interop;
 
 using Torque.Compiler.Types;
-using Torque.Compiler.Target;
 
 
 namespace Torque.Compiler;
@@ -12,7 +11,7 @@ namespace Torque.Compiler;
 public static class Constant
 {
     public static LLVMTypeRef GenericPointerType { get; }
-        = LLVMTypeRef.CreatePointer(LLVMTypeRef.CreateIntPtr(TargetMachine.Global!.DataLayout), 0);
+        = LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0);
 
 
     public static LLVMValueRef Zero { get; } = Integer(0);

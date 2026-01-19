@@ -34,9 +34,15 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public IReadOnlyList<BoundStatement> Bind()
     {
-        Diagnostics.Clear();
+        Reset();
 
         return Statements.Select(Process).ToArray();
+    }
+
+
+    private void Reset()
+    {
+        Diagnostics.Clear();
     }
 
 

@@ -45,6 +45,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     {
         _statements.Clear();
         _current = 0;
+
+        Diagnostics.Clear();
     }
 
 
@@ -675,6 +677,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
             {
                 case TokenType.SemiColon:
                 case TokenType.KwReturn:
+                case TokenType.KwIf:
+                case TokenType.KwElse:
                     Advance();
                     return;
             }

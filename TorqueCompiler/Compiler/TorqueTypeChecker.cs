@@ -39,15 +39,17 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
     public void Check()
     {
-        Diagnostics.Clear();
+        Reset();
 
         foreach (var statement in Statements)
             Process(statement);
     }
 
 
-
-
+    private void Reset()
+    {
+        Diagnostics.Clear();
+    }
 
 
 
@@ -607,7 +609,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         if (signDiffers || floatToInt || sourceBigger)
             return false;
 
-        return false;
+        return true;
     }
 
     #endregion
