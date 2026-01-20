@@ -13,6 +13,7 @@ public interface IBoundStatementProcessor
     void ProcessReturn(BoundReturnStatement statement);
     void ProcessBlock(BoundBlockStatement statement);
     void ProcessIf(BoundIfStatement statement);
+    void ProcessWhile(BoundWhileStatement statement);
 }
 
 
@@ -26,4 +27,5 @@ public interface IBoundStatementProcessor<T>
     T ProcessReturn(BoundReturnStatement statement);
     T ProcessBlock(BoundBlockStatement statement);
     T ProcessIf(BoundIfStatement statement);
+    T ProcessWhile(BoundWhileStatement statement);
 }

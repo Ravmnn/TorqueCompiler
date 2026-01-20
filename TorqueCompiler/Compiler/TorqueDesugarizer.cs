@@ -101,6 +101,15 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
     }
 
 
+    public Statement ProcessWhile(WhileStatement statement)
+    {
+        statement.Condition = SugarProcess(statement.Condition);
+        statement.Body = SugarProcess(statement.Body);
+
+        return statement;
+    }
+
+
 
 
 

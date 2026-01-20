@@ -13,6 +13,7 @@ public interface IStatementProcessor
     void ProcessReturn(ReturnStatement statement);
     void ProcessBlock(BlockStatement statement);
     void ProcessIf(IfStatement statement);
+    void ProcessWhile(WhileStatement statement);
 }
 
 
@@ -26,4 +27,5 @@ public interface IStatementProcessor<out T>
     T ProcessReturn(ReturnStatement statement);
     T ProcessBlock(BlockStatement statement);
     T ProcessIf(IfStatement statement);
+    T ProcessWhile(WhileStatement statement);
 }

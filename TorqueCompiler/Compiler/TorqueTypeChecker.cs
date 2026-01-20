@@ -172,6 +172,17 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
             Process(statement.ElseStatement);
     }
 
+
+
+
+    public void ProcessWhile(BoundWhileStatement statement)
+    {
+        Process(statement.Condition);
+        statement.Condition = ImplicitCastOrReport(PrimitiveType.Bool, statement.Condition);
+
+        Process(statement.Body);
+    }
+
     #endregion
 
 

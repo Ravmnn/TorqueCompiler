@@ -165,6 +165,17 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         return new BoundIfStatement(statement, condition, thenStatement, elseStatement);
     }
 
+
+
+
+    public BoundStatement ProcessWhile(WhileStatement statement)
+    {
+        var condition = Process(statement.Condition);
+        var body = Process(statement.Body);
+
+        return new BoundWhileStatement(statement, condition, body);
+    }
+
     #endregion
 
 

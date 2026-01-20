@@ -45,6 +45,7 @@ public static class Keywords
         { "return", TokenType.KwReturn },
         { "if", TokenType.KwIf },
         { "else", TokenType.KwElse },
+        { "while", TokenType.KwWhile },
         { "as", TokenType.KwAs },
         { "array", TokenType.KwArray },
         { "default", TokenType.KwDefault },

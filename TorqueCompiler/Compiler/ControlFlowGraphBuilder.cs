@@ -149,6 +149,23 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
 
 
+    public void ProcessWhile(BoundWhileStatement statement)
+    {
+        AddStatementToCurrentBlock(statement);
+
+        var origin = _currentBlock;
+        var joinPredecessors = new List<BasicBlock>();
+        var bodyBlock = AttachNewBlockWithPredecessorsAndProcess(statement.Body, origin);
+
+        joinPredecessors.Add(bodyBlock);
+        joinPredecessors.Add(origin);
+
+        _currentBlock = NewBlockWithPredecessors(joinPredecessors);
+    }
+
+
+
+
     private void AddStatementToCurrentBlock(BoundStatement statement)
         => _currentBlock.Statements.Add(statement);
 

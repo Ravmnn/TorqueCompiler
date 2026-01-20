@@ -2,13 +2,76 @@ external byte* fdopen(int fileDescriptor, char* mode);
 external int64 getline(char** buffer, usize* bufferSize, byte* fileDescriptor);
 external int printf(char* content);
 
+external int sprintf(char* buffer, char* format, int value);
+
+
+void intToString(char* buffer, int value)
+{
+    sprintf(buffer, "%d", value);
+}
+
 
 byte* stdin() { return fdopen(0, "r"); }
+
+char* readln(char* prompt)
+{
+    char* buffer;
+    usize bufferSize;
+
+    if (prompt != default(char*))
+        printf(prompt);
+
+    let length = getline(&buffer, &bufferSize, stdin());
+    buffer[length - 1] = '\0';
+
+    return buffer;
+}
+
+
+void println(char* content)
+{
+    printf(content);
+    printf("\n");
+}
+
+
 
 
 int main(int argc, char** argv)
 {
-    let numbers = int array[1] ;
+    let numberAsString = char array[256];
+    let counter = 0;
+
+    while (true)
+    {
+        intToString(numberAsString, counter);
+
+        printf("counter is currently at: ");
+        println(numberAsString);
+
+        let choice = readln("would you like to increment it? (y | n): ");
+        let firstLetter = choice[0];
+
+        if (firstLetter == 'y')
+        {
+            counter = counter + 1;
+            continue;
+        }
+        else if (firstLetter == 'n')
+        {
+            println("closing program");
+            printf("final counter value is: ");
+            println(numberAsString);
+            break;
+        }
+        else
+        {
+            printf("unknown response: ");
+            println(choice);
+        }
+
+        println("loop reached at the end!");
+    }
 
     return 0;
 }

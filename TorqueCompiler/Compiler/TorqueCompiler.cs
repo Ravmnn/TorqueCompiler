@@ -47,7 +47,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private LLVMValueRef? _currentFunction;
 
 
-    private IntrinsicCaller _intrinsics;
+    private readonly IntrinsicCaller _intrinsics;
 
 
     public IReadOnlyList<BoundStatement> Statements { get; }
@@ -72,6 +72,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add operator overloading, custom implicit and explicit cast support as well
         // TODO: add interfaces
         // TODO: structs should have methods
+        // TODO: variadic functions?
 
         // TODO: add pre-processing support
         // TODO: add importing system
@@ -79,7 +80,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add structs
         // TODO: add sizeof(T)
         // TODO: functions should not be required to be declared before the caller
-        // TODO: add loops (while, for, loop)
+        // TODO: add loops (while, for, loop), break and continue
 
         File = file;
 
@@ -138,7 +139,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public void ProcessExpression(BoundExpressionStatement statement)
     {
-        DebugForLocationDo(statement.Location, () => Process(statement.Expression));
+        DebugForSetLocationDo(statement.Location, () => Process(statement.Expression));
     }
 
 
@@ -146,7 +147,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public void ProcessDeclaration(BoundDeclarationStatement statement)
     {
-        DebugForLocationDo(statement.Location, () =>
+        DebugForSetLocationDo(statement.Location, () =>
         {
             var symbol = statement.Symbol;
             var reference = CreateVariableAlloca(symbol, $"var.${symbol.Name}");
@@ -209,7 +210,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public void ProcessReturn(BoundReturnStatement statement)
     {
         if (statement.Expression is not null)
-            DebugForLocationDo(statement.Location, () => Builder.BuildRet(Process(statement.Expression)));
+            DebugForSetLocationDo(statement.Location, () => Builder.BuildRet(Process(statement.Expression)));
         else
             Builder.BuildRetVoid();
 
@@ -269,31 +270,47 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         var condition = Process(statement.Condition);
 
-
-        DebugForLocationDo(statement.Location, () =>
+        DebugForSetLocationDo(statement.Location, () =>
         {
             Builder.BuildCondBr(condition, thenBlock, hasElse ? elseBlock : joinBlock);
-
-            ProcessBlockSuccessor(statement.ThenStatement, thenBlock, joinBlock);
+            ProcessBasicBlock(statement.ThenStatement, thenBlock, joinBlock);
 
             if (hasElse)
-                ProcessBlockSuccessor(statement.ElseStatement!, elseBlock, joinBlock);
+                ProcessBasicBlock(statement.ElseStatement!, elseBlock, joinBlock);
         });
 
+        AppendBlockAndPositionAtEnd(joinBlock);
+    }
+
+
+
+
+    public unsafe void ProcessWhile(BoundWhileStatement statement)
+    {
+        var conditionBlock = LLVM.CreateBasicBlockInContext(Module.Context, "condition".StringToSBytePtr());
+        var thenBlock = LLVM.CreateBasicBlockInContext(Module.Context, "loop".StringToSBytePtr());
+        var joinBlock = LLVM.CreateBasicBlockInContext(Module.Context, "join".StringToSBytePtr());
+
+        ProcessWhileConditionBlock(statement, conditionBlock, thenBlock, joinBlock);
+
+        DebugForSetLocationDo(statement.Location, () =>
+            ProcessBasicBlock(statement.Body, thenBlock, conditionBlock));
 
         LLVM.AppendExistingBasicBlock(_currentFunction!.Value, joinBlock);
         Builder.PositionAtEnd(joinBlock);
     }
 
 
-    private unsafe void ProcessBlockSuccessor(BoundStatement statement, LLVMOpaqueBasicBlock* block, LLVMOpaqueBasicBlock* join)
+    private unsafe void ProcessWhileConditionBlock(BoundWhileStatement statement, LLVMOpaqueBasicBlock* conditionBlock,
+        LLVMOpaqueBasicBlock* thenBlock, LLVMOpaqueBasicBlock* joinBlock)
     {
-        DebugSetLocationTo(statement.Location);
+        Builder.BuildBr(conditionBlock);
 
-        LLVM.AppendExistingBasicBlock(_currentFunction!.Value, block);
-        Builder.PositionAtEnd(block);
-        TryCatchControlException(() => Process(statement));
-        Builder.BuildBr(join);
+        DebugSetLocationTo(statement.Condition.Location);
+
+        AppendBlockAndPositionAtEnd(conditionBlock);
+        var condition = Process(statement.Condition);
+        Builder.BuildCondBr(condition, thenBlock, joinBlock);
     }
 
     #endregion
@@ -888,6 +905,31 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         return elementAddress;
     }
 
+
+
+
+    private unsafe void ProcessBasicBlock(BoundStatement statement, LLVMOpaqueBasicBlock* block, LLVMOpaqueBasicBlock* join)
+    {
+        ProcessBasicBlock(statement, block);
+        Builder.BuildBr(join);
+    }
+
+
+    private unsafe void ProcessBasicBlock(BoundStatement statement, LLVMOpaqueBasicBlock* block)
+    {
+        DebugSetLocationTo(statement.Location);
+
+        AppendBlockAndPositionAtEnd(block);
+        TryCatchControlException(() => Process(statement));
+    }
+
+
+    private unsafe void AppendBlockAndPositionAtEnd(LLVMOpaqueBasicBlock* block)
+    {
+        LLVM.AppendExistingBasicBlock(_currentFunction!.Value, block);
+        Builder.PositionAtEnd(block);
+    }
+
     #endregion
 
 
@@ -899,7 +941,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     #region Debug Metadata
 
-    private void DebugForLocationDo(Span? location, Action action)
+    private void DebugForSetLocationDo(Span? location, Action action)
     {
         DebugSetLocationTo(location);
         action();

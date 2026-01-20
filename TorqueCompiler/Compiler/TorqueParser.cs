@@ -72,6 +72,28 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     }
 
 
+    private void Synchronize()
+    {
+        Advance();
+
+        while (!AtEnd())
+        {
+            switch (Peek().Type)
+            {
+                case TokenType.SemiColon:
+                case TokenType.KwReturn:
+                case TokenType.KwIf:
+                case TokenType.KwElse:
+                case TokenType.KwWhile:
+                    Advance();
+                    return;
+            }
+
+            Advance();
+        }
+    }
+
+
 
 
     private void ParseModifiersIfAny()
@@ -204,6 +226,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         case TokenType.KwReturn: return ReturnStatement();
         case TokenType.LeftCurlyBracket: return Block();
         case TokenType.KwIf: return If();
+        case TokenType.KwWhile: return While();
 
         // some tokens only makes sense when together with another,
         // but parser exceptions may break that "together", leaving those
@@ -293,6 +316,23 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
             return Statement();
 
         return null;
+    }
+
+
+
+
+    public Statement While()
+    {
+        var keyword = Advance();
+
+        ExpectLeftParen();
+        var condition = Expression();
+        var rightParen = ExpectRightParen();
+
+        var body = Statement()!;
+
+        var location = new Span(keyword, rightParen);
+        return new WhileStatement(condition, body, location);
     }
 
     #endregion
@@ -505,26 +545,26 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
             : ArrayWithExplicitSizeAndOptionalInitializationList();
 
         var location = new Span(type.BaseType.TypeSymbol.Location, Previous());
-        return new ArrayExpression(type, array.size, array.initializationList, location);
+        return new ArrayExpression(type, array.length, array.initializationList, location);
     }
 
 
-    private (IReadOnlyList<Expression>? initializationList, ulong size) ArrayWithImplicitSizeAndRequiredInitializationList()
+    private (IReadOnlyList<Expression>? initializationList, ulong length) ArrayWithImplicitSizeAndRequiredInitializationList()
     {
         var initializationList = ExpectArrayInitializationList();
-        var size = (ulong)initializationList.Count;
+        var length = (ulong)initializationList.Count;
 
-        return (initializationList, size);
+        return (initializationList, length);
     }
 
 
-    private (IReadOnlyList<Expression>? initializationList, ulong size) ArrayWithExplicitSizeAndOptionalInitializationList()
+    private (IReadOnlyList<Expression>? initializationList, ulong length) ArrayWithExplicitSizeAndOptionalInitializationList()
     {
-        var size = (ulong)ExpectLiteralInteger().Value!;
+        var length = (ulong)ExpectLiteralInteger().Value!;
         ExpectRightSquareBracket();
         var initializationList = OptionalExpectArrayInitializationList();
 
-        return (initializationList, size);
+        return (initializationList, length);
     }
 
 
@@ -692,29 +732,6 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
 
     #region Diagnostic Reporting
-
-    private void Synchronize()
-    {
-        Advance();
-
-        while (!AtEnd())
-        {
-            switch (Peek().Type)
-            {
-                case TokenType.SemiColon:
-                case TokenType.KwReturn:
-                case TokenType.KwIf:
-                case TokenType.KwElse:
-                    Advance();
-                    return;
-            }
-
-            Advance();
-        }
-    }
-
-
-
 
     [DoesNotReturn]
     public override void ReportAndThrow(ParserCatalog item, IReadOnlyList<object>? arguments = null, Span? location = null)

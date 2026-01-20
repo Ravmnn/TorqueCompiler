@@ -176,20 +176,21 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     }
 
 
-    private string ForIndentDo(Statement statement)
+
+
+    public string ProcessWhile(WhileStatement statement)
     {
-        var isBlock = statement is BlockStatement;
+        var builder = new StringBuilder();
 
-        if (!isBlock)
-            IncreaseIndent();
+        builder.Append($"{BeginStatement()}while {Process(statement.Condition)}{NewlineChar()}");
+        builder.Append(ForIndentDo(statement.Body));
 
-        var result= Process(statement);
-
-        if (!isBlock)
-            DecreaseIndent();
-
-        return result;
+        return builder.ToString();
     }
+
+
+
+
 
 
 
@@ -305,6 +306,28 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
     public string ProcessDefault(DefaultExpression expression)
         => $"(defaultFor {expression.TypeSyntax})";
+
+
+
+
+
+
+
+
+    private string ForIndentDo(Statement statement)
+    {
+        var isBlock = statement is BlockStatement;
+
+        if (!isBlock)
+            IncreaseIndent();
+
+        var result= Process(statement);
+
+        if (!isBlock)
+            DecreaseIndent();
+
+        return result;
+    }
 
 
 
