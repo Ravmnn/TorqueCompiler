@@ -164,6 +164,14 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
     }
 
 
+    public void ProcessBreak(BoundBreakStatement statement)
+        => AddStatementToCurrentBlock(statement);
+
+
+    public void ProcessContinue(BoundContinueStatement statement)
+        => AddStatementToCurrentBlock(statement);
+
+
 
 
     private void AddStatementToCurrentBlock(BoundStatement statement)

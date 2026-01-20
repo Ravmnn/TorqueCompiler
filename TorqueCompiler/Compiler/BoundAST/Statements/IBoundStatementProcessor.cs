@@ -14,6 +14,8 @@ public interface IBoundStatementProcessor
     void ProcessBlock(BoundBlockStatement statement);
     void ProcessIf(BoundIfStatement statement);
     void ProcessWhile(BoundWhileStatement statement);
+    void ProcessContinue(BoundContinueStatement statement);
+    void ProcessBreak(BoundBreakStatement statement);
 }
 
 
@@ -28,4 +30,6 @@ public interface IBoundStatementProcessor<T>
     T ProcessBlock(BoundBlockStatement statement);
     T ProcessIf(BoundIfStatement statement);
     T ProcessWhile(BoundWhileStatement statement);
+    T ProcessContinue(BoundContinueStatement statement);
+    T ProcessBreak(BoundBreakStatement statement);
 }

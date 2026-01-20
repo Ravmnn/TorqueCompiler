@@ -55,4 +55,7 @@
     <data name="ExternalFunctionCannotHaveABody" xml:space="preserve">
         <value>A function marked as external cannot have a body</value>
     </data>
+    <data name="LoopControlInstructionMustBeInLoop" xml:space="preserve">
+        <value>A loop control instruction must be inside a loop</value>
+    </data>
 </root>

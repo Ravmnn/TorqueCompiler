@@ -189,6 +189,14 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
     }
 
 
+    public string ProcessBreak(BreakStatement statement)
+        => "break";
+
+
+    public string ProcessContinue(ContinueStatement statement)
+        => "continue";
+
+
 
 
 

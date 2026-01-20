@@ -19,8 +19,8 @@ namespace Torque.Compiler;
 public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticReporter<BinderCatalog>,
     IExpressionProcessor<BoundExpression>, IStatementProcessor<BoundStatement>
 {
-    public IReadOnlyList<Statement> Statements { get; } = statements;
-
+    private int _currentLoopDepth;
+    private bool IsInsideALoop => _currentLoopDepth > 0;
 
     private Scope _scope = new Scope();
     public Scope Scope
@@ -28,6 +28,9 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         get => _scope;
         private set => _scope = value;
     }
+
+
+    public IReadOnlyList<Statement> Statements { get; } = statements;
 
 
 
@@ -170,10 +173,28 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundStatement ProcessWhile(WhileStatement statement)
     {
+        _currentLoopDepth++;
+
         var condition = Process(statement.Condition);
         var body = Process(statement.Body);
 
+        _currentLoopDepth--;
+
         return new BoundWhileStatement(statement, condition, body);
+    }
+
+
+    public BoundStatement ProcessBreak(BreakStatement statement)
+    {
+        ReportIfNotInsideALoop(statement);
+        return new BoundBreakStatement(statement);
+    }
+
+
+    public BoundStatement ProcessContinue(ContinueStatement statement)
+    {
+        ReportIfNotInsideALoop(statement);
+        return new BoundContinueStatement(statement);
     }
 
     #endregion
@@ -405,19 +426,25 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     }
 
 
-    private void ReportIfHasDuplicateModifers(Statement declaration, IModificable modificable)
+    private bool ReportIfHasDuplicateModifers(Statement declaration, IModificable modificable)
     {
-        if (modificable.Modifiers.DistinctBy(modifier => modifier.Type).Count() != modificable.Modifiers.Count)
-            Report(BinderCatalog.MultipleSameModifiers, location: declaration.Location);
+        if (modificable.Modifiers.DistinctBy(modifier => modifier.Type).Count() == modificable.Modifiers.Count)
+            return false;
+
+        Report(BinderCatalog.MultipleSameModifiers, location: declaration.Location);
+        return true;
     }
 
 
-    private void ReportIfInvalidModifierTarget(IModificable modificable, Modifier modifier)
+    private bool ReportIfInvalidModifierTarget(IModificable modificable, Modifier modifier)
     {
         var modifierTargets = ModifiersTarget.GetFor(modifier);
 
-        if (!modifierTargets.Any(target => target.HasFlag(modificable.ThisTargetIdentity)))
-            Report(BinderCatalog.InvalidModifierTarget, location: modifier.Location);
+        if (modifierTargets.Any(target => target.HasFlag(modificable.ThisTargetIdentity)))
+            return false;
+
+        Report(BinderCatalog.InvalidModifierTarget, location: modifier.Location);
+        return true;
     }
 
 
@@ -431,6 +458,16 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
         else if (!isExternal && !hasBody)
             Report(BinderCatalog.FunctionMustHaveABody, location: statement.Location);
+    }
+
+
+    private bool ReportIfNotInsideALoop(Statement statement)
+    {
+        if (IsInsideALoop)
+            return false;
+
+        Report(BinderCatalog.LoopControlInstructionMustBeInLoop, location: statement.Location);
+        return true;
     }
 
     #endregion

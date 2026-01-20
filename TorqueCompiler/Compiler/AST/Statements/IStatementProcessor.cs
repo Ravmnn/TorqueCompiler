@@ -14,6 +14,8 @@ public interface IStatementProcessor
     void ProcessBlock(BlockStatement statement);
     void ProcessIf(IfStatement statement);
     void ProcessWhile(WhileStatement statement);
+    void ProcessContinue(ContinueStatement statement);
+    void ProcessBreak(BreakStatement statement);
 }
 
 
@@ -28,4 +30,6 @@ public interface IStatementProcessor<out T>
     T ProcessBlock(BlockStatement statement);
     T ProcessIf(IfStatement statement);
     T ProcessWhile(WhileStatement statement);
+    T ProcessContinue(ContinueStatement statement);
+    T ProcessBreak(BreakStatement statement);
 }

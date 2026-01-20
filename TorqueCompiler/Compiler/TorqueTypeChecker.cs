@@ -183,6 +183,14 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         Process(statement.Body);
     }
 
+
+    public void ProcessBreak(BoundBreakStatement statement)
+    { }
+
+
+    public void ProcessContinue(BoundContinueStatement statement)
+    { }
+
     #endregion
 
 

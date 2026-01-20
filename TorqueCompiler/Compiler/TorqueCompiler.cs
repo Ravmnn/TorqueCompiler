@@ -44,8 +44,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public DebugMetadataGenerator? Debug { get; }
 
-    private LLVMValueRef? _currentFunction;
 
+    private LLVMValueRef? _currentFunction;
+    private readonly Stack<LLVMBasicBlockRef> _loopConditionBlockStack = new Stack<LLVMBasicBlockRef>();
+    private readonly Stack<LLVMBasicBlockRef> _loopJoinBlockStack = new Stack<LLVMBasicBlockRef>();
 
     private readonly IntrinsicCaller _intrinsics;
 
@@ -210,7 +212,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public void ProcessReturn(BoundReturnStatement statement)
     {
         if (statement.Expression is not null)
-            DebugForSetLocationDo(statement.Location, () => Builder.BuildRet(Process(statement.Expression)));
+            DebugForSetLocationDo(statement.Location, () =>
+                Builder.BuildRet(Process(statement.Expression)));
         else
             Builder.BuildRetVoid();
 
@@ -292,12 +295,24 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var joinBlock = LLVM.CreateBasicBlockInContext(Module.Context, "join".StringToSBytePtr());
 
         ProcessWhileConditionBlock(statement, conditionBlock, thenBlock, joinBlock);
+        ProcessWhileBodyBlock(statement, conditionBlock, joinBlock, thenBlock);
+
+        LLVM.AppendExistingBasicBlock(_currentFunction!.Value, joinBlock);
+        Builder.PositionAtEnd(joinBlock);
+    }
+
+
+    private unsafe void ProcessWhileBodyBlock(BoundWhileStatement statement, LLVMOpaqueBasicBlock* conditionBlock,
+        LLVMOpaqueBasicBlock* joinBlock, LLVMOpaqueBasicBlock* thenBlock)
+    {
+        _loopConditionBlockStack.Push(conditionBlock);
+        _loopJoinBlockStack.Push(joinBlock);
 
         DebugForSetLocationDo(statement.Location, () =>
             ProcessBasicBlock(statement.Body, thenBlock, conditionBlock));
 
-        LLVM.AppendExistingBasicBlock(_currentFunction!.Value, joinBlock);
-        Builder.PositionAtEnd(joinBlock);
+        _loopConditionBlockStack.Pop();
+        _loopJoinBlockStack.Pop();
     }
 
 
@@ -311,6 +326,22 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         AppendBlockAndPositionAtEnd(conditionBlock);
         var condition = Process(statement.Condition);
         Builder.BuildCondBr(condition, thenBlock, joinBlock);
+    }
+
+
+
+
+    public void ProcessBreak(BoundBreakStatement statement)
+    {
+        DebugForSetLocationDo(statement.Location, () =>
+            Builder.BuildBr(_loopJoinBlockStack.Peek()));
+    }
+
+
+    public void ProcessContinue(BoundContinueStatement statement)
+    {
+        DebugForSetLocationDo(statement.Location, () =>
+            Builder.BuildBr(_loopConditionBlockStack.Peek()));
     }
 
     #endregion
@@ -946,6 +977,16 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         DebugSetLocationTo(location);
         action();
         DebugSetLocationTo(null);
+    }
+
+
+    private T DebugForSetLocationDo<T>(Span? location, Func<T> func)
+    {
+        DebugSetLocationTo(location);
+        var value = func();
+        DebugSetLocationTo(null);
+
+        return value;
     }
 
 

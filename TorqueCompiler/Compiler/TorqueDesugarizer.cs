@@ -110,6 +110,10 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
     }
 
 
+    public Statement ProcessBreak(BreakStatement statement) => statement;
+    public Statement ProcessContinue(ContinueStatement statement) => statement;
+
+
 
 
 

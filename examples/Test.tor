@@ -37,41 +37,35 @@ void println(char* content)
 
 
 
+void inner()
+{
+    while(true)
+    {
+        printf("1");
+        while (true)
+        {
+            printf("2");
+            while (true)
+            {
+                printf("3");
+                break;
+            }
+            break;
+        }   
+        break;
+    }
+}
+
+
 int main(int argc, char** argv)
 {
-    let numberAsString = char array[256];
-    let counter = 0;
-
     while (true)
     {
-        intToString(numberAsString, counter);
-
-        printf("counter is currently at: ");
-        println(numberAsString);
-
-        let choice = readln("would you like to increment it? (y | n): ");
-        let firstLetter = choice[0];
-
-        if (firstLetter == 'y')
-        {
-            counter = counter + 1;
-            continue;
-        }
-        else if (firstLetter == 'n')
-        {
-            println("closing program");
-            printf("final counter value is: ");
-            println(numberAsString);
-            break;
-        }
-        else
-        {
-            printf("unknown response: ");
-            println(choice);
-        }
-
-        println("loop reached at the end!");
+        inner();
+        break;
     }
+
+    inner();
 
     return 0;
 }

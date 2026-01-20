@@ -21,5 +21,5 @@ public readonly struct DiagnosticHeaderMessage(Diagnostic diagnostic)
 
 
     public override string ToString()
-        => $"T{Scope}{diagnostic.Code:D3} {Severity}{Location}";
+        => $"T{Scope}{Diagnostic.Code:D3} {Severity}{Location}";
 }

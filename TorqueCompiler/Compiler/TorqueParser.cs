@@ -85,6 +85,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
                 case TokenType.KwIf:
                 case TokenType.KwElse:
                 case TokenType.KwWhile:
+                case TokenType.KwBreak:
+                case TokenType.KwContinue:
                     Advance();
                     return;
             }
@@ -227,6 +229,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         case TokenType.LeftCurlyBracket: return Block();
         case TokenType.KwIf: return If();
         case TokenType.KwWhile: return While();
+        case TokenType.KwBreak: return Break();
+        case TokenType.KwContinue: return Continue();
 
         // some tokens only makes sense when together with another,
         // but parser exceptions may break that "together", leaving those
@@ -333,6 +337,24 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
         var location = new Span(keyword, rightParen);
         return new WhileStatement(condition, body, location);
+    }
+
+
+    public Statement Break()
+    {
+        var keyword = Advance();
+        ExpectEndOfStatement();
+
+        return new BreakStatement(keyword);
+    }
+
+
+    public Statement Continue()
+    {
+        var keyword = Advance();
+        ExpectEndOfStatement();
+
+        return new ContinueStatement(keyword);
     }
 
     #endregion
