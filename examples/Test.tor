@@ -8,14 +8,7 @@ byte* stdin() { return fdopen(0, "r"); }
 
 int main(int argc, char** argv)
 {
-    int* nothing = nullptr;
-    int normal = 10;
-    int64 big = normal;
-
-    int[] numbers = int array[10];
-    numbers[0];
-
-    printf("hello, world\n");
+    let numbers = int array[1] ;
 
     return 0;
 }

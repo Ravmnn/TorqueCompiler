@@ -499,21 +499,47 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
             return null;
 
         ExpectLeftSquareBracket();
-        var size = (ulong)ExpectLiteralInteger().Value!; // TODO: array length should be able to be inferred from the initialization list
-        var rightSquareBracket = ExpectRightSquareBracket();
 
-        var expressions = GetOptionalArrayInitializationExpressions();
-        var location = new Span(type.BaseType.TypeSymbol.Location, rightSquareBracket);
+        var array = Match(TokenType.RightSquareBracket)
+            ? ArrayWithImplicitSizeAndRequiredInitializationList()
+            : ArrayWithExplicitSizeAndOptionalInitializationList();
 
-        return new ArrayExpression(type, size, expressions, location);
+        var location = new Span(type.BaseType.TypeSymbol.Location, Previous());
+        return new ArrayExpression(type, array.size, array.initializationList, location);
     }
 
 
-    private IReadOnlyList<Expression>? GetOptionalArrayInitializationExpressions()
+    private (IReadOnlyList<Expression>? initializationList, ulong size) ArrayWithImplicitSizeAndRequiredInitializationList()
     {
-        if (!Match(TokenType.LeftCurlyBracket))
+        var initializationList = ExpectArrayInitializationList();
+        var size = (ulong)initializationList.Count;
+
+        return (initializationList, size);
+    }
+
+
+    private (IReadOnlyList<Expression>? initializationList, ulong size) ArrayWithExplicitSizeAndOptionalInitializationList()
+    {
+        var size = (ulong)ExpectLiteralInteger().Value!;
+        ExpectRightSquareBracket();
+        var initializationList = OptionalExpectArrayInitializationList();
+
+        return (initializationList, size);
+    }
+
+
+    private IReadOnlyList<Expression>? OptionalExpectArrayInitializationList()
+    {
+        if (!Check(TokenType.LeftCurlyBracket))
             return null;
 
+        return ExpectArrayInitializationList();
+    }
+
+
+    private IReadOnlyList<Expression> ExpectArrayInitializationList()
+    {
+        ExpectLeftCurlyBracket();
         var expressions = DoWhileComma(Expression);
         ExpectRightCurlyBracket();
 

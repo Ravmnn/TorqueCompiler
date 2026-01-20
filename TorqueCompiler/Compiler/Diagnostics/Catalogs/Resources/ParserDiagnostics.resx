@@ -65,9 +65,9 @@
         <value>Expect literal integer value</value>
     </data>
     <data name="ExpectLeftCurlyBracket" xml:space="preserve">
-        <value>Expect "{"</value>
+        <value>Expect "{{"</value>
     </data>
     <data name="ExpectRightCurlyBracket" xml:space="preserve">
-        <value>Expect "}"</value>
+        <value>Expect "}}"</value>
     </data>
 </root>
