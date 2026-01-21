@@ -180,7 +180,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
         Process(statement.Condition);
         statement.Condition = ImplicitCastOrReport(PrimitiveType.Bool, statement.Condition);
 
-        Process(statement.Body);
+        Process(statement.Loop);
+
+        if (statement.PostLoop is not null)
+            Process(statement.PostLoop);
     }
 
 
@@ -229,7 +232,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     }
 
 
-    private Type TypeOfLiteralObject(object literal) => literal switch
+    private Type TypeOfLiteralObject(object literal) => literal switch // TODO: exception here
     {
         IReadOnlyList<byte> => StringLiteralType(),
 

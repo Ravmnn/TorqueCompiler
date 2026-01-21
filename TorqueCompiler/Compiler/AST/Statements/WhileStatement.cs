@@ -7,10 +7,11 @@ namespace Torque.Compiler.AST.Statements;
 
 
 
-public class WhileStatement(Expression condition, Statement body, Span location) : Statement(location)
+public class WhileStatement(Expression condition, Statement loop, Statement? postLoop, Span location) : Statement(location)
 {
     public Expression Condition { get; set; } = condition;
-    public Statement Body { get; set; } = body;
+    public Statement Loop { get; set; } = loop;
+    public Statement? PostLoop { get; set; } = postLoop;
 
 
 

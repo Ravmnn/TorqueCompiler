@@ -229,6 +229,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         case TokenType.LeftCurlyBracket: return Block();
         case TokenType.KwIf: return If();
         case TokenType.KwWhile: return While();
+        case TokenType.KwLoop: return Loop();
+        case TokenType.KwFor: return For();
         case TokenType.KwBreak: return Break();
         case TokenType.KwContinue: return Continue();
 
@@ -336,8 +338,44 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         var body = Statement()!;
 
         var location = new Span(keyword, rightParen);
-        return new WhileStatement(condition, body, location);
+        return new WhileStatement(condition, body, null, location);
     }
+
+
+
+
+    public Statement Loop()
+    {
+        var keyword = Advance();
+        var body = Statement()!;
+
+        var location = new Span(keyword, keyword);
+        return new SugarLoopStatement(body, location);
+    }
+
+
+
+
+    public Statement For()
+    {
+        var keyword = Advance();
+
+        ExpectLeftParen();
+
+        var initialization = Check(TokenType.Type) ? GenericDeclaration() : ExpressionStatement();
+        var condition = Expression();
+        ExpectEndOfStatement();
+        var step = Expression();
+
+        ExpectRightParen();
+
+        var loop = Statement()!;
+
+        var location = new Span(keyword, Previous());
+        return new SugarForStatement(initialization, condition, step, loop, location);
+    }
+
+
 
 
     public Statement Break()
@@ -529,7 +567,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     private Expression ParseLiteral()
     {
         var literal = Previous();
-        return new LiteralExpression(literal, literal.Location);
+        return new LiteralExpression(literal.Value!, literal.Location);
     }
 
 

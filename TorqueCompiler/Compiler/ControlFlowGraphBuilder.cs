@@ -155,7 +155,7 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
         var origin = _currentBlock;
         var joinPredecessors = new List<BasicBlock>();
-        var bodyBlock = AttachNewBlockWithPredecessorsAndProcess(statement.Body, origin);
+        var bodyBlock = AttachNewBlockWithPredecessorsAndProcess(statement.Loop, origin);
 
         joinPredecessors.Add(bodyBlock);
         joinPredecessors.Add(origin);

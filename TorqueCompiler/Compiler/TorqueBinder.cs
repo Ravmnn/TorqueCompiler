@@ -176,11 +176,12 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         _currentLoopDepth++;
 
         var condition = Process(statement.Condition);
-        var body = Process(statement.Body);
+        var body = Process(statement.Loop);
+        var postBody = statement.PostLoop is not null ? Process(statement.PostLoop) : null;
 
         _currentLoopDepth--;
 
-        return new BoundWhileStatement(statement, condition, body);
+        return new BoundWhileStatement(statement, condition, body, postBody);
     }
 
 

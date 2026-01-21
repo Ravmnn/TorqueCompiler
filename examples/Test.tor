@@ -37,35 +37,15 @@ void println(char* content)
 
 
 
-void inner()
-{
-    while(true)
-    {
-        printf("1");
-        while (true)
-        {
-            printf("2");
-            while (true)
-            {
-                printf("3");
-                break;
-            }
-            break;
-        }   
-        break;
-    }
-}
-
-
 int main(int argc, char** argv)
 {
-    while (true)
-    {
-        inner();
-        break;
-    }
+    let buffer = char array[128];
 
-    inner();
+    for (int i = 5; i <= 10; i = i + 1)
+    {
+        intToString(buffer, i);
+        println(buffer);
+    }
 
     return 0;
 }

@@ -48,6 +48,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private LLVMValueRef? _currentFunction;
     private readonly Stack<LLVMBasicBlockRef> _loopConditionBlockStack = new Stack<LLVMBasicBlockRef>();
     private readonly Stack<LLVMBasicBlockRef> _loopJoinBlockStack = new Stack<LLVMBasicBlockRef>();
+    private readonly Stack<LLVMBasicBlockRef> _loopPostLoopBlockStack = new Stack<LLVMBasicBlockRef>();
 
     private readonly IntrinsicCaller _intrinsics;
 
@@ -291,33 +292,37 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public unsafe void ProcessWhile(BoundWhileStatement statement)
     {
         var conditionBlock = LLVM.CreateBasicBlockInContext(Module.Context, "condition".StringToSBytePtr());
-        var thenBlock = LLVM.CreateBasicBlockInContext(Module.Context, "loop".StringToSBytePtr());
+        var loopBlock = LLVM.CreateBasicBlockInContext(Module.Context, "loop".StringToSBytePtr());
+        var postLoopBlock = LLVM.CreateBasicBlockInContext(Module.Context, "postLoop".StringToSBytePtr());
         var joinBlock = LLVM.CreateBasicBlockInContext(Module.Context, "join".StringToSBytePtr());
 
-        ProcessWhileConditionBlock(statement, conditionBlock, thenBlock, joinBlock);
-        ProcessWhileBodyBlock(statement, conditionBlock, joinBlock, thenBlock);
+        ProcessWhileConditionBlock(statement, conditionBlock, loopBlock, joinBlock);
+        ProcessWhileBodyBlock(statement, conditionBlock, loopBlock, postLoopBlock, joinBlock);
 
-        LLVM.AppendExistingBasicBlock(_currentFunction!.Value, joinBlock);
-        Builder.PositionAtEnd(joinBlock);
+        AppendBlockAndPositionAtEnd(joinBlock);
     }
 
 
     private unsafe void ProcessWhileBodyBlock(BoundWhileStatement statement, LLVMOpaqueBasicBlock* conditionBlock,
-        LLVMOpaqueBasicBlock* joinBlock, LLVMOpaqueBasicBlock* thenBlock)
+        LLVMOpaqueBasicBlock* loopBlock, LLVMOpaqueBasicBlock* postLoopBlock, LLVMOpaqueBasicBlock* joinBlock)
     {
         _loopConditionBlockStack.Push(conditionBlock);
+        _loopPostLoopBlockStack.Push(postLoopBlock);
         _loopJoinBlockStack.Push(joinBlock);
 
         DebugForSetLocationDo(statement.Location, () =>
-            ProcessBasicBlock(statement.Body, thenBlock, conditionBlock));
+            ProcessBasicBlock(statement.Loop, loopBlock, postLoopBlock));
+
+        ProcessBasicBlock(statement.PostLoop, postLoopBlock, conditionBlock);
 
         _loopConditionBlockStack.Pop();
+        _loopPostLoopBlockStack.Pop();
         _loopJoinBlockStack.Pop();
     }
 
 
     private unsafe void ProcessWhileConditionBlock(BoundWhileStatement statement, LLVMOpaqueBasicBlock* conditionBlock,
-        LLVMOpaqueBasicBlock* thenBlock, LLVMOpaqueBasicBlock* joinBlock)
+        LLVMOpaqueBasicBlock* loopBlock, LLVMOpaqueBasicBlock* joinBlock)
     {
         Builder.BuildBr(conditionBlock);
 
@@ -325,7 +330,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         AppendBlockAndPositionAtEnd(conditionBlock);
         var condition = Process(statement.Condition);
-        Builder.BuildCondBr(condition, thenBlock, joinBlock);
+        Builder.BuildCondBr(condition, loopBlock, joinBlock);
     }
 
 
@@ -341,7 +346,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public void ProcessContinue(BoundContinueStatement statement)
     {
         DebugForSetLocationDo(statement.Location, () =>
-            Builder.BuildBr(_loopConditionBlockStack.Peek()));
+            Builder.BuildBr(_loopPostLoopBlockStack.Peek()));
     }
 
     #endregion
@@ -526,7 +531,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             TokenType.GreaterThan => !signed ? LLVMIntPredicate.LLVMIntUGT : LLVMIntPredicate.LLVMIntSGT,
             TokenType.LessThan => !signed ? LLVMIntPredicate.LLVMIntULT : LLVMIntPredicate.LLVMIntSLT,
             TokenType.GreaterThanOrEqual => !signed ? LLVMIntPredicate.LLVMIntUGE : LLVMIntPredicate.LLVMIntSGE,
-            TokenType.LessThanOrEqual => !signed ? LLVMIntPredicate.LLVMIntULT : LLVMIntPredicate.LLVMIntSLE,
+            TokenType.LessThanOrEqual => !signed ? LLVMIntPredicate.LLVMIntULE : LLVMIntPredicate.LLVMIntSLE,
 
             _ => throw new UnreachableException()
         };
@@ -939,18 +944,21 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    private unsafe void ProcessBasicBlock(BoundStatement statement, LLVMOpaqueBasicBlock* block, LLVMOpaqueBasicBlock* join)
+    private unsafe void ProcessBasicBlock(BoundStatement? statement, LLVMOpaqueBasicBlock* block, LLVMOpaqueBasicBlock* join)
     {
         ProcessBasicBlock(statement, block);
         Builder.BuildBr(join);
     }
 
 
-    private unsafe void ProcessBasicBlock(BoundStatement statement, LLVMOpaqueBasicBlock* block)
+    private unsafe void ProcessBasicBlock(BoundStatement? statement, LLVMOpaqueBasicBlock* block)
     {
-        DebugSetLocationTo(statement.Location);
-
         AppendBlockAndPositionAtEnd(block);
+
+        if (statement is null)
+            return;
+
+        DebugSetLocationTo(statement.Location);
         TryCatchControlException(() => Process(statement));
     }
 

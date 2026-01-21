@@ -183,7 +183,7 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
         var builder = new StringBuilder();
 
         builder.Append($"{BeginStatement()}while {Process(statement.Condition)}{NewlineChar()}");
-        builder.Append(ForIndentDo(statement.Body));
+        builder.Append(ForIndentDo(statement.Loop));
 
         return builder.ToString();
     }
@@ -209,8 +209,15 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
 
-    public string ProcessLiteral(LiteralExpression expression)
-        => expression.Token.Lexeme;
+    public string ProcessLiteral(LiteralExpression expression) => expression.Value switch
+    {
+        IReadOnlyList<byte> => $"\"{expression.Value}\"",
+        byte => $"'{expression.Value}'",
+
+        ulong or double or bool => expression.Value.ToString()!,
+
+        _ => throw new UnreachableException()
+    };
 
 
 

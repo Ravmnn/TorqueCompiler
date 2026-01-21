@@ -46,6 +46,8 @@ public static class Keywords
         { "if", TokenType.KwIf },
         { "else", TokenType.KwElse },
         { "while", TokenType.KwWhile },
+        { "loop", TokenType.KwLoop },
+        { "for", TokenType.KwFor },
         { "break", TokenType.KwBreak },
         { "continue", TokenType.KwContinue },
         { "as", TokenType.KwAs },

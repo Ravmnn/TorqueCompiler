@@ -104,7 +104,7 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
     public Statement ProcessWhile(WhileStatement statement)
     {
         statement.Condition = SugarProcess(statement.Condition);
-        statement.Body = SugarProcess(statement.Body);
+        statement.Loop = SugarProcess(statement.Loop);
 
         return statement;
     }
@@ -124,6 +124,34 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
     {
         var defaultValue = new DefaultExpression(statement.Type, statement.Location);
         return new DeclarationStatement(statement.Type, statement.Name, defaultValue) { Modifiers = statement.Modifiers };
+    }
+
+
+
+
+    public Statement ProcessLoop(SugarLoopStatement statement)
+    {
+        statement.Body = SugarProcess(statement.Body);
+
+        var literalTrue = new LiteralExpression(true, statement.Location);
+        return new WhileStatement(literalTrue, statement.Body, null, statement.Location);
+    }
+
+
+
+
+    public Statement ProcessFor(SugarForStatement statement)
+    {
+        statement.Initialization = SugarProcess(statement.Initialization);
+        statement.Condition = SugarProcess(statement.Condition);
+        statement.Step = SugarProcess(statement.Step);
+        statement.Loop = SugarProcess(statement.Loop);
+
+        return new BlockStatement([
+            statement.Initialization,
+            new WhileStatement(statement.Condition, statement.Loop,
+                new ExpressionStatement(statement.Step), statement.Location)
+        ], statement.Location);
     }
 
 
