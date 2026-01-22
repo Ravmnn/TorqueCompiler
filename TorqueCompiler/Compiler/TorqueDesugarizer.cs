@@ -59,14 +59,14 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
     }
 
 
-    public Statement ProcessDeclaration(DeclarationStatement statement)
+    public Statement ProcessVariable(VariableDeclarationStatement statement)
     {
         statement.Value = SugarProcess(statement.Value);
         return statement;
     }
 
 
-    public Statement ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
+    public Statement ProcessFunction(FunctionDeclarationStatement statement)
     {
         var desugarizedBody = statement.Body is not null ? SugarProcess(statement.Body) : null;
         statement.Body = (desugarizedBody as BlockStatement)!;
@@ -123,7 +123,7 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
     public Statement ProcessDefaultDeclaration(SugarDefaultDeclarationStatement statement)
     {
         var defaultValue = new DefaultExpression(statement.Type, statement.Location);
-        return new DeclarationStatement(statement.Type, statement.Name, defaultValue) { Modifiers = statement.Modifiers };
+        return new VariableDeclarationStatement(statement.Type, statement.Name, defaultValue) { Modifiers = statement.Modifiers };
     }
 
 

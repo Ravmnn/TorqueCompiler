@@ -182,7 +182,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         var value = Expression();
         ExpectEndOfStatement();
 
-        return new DeclarationStatement(type, name, value);
+        return new VariableDeclarationStatement(type, name, value);
     }
 
 

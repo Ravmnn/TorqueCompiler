@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using Torque.Compiler.Tokens;
@@ -17,7 +18,8 @@ namespace Torque.Compiler;
 
 
 public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticReporter<BinderCatalog>,
-    IExpressionProcessor<BoundExpression>, IStatementProcessor<BoundStatement>
+    IExpressionProcessor<BoundExpression>, IStatementProcessor<BoundStatement>,
+    IDeclarationProcessor
 {
     private int _currentLoopDepth;
     private bool IsInsideALoop => _currentLoopDepth > 0;
@@ -39,14 +41,57 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     {
         Reset();
 
+        DeclareAllDeclarations();
         return Statements.Select(Process).ToArray();
     }
 
 
     private void Reset()
     {
+        _currentLoopDepth = 0;
+
+        Scope = new Scope();
         Diagnostics.Clear();
     }
+
+
+    private void DeclareAllDeclarations()
+    {
+        foreach (var statement in Statements)
+            if (statement is IDeclaration declaration)
+                Process(declaration);
+    }
+
+
+
+
+    #region Declarations
+
+    public void Process(IDeclaration declaration)
+    {
+        ReportIfMultipleDeclaration(declaration.Symbol);
+        declaration.ProcessDeclaration(this);
+    }
+
+
+
+
+    public void ProcessVariableDeclaration(VariableDeclarationStatement declaration)
+    {
+        // variables cannot be currently globally declared
+        throw new UnreachableException();
+    }
+
+
+
+
+    public void ProcessFunctionDeclaration(FunctionDeclarationStatement declaration)
+    {
+        var functionSymbol = new FunctionSymbol(declaration.Name, Scope) { IsExternal = declaration.IsExternal };
+        Scope.Symbols.Add(functionSymbol);
+    }
+
+    #endregion
 
 
 
@@ -76,7 +121,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
 
 
-    public BoundStatement ProcessDeclaration(DeclarationStatement statement)
+    public BoundStatement ProcessVariable(VariableDeclarationStatement statement)
     {
         ReportIfMultipleDeclaration(statement.Name);
 
@@ -85,19 +130,15 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
         Scope.Symbols.Add(identifier);
 
-        return new BoundDeclarationStatement(statement, identifier, value);
+        return new BoundVariableDeclarationStatement(statement, identifier, value);
     }
 
 
 
 
-    public BoundStatement ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
+    public BoundStatement ProcessFunction(FunctionDeclarationStatement statement)
     {
-        ReportIfMultipleDeclaration(statement.Name);
-
-        var functionSymbol = new FunctionSymbol(statement.Name, Scope) { IsExternal = statement.IsExternal };
-        Scope.Symbols.Add(functionSymbol);
-
+        var functionSymbol = (Scope.GetSymbol(statement.Name.Name) as FunctionSymbol)!;
         var body = ProcessFunctionBlockIfNotExternal(statement, functionSymbol);
 
         return new BoundFunctionDeclarationStatement(statement, body, functionSymbol);

@@ -17,8 +17,9 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
-    : DiagnosticReporter<TypeCheckerCatalog>, IBoundStatementProcessor, IBoundExpressionProcessor<Type>
+public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements) : DiagnosticReporter<TypeCheckerCatalog>,
+    IBoundStatementProcessor, IBoundExpressionProcessor<Type>,
+    IBoundDeclarationProcessor
 {
     public const PrimitiveType DefaultLiteralIntegerType = PrimitiveType.Int32;
     public const PrimitiveType DefaultLiteralFloatType = PrimitiveType.Float32;
@@ -41,6 +42,8 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     {
         Reset();
 
+        CheckAllDeclarations();
+
         foreach (var statement in Statements)
             Process(statement);
     }
@@ -52,57 +55,38 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
     }
 
 
-
-
-    #region Statements
-
-    public void Process(BoundStatement statement)
-        => statement.Process(this);
-
-
-
-
-    public void ProcessExpression(BoundExpressionStatement statement)
+    private void CheckAllDeclarations()
     {
-        _acceptVoidExpressions = true;
-        Process(statement.Expression);
-        _acceptVoidExpressions = false;
-    }
-
-
-    public void ProcessDeclaration(BoundDeclarationStatement statement)
-    {
-        var typeSyntax = statement.Syntax.Type;
-
-        // the use of "let" is only allowed for function-scope variables
-        var valueType = Process(statement.Value);
-        var symbolType = typeSyntax.IsAuto ? valueType : TypeFromNonVoidTypeName(typeSyntax);
-
-        statement.Symbol.Type = symbolType;
-        statement.Value = ImplicitCastOrReport(symbolType, statement.Value, true);
+        foreach (var statement in Statements)
+            if (statement is IBoundDeclaration declaration)
+                Process(declaration);
     }
 
 
 
 
-    public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement statement)
-    {
-        var returnType = TypeFromTypeName(statement.Syntax.ReturnType);
-        var parametersType = ParametersTypeFromParametersDeclaration(statement.Syntax.Parameters);
+    #region Declarations
 
-        SetFunctionAndParametersSymbolsType(statement.Symbol, returnType, parametersType);
-        ProcessFunctionBlockIfNotExternal(statement, returnType);
+    public void Process(IBoundDeclaration declaration)
+        => declaration.ProcessDeclaration(this);
+
+
+
+
+    public void ProcessVariableDeclaration(BoundVariableDeclarationStatement declaration)
+    {
+        throw new System.NotImplementedException();
     }
 
 
-    private void ProcessFunctionBlockIfNotExternal(BoundFunctionDeclarationStatement statement, Type returnType)
-    {
-        if (statement.IsExternal)
-            return;
 
-        _expectedReturnType = returnType;
-        Process(statement.Body!);
-        _expectedReturnType = null;
+
+    public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement declaration)
+    {
+        var returnType = TypeFromTypeName(declaration.Syntax.ReturnType);
+        var parametersType = ParametersTypeFromParametersDeclaration(declaration.Syntax.Parameters);
+
+        SetFunctionAndParametersSymbolsType(declaration.FunctionSymbol, returnType, parametersType);
     }
 
 
@@ -124,6 +108,52 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements)
 
         for (var i = 0; i < parametersType.Count; i++)
             symbol.Parameters[i].Type = parametersType[i];
+    }
+
+    #endregion
+
+
+
+
+    #region Statements
+
+    public void Process(BoundStatement statement)
+        => statement.Process(this);
+
+
+
+
+    public void ProcessExpression(BoundExpressionStatement statement)
+    {
+        _acceptVoidExpressions = true;
+        Process(statement.Expression);
+        _acceptVoidExpressions = false;
+    }
+
+
+    public void ProcessVariable(BoundVariableDeclarationStatement statement)
+    {
+        var typeSyntax = statement.Syntax.Type;
+
+        // the use of "let" is only allowed for function-scope variables
+        var valueType = Process(statement.Value);
+        var symbolType = typeSyntax.IsAuto ? valueType : TypeFromNonVoidTypeName(typeSyntax);
+
+        statement.VariableSymbol.Type = symbolType;
+        statement.Value = ImplicitCastOrReport(symbolType, statement.Value, true);
+    }
+
+
+
+
+    public void ProcessFunction(BoundFunctionDeclarationStatement statement)
+    {
+        if (statement.IsExternal)
+            return;
+
+        _expectedReturnType = statement.FunctionSymbol.Type!.ReturnType;
+        Process(statement.Body!);
+        _expectedReturnType = null;
     }
 
 

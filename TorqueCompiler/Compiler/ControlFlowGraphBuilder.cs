@@ -88,13 +88,13 @@ public class ControlFlowGraphBuilder(IReadOnlyList<BoundFunctionDeclarationState
 
 
 
-    public void ProcessDeclaration(BoundDeclarationStatement statement)
+    public void ProcessVariable(BoundVariableDeclarationStatement statement)
         => AddStatementToCurrentBlock(statement);
 
 
 
 
-    public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement statement)
+    public void ProcessFunction(BoundFunctionDeclarationStatement statement)
     {
         _currentGraph = new ControlFlowGraph(statement);
         _currentGraph.Entry = AttachNewBlock();

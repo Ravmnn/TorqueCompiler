@@ -11,7 +11,7 @@ namespace Torque.Compiler.AST.Statements;
 
 
 
-public class DeclarationStatement(TypeSyntax type, SymbolSyntax name, Expression value)
+public class VariableDeclarationStatement(TypeSyntax type, SymbolSyntax name, Expression value)
     : Statement(name.Location), IDeclaration
 {
     public TypeSyntax Type { get; } = type;
@@ -20,14 +20,19 @@ public class DeclarationStatement(TypeSyntax type, SymbolSyntax name, Expression
 
     public IReadOnlyList<Modifier> Modifiers { get; set; } = [];
     public ModifierTarget ThisTargetIdentity => ModifierTarget.LocalVariable;
+    public SymbolSyntax Symbol => Name;
 
 
 
 
     public override void Process(IStatementProcessor processor)
-        => processor.ProcessDeclaration(this);
+        => processor.ProcessVariable(this);
 
 
     public override T Process<T>(IStatementProcessor<T> processor)
-        => processor.ProcessDeclaration(this);
+        => processor.ProcessVariable(this);
+
+
+    public void ProcessDeclaration(IDeclarationProcessor processor)
+        => processor.ProcessVariableDeclaration(this);
 }

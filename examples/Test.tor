@@ -37,15 +37,16 @@ void println(char* content)
 
 
 
+
+
+
+
 int main(int argc, char** argv)
 {
-    let buffer = char array[128];
-
-    for (int i = 5; i <= 10; i = i + 1)
-    {
-        intToString(buffer, i);
-        println(buffer);
-    }
+    something();
 
     return 0;
 }
+
+
+external void something();

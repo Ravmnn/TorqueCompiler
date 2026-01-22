@@ -26,7 +26,7 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcessor<LLVMValueRef>
+public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcessor<LLVMValueRef>, IBoundDeclarationProcessor
 {
 
     // if debug metadata generation is desired, this property must be set, since
@@ -77,13 +77,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: structs should have methods
         // TODO: variadic functions?
 
+        // TODO: add sizeof(T)
         // TODO: add pre-processing support
         // TODO: add importing system
         // TODO: add enums
         // TODO: add structs
-        // TODO: add sizeof(T)
-        // TODO: functions should not be required to be declared before the caller
-        // TODO: add loops (while, for, loop), break and continue
+        // TODO: add support for global variables
 
         File = file;
 
@@ -114,6 +113,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // due to null access or bad type conversion, or it is a bug, or the caller of the compiler API
         // didn't set up (binding, type checking...) the statements correctly.
 
+        DeclareAllDeclarations();
 
         foreach (var statement in Statements)
             Process(statement);
@@ -122,6 +122,51 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         return Module.PrintToString();
     }
+
+
+    private void DeclareAllDeclarations()
+    {
+        foreach (var statement in Statements)
+            if (statement is IBoundDeclaration declaration)
+                Process(declaration);
+    }
+
+
+
+
+
+
+
+
+    #region Declarations
+
+    public void Process(IBoundDeclaration declaration)
+        => declaration.ProcessDeclaration(this);
+
+
+
+
+    public void ProcessVariableDeclaration(BoundVariableDeclarationStatement declaration)
+    {
+        throw new NotImplementedException();
+    }
+
+
+
+
+    public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement declaration)
+    {
+        var functionSymbol = declaration.FunctionSymbol;
+
+        var llvmFunctionType = functionSymbol.Type!.ToRawLLVMType();
+        var llvmReference = Module.AddFunction(functionSymbol.Name, llvmFunctionType);
+        llvmReference.Linkage = LLVMLinkage.LLVMExternalLinkage;
+
+        functionSymbol.SetLLVMProperties(llvmReference, llvmFunctionType, null);
+        functionSymbol.LLVMDebugMetadata = DebugGenerateFunction(functionSymbol);
+    }
+
+    #endregion
 
 
 
@@ -148,11 +193,11 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    public void ProcessDeclaration(BoundDeclarationStatement statement)
+    public void ProcessVariable(BoundVariableDeclarationStatement statement)
     {
         DebugForSetLocationDo(statement.Location, () =>
         {
-            var symbol = statement.Symbol;
+            var symbol = statement.VariableSymbol;
             var reference = CreateVariableAlloca(symbol, $"var.${symbol.Name}");
             symbol.LLVMDebugMetadata = DebugGenerateLocalVariable(symbol);
 
@@ -163,48 +208,19 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement statement)
+    public void ProcessFunction(BoundFunctionDeclarationStatement statement)
     {
-        var functionSymbol = statement.Symbol;
-
-        var llvmFunctionType = functionSymbol.Type!.ToRawLLVMType();
-        var llvmReference = Module.AddFunction(functionSymbol.Name, llvmFunctionType);
-        llvmReference.Linkage = LLVMLinkage.LLVMExternalLinkage;
-
-        functionSymbol.SetLLVMProperties(llvmReference, llvmFunctionType, null);
-        functionSymbol.LLVMDebugMetadata = DebugGenerateFunction(functionSymbol);
-
-        ProcessFunctionBodyIfNotExternal(statement.Body, functionSymbol);
-    }
-
-
-    private void ProcessFunctionBodyIfNotExternal(BoundBlockStatement? body, FunctionSymbol functionSymbol)
-    {
-        if (body is null)
+        if (statement.Body is null)
             return;
 
+        var functionSymbol = statement.FunctionSymbol;
         var reference = functionSymbol.LLVMReference!.Value;
         var entry = reference.AppendBasicBlock("entry");
         Builder.PositionAtEnd(entry);
 
         _currentFunction = reference;
-        ProcessFunctionBlock(body, functionSymbol);
+        ProcessFunctionBlock(statement.Body, functionSymbol);
         _currentFunction = null;
-    }
-
-
-    private void DeclareFunctionParameters(LLVMValueRef function, IReadOnlyList<VariableSymbol> parameters)
-    {
-        for (var i = 0; i < parameters.Count; i++)
-        {
-            var parameter = parameters[i];
-
-            var llvmReference = CreateVariableAlloca(parameter, $"param.${parameter.Name}");
-            parameter.LLVMDebugMetadata = DebugGenerateParameter(parameter, i + 1);
-
-            var llvmValue = function.GetParam((uint)i);
-            Builder.BuildStore(llvmValue, llvmReference);
-        }
     }
 
 
@@ -228,12 +244,16 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         => ProcessLexicalBlock(statement);
 
 
+
+
     private void ProcessLexicalBlock(BoundBlockStatement statement)
         => Scope.ForInnerScopeDo(ref _scope, statement.Scope, () =>
         {
             DebugGenerateScope(Scope, statement.Location);
             ProcessBlockWithControl(statement);
         });
+
+
 
 
     private void ProcessFunctionBlock(BoundBlockStatement statement, FunctionSymbol function)
@@ -243,6 +263,23 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             DeclareFunctionParameters(function.LLVMReference!.Value, function.Parameters);
             ProcessBlockWithControl(statement, true);
         });
+
+
+    private void DeclareFunctionParameters(LLVMValueRef function, IReadOnlyList<VariableSymbol> parameters)
+    {
+        for (var i = 0; i < parameters.Count; i++)
+        {
+            var parameter = parameters[i];
+
+            var llvmReference = CreateVariableAlloca(parameter, $"param.${parameter.Name}");
+            parameter.LLVMDebugMetadata = DebugGenerateParameter(parameter, i + 1);
+
+            var llvmValue = function.GetParam((uint)i);
+            Builder.BuildStore(llvmValue, llvmReference);
+        }
+    }
+
+
 
 
     private void ProcessBlockWithControl(BoundBlockStatement statement, bool addVoidReturnAtEnd = false)

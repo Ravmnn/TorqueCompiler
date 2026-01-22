@@ -25,6 +25,7 @@ public class FunctionDeclarationStatement(TypeSyntax returnType, SymbolSyntax na
 
     public IReadOnlyList<Modifier> Modifiers { get; set; } = [];
     public ModifierTarget ThisTargetIdentity => ModifierTarget.Function;
+    public SymbolSyntax Symbol => Name;
 
     public bool IsExternal => Modifiers.Any(modifier => modifier.Type == TokenType.KwExternal);
 
@@ -32,9 +33,13 @@ public class FunctionDeclarationStatement(TypeSyntax returnType, SymbolSyntax na
 
 
     public override void Process(IStatementProcessor processor)
-        => processor.ProcessFunctionDeclaration(this);
+        => processor.ProcessFunction(this);
 
 
     public override T Process<T>(IStatementProcessor<T> processor)
+        => processor.ProcessFunction(this);
+
+
+    public void ProcessDeclaration(IDeclarationProcessor processor)
         => processor.ProcessFunctionDeclaration(this);
 }

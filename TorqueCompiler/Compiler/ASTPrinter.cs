@@ -110,13 +110,13 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
 
-    public string ProcessDeclaration(DeclarationStatement statement)
+    public string ProcessVariable(VariableDeclarationStatement statement)
         => $"{BeginStatement()}{statement.Type} {statement.Name.Name} = {Process(statement.Value)} {EndStatement()}";
 
 
 
 
-    public string ProcessFunctionDeclaration(FunctionDeclarationStatement statement)
+    public string ProcessFunction(FunctionDeclarationStatement statement)
     {
         var builder = new StringBuilder();
         var parametersString = statement.Parameters.ItemsToStringThenJoin(", ", param => $"{param.Type} {param.Name}");
