@@ -15,7 +15,8 @@ namespace Torque.Compiler;
 
 public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
     : IStatementProcessor<Statement>, IExpressionProcessor<Expression>,
-        ISugarStatementProcessor, ISugarExpressionProcessor
+        ISugarStatementProcessor, ISugarExpressionProcessor,
+        IGlobalTypeDeclarationProcessor<Statement>
 {
     public IReadOnlyList<Statement> Statements { get; } = statements;
 
@@ -42,12 +43,27 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
         if (statement is SugarStatement sugarStatement)
             return sugarStatement.Process(this);
 
+        if (statement is GlobalTypeDeclaration declaration)
+            return declaration.ProcessGlobalTypeDeclaration(this);
+
         return statement.Process(this);
     }
 
 
     Statement IStatementProcessor<Statement>.Process(Statement statement)
         => statement.Process(this);
+
+
+
+
+    public Statement Process(GlobalTypeDeclaration declaration)
+        => declaration.Process(this);
+
+
+
+
+    public Statement ProcessAlias(AliasDeclarationStatement declaration)
+        => declaration;
 
 
 

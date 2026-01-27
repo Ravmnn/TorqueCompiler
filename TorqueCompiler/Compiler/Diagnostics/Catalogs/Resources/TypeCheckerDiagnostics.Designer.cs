@@ -9,21 +9,21 @@
 
 namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
     using System;
-
-
+    
+    
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class TypeCheckerDiagnostics {
-
+        
         private static System.Resources.ResourceManager resourceMan;
-
+        
         private static System.Globalization.CultureInfo resourceCulture;
-
+        
         [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal TypeCheckerDiagnostics() {
         }
-
+        
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Resources.ResourceManager ResourceManager {
             get {
@@ -34,7 +34,7 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 return resourceMan;
             }
         }
-
+        
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         internal static System.Globalization.CultureInfo Culture {
             get {
@@ -44,55 +44,55 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 resourceCulture = value;
             }
         }
-
+        
         internal static string TypeDiffers {
             get {
                 return ResourceManager.GetString("TypeDiffers", resourceCulture);
             }
         }
-
+        
         internal static string PointerExpected {
             get {
                 return ResourceManager.GetString("PointerExpected", resourceCulture);
             }
         }
-
+        
         internal static string CannotUseVoidHere {
             get {
                 return ResourceManager.GetString("CannotUseVoidHere", resourceCulture);
             }
         }
-
+        
         internal static string ExpressionDoesNotReturnAnyValue {
             get {
                 return ResourceManager.GetString("ExpressionDoesNotReturnAnyValue", resourceCulture);
             }
         }
-
+        
         internal static string CannotCallNonFunction {
             get {
                 return ResourceManager.GetString("CannotCallNonFunction", resourceCulture);
             }
         }
-
+        
         internal static string ArityDiffers {
             get {
                 return ResourceManager.GetString("ArityDiffers", resourceCulture);
             }
         }
-
+        
         internal static string CannotUseLetHere {
             get {
                 return ResourceManager.GetString("CannotUseLetHere", resourceCulture);
             }
         }
-
+        
         internal static string CannotHaveAZeroSizedArray {
             get {
                 return ResourceManager.GetString("CannotHaveAZeroSizedArray", resourceCulture);
             }
         }
-
+        
         internal static string ExpectedAReturnValue {
             get {
                 return ResourceManager.GetString("ExpectedAReturnValue", resourceCulture);

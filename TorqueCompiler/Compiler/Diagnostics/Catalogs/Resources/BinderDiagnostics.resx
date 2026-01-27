@@ -58,4 +58,7 @@
     <data name="LoopControlInstructionMustBeInLoop" xml:space="preserve">
         <value>A loop control instruction must be inside a loop</value>
     </data>
+    <data name="UnknownType" xml:space="preserve">
+        <value>Type "{0}" could not be found</value>
+    </data>
 </root>

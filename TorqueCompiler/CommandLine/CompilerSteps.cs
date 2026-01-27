@@ -5,6 +5,7 @@ using Torque.Compiler;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Statements;
 using Torque.Compiler.Tokens;
+using Torque.Compiler.Types;
 
 
 namespace Torque.CommandLine;
@@ -35,23 +36,23 @@ public static class CompilerSteps
     }
 
 
-    public static void TypeCheck(IReadOnlyList<BoundStatement> boundStatements)
+    public static void TypeCheck(IReadOnlyList<BoundStatement> boundStatements, IReadOnlyList<TypeDeclaration> declaredTypes)
     {
-        var typeChecker = new TorqueTypeChecker(boundStatements);
+        var typeChecker = new TorqueTypeChecker(boundStatements, declaredTypes);
         typeChecker.Check();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(typeChecker.Diagnostics);
     }
 
 
-    public static (IReadOnlyList<BoundStatement>, Scope) Bind(IReadOnlyList<Statement> statements)
+    public static (IReadOnlyList<BoundStatement>, Scope, IReadOnlyList<TypeDeclaration>) Bind(IReadOnlyList<Statement> statements)
     {
         var binder = new TorqueBinder(statements);
         var boundStatements = binder.Bind();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(binder.Diagnostics);
 
-        return (boundStatements, binder.Scope);
+        return (boundStatements, binder.Scope, binder.DeclaredTypes);
     }
 
 

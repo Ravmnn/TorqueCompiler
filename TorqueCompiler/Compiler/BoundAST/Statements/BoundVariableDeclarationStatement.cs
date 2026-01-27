@@ -30,5 +30,5 @@ public class BoundVariableDeclarationStatement(VariableDeclarationStatement synt
 
 
     public void ProcessDeclaration(IBoundDeclarationProcessor processor)
-        => processor.ProcessVariableDeclaration(this);
+    {}
 }

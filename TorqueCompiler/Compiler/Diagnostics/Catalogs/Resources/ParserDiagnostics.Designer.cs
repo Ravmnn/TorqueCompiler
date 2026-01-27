@@ -140,5 +140,17 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 return ResourceManager.GetString("ExpectRightCurlyBracket", resourceCulture);
             }
         }
+        
+        internal static string ExpectAssignment {
+            get {
+                return ResourceManager.GetString("ExpectAssignment", resourceCulture);
+            }
+        }
+        
+        internal static string ReservedIdentifier {
+            get {
+                return ResourceManager.GetString("ReservedIdentifier", resourceCulture);
+            }
+        }
     }
 }

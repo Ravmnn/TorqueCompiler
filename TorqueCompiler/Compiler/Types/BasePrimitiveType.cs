@@ -6,9 +6,9 @@ namespace Torque.Compiler.Types;
 
 
 
-public class BaseType(PrimitiveType type) : Type
+public class BasePrimitiveType(PrimitiveType type) : Type
 {
-    public override BaseType Base => this;
+    public override BasePrimitiveType BasePrimitive => this;
 
     public PrimitiveType Type { get; } = type;
 

@@ -41,12 +41,21 @@ void println(char* content)
 
 
 
+
+
+
+
+
+
+
+
+alias String = char*;
+
+
 int main(int argc, char** argv)
 {
-    something();
+    String text = "hello, world";
+    println(text);
 
     return 0;
 }
-
-
-external void something();

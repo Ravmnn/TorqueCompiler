@@ -287,7 +287,6 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
         {
             _ when lexeme.IsKeyword() => TokenFromTokenType(Keywords.General[lexeme]),
             _ when lexeme.IsModifier() => TokenFromTokenType(Keywords.Modifiers[lexeme]),
-            _ when lexeme.IsType() => TokenFromTokenType(TokenType.Type),
             _ when lexeme.IsLiteralBoolean() => TokenFromTokenType(TokenType.BoolValue, lexeme.ValueFromBool()),
 
             _ => TokenFromTokenType(TokenType.Identifier)

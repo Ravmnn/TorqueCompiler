@@ -82,7 +82,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add importing system
         // TODO: add enums
         // TODO: add structs
-        // TODO: add support for global variables
+        // TODO: full code clean-up (again)
 
         File = file;
 
@@ -142,14 +142,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public void Process(IBoundDeclaration declaration)
         => declaration.ProcessDeclaration(this);
-
-
-
-
-    public void ProcessVariableDeclaration(BoundVariableDeclarationStatement declaration)
-    {
-        throw new NotImplementedException();
-    }
 
 
 
@@ -419,7 +411,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
 
-    private LLVMValueRef ValueFromLiteral(Type type, object value, LLVMTypeRef llvmType) => type.Base.Type switch
+    private LLVMValueRef ValueFromLiteral(Type type, object value, LLVMTypeRef llvmType) => type.BasePrimitive.Type switch
     {
         _ when type.IsString => StringFromLiteral((value as IReadOnlyList<byte>)!),
 

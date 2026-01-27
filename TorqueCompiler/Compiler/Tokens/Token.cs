@@ -21,9 +21,9 @@ public enum TokenType
 
     Identifier,
     IntegerValue, FloatValue, BoolValue, CharValue, StringValue,
-    Type,
 
     KwExternal,
+    KwAlias,
     KwReturn,
     KwIf, KwElse, KwWhile, KwLoop, KwFor, KwBreak, KwContinue,
     KwAs, KwArray, KwDefault, KwNullptr

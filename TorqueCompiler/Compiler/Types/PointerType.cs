@@ -8,7 +8,7 @@ namespace Torque.Compiler.Types;
 
 public class PointerType(Type type) : Type
 {
-    public override BaseType Base => Type.Base;
+    public override BasePrimitiveType BasePrimitive => Type.BasePrimitive;
 
     public Type Type { get; } = type;
 

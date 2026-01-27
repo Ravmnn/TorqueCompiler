@@ -55,7 +55,7 @@ public class DebugTypeMetadataGenerator(LLVMDIBuilderRef debugBuilder, LLVMMetad
         {
             // Procedural approach. See the top of the class for detailed explanation.
 
-            BaseType => CreateBasicTypeMetadata(name, sizeInBits, encoding),
+            BasePrimitiveType => CreateBasicTypeMetadata(name, sizeInBits, encoding),
 
             FunctionType functionType => CreatePointerToFunctionTypeMetadata(functionType),
             PointerType pointerType => CreatePointerTypeMetadata(TypeToMetadata(pointerType.Type), name, sizeInBits),
@@ -124,7 +124,7 @@ public class DebugTypeMetadataGenerator(LLVMDIBuilderRef debugBuilder, LLVMMetad
 
 
 
-    public static int GetEncodingFromType(Type type) => type.Base.Type switch
+    public static int GetEncodingFromType(Type type) => type.BasePrimitive.Type switch
     {
         _ when type.IsPointer || type.IsFunction => DebugMetadataTypeEncodings.Address,
 

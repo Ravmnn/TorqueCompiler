@@ -1,3 +1,4 @@
+using Torque.Compiler.Tokens;
 using Torque.Compiler.Symbols;
 
 
@@ -12,4 +13,5 @@ public class BaseTypeSyntax(SymbolSyntax typeSymbol) : TypeSyntax
 
 
     public SymbolSyntax TypeSymbol { get; } = typeSymbol;
+    public bool IsPrimitiveType => Keywords.PrimitiveTypes.ContainsKey(TypeSymbol.Name);
 }

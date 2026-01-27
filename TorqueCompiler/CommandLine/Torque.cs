@@ -99,9 +99,9 @@ public static class Torque
 
     private static (IReadOnlyList<BoundStatement>, Scope) SemanticAnalysis(IReadOnlyList<Statement> statements)
     {
-        var (boundStatements, scope) = CompilerSteps.Bind(statements);
+        var (boundStatements, scope, declaredTypes) = CompilerSteps.Bind(statements);
 
-        CompilerSteps.TypeCheck(boundStatements);
+        CompilerSteps.TypeCheck(boundStatements, declaredTypes);
         CompilerSteps.AnalyzeControlFlow(boundStatements);
 
         return (boundStatements, scope);

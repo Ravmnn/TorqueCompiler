@@ -34,5 +34,5 @@ public class VariableDeclarationStatement(TypeSyntax type, SymbolSyntax name, Ex
 
 
     public void ProcessDeclaration(IDeclarationProcessor processor)
-        => processor.ProcessVariableDeclaration(this);
+    {}
 }

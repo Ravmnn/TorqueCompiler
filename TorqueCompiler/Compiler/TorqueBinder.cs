@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Symbols;
+using Torque.Compiler.Types;
 using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Expressions;
@@ -31,8 +33,10 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         private set => _scope = value;
     }
 
+    public List<TypeDeclaration> DeclaredTypes { get; } = [];
 
-    public IReadOnlyList<Statement> Statements { get; } = statements;
+
+    public List<Statement> Statements { get; } = statements.ToList();
 
 
 
@@ -49,6 +53,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     private void Reset()
     {
         _currentLoopDepth = 0;
+        DeclaredTypes.Clear();
 
         Scope = new Scope();
         Diagnostics.Clear();
@@ -57,9 +62,16 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     private void DeclareAllDeclarations()
     {
-        foreach (var statement in Statements)
-            if (statement is IDeclaration declaration)
-                Process(declaration);
+        foreach (var statement in Statements.ToArray())
+        {
+            if (statement is not IDeclaration declaration)
+                continue;
+
+            Process(declaration);
+
+            if (statement is GlobalTypeDeclaration)
+                Statements.Remove(statement);
+        }
     }
 
 
@@ -76,19 +88,18 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
 
 
-    public void ProcessVariableDeclaration(VariableDeclarationStatement declaration)
+    public void ProcessFunctionDeclaration(FunctionDeclarationStatement declaration)
     {
-        // variables cannot be currently globally declared
-        throw new UnreachableException();
+        var functionSymbol = new FunctionSymbol(declaration.Name, Scope) { IsExternal = declaration.IsExternal };
+        Scope.Symbols.Add(functionSymbol);
     }
 
 
 
 
-    public void ProcessFunctionDeclaration(FunctionDeclarationStatement declaration)
+    public void ProcessAliasDeclaration(AliasDeclarationStatement declaration)
     {
-        var functionSymbol = new FunctionSymbol(declaration.Name, Scope) { IsExternal = declaration.IsExternal };
-        Scope.Symbols.Add(functionSymbol);
+        DeclaredTypes.Add(new AliasTypeDeclaration(declaration.Symbol, declaration.TypeSyntax));
     }
 
     #endregion
@@ -98,8 +109,14 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     #region Statements
 
+    public IReadOnlyList<BoundStatement> ProcessAll(IReadOnlyList<Statement> statements)
+        => statements.Select(Process).ToArray();
+
+
     public BoundStatement Process(Statement statement)
     {
+        ThrowIfGlobalTypeDeclarationAtLocalScope(statement);
+
         if (ReportIfNonDeclarationAtFileScope(statement) || ReportIfFunctionDeclarationAtLocalScope(statement))
             return null!;
 
@@ -109,8 +126,11 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     }
 
 
-    public IReadOnlyList<BoundStatement> ProcessAll(IReadOnlyList<Statement> statements)
-        => statements.Select(Process).ToArray();
+    private void ThrowIfGlobalTypeDeclarationAtLocalScope(Statement statement)
+    {
+        if (statement is GlobalTypeDeclaration)
+            throw new InvalidOperationException("Global type declarations must be in global scope");
+    }
 
 
 
@@ -123,6 +143,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundStatement ProcessVariable(VariableDeclarationStatement statement)
     {
+        ReportIfUnknownType(statement.Type);
         ReportIfMultipleDeclaration(statement.Name);
 
         var identifier = new VariableSymbol(statement.Name, Scope);
@@ -138,6 +159,8 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundStatement ProcessFunction(FunctionDeclarationStatement statement)
     {
+        ReportIfUnknownType(statement.ReturnType);
+
         var functionSymbol = (Scope.GetSymbol(statement.Name.Name) as FunctionSymbol)!;
         var body = ProcessFunctionBlockIfNotExternal(statement, functionSymbol);
 
@@ -187,7 +210,10 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     private void DeclareFunctionParameters(IReadOnlyList<FunctionParameterDeclaration> parameters)
     {
         foreach (var parameter in parameters)
+        {
+            ReportIfUnknownType(parameter.Type);
             Scope.Symbols.Add(new VariableSymbol(parameter.Name, Scope) { IsParameter = true });
+        }
     }
 
 
@@ -390,6 +416,8 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundExpression ProcessCast(CastExpression expression)
     {
+        ReportIfUnknownType(expression.Type);
+
         var value = Process(expression.Expression);
         return new BoundCastExpression(expression, value);
     }
@@ -399,6 +427,8 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundExpression ProcessArray(ArrayExpression expression)
     {
+        ReportIfUnknownType(expression.ElementType);
+
         var boundExpressions = expression.Elements?.Select(Process).ToArray();
         return new BoundArrayExpression(expression, boundExpressions);
     }
@@ -413,7 +443,10 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
 
     public BoundExpression ProcessDefault(DefaultExpression expression)
-        => new BoundDefaultExpression(expression);
+    {
+        ReportIfUnknownType(expression.TypeSyntax);
+        return new BoundDefaultExpression(expression);
+    }
 
     #endregion
 
@@ -438,7 +471,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     private bool ReportIfNonDeclarationAtFileScope(Statement statement)
     {
-        if (!Scope.IsGlobal || statement is FunctionDeclarationStatement)
+        if (!Scope.IsGlobal || statement is IDeclaration)
             return false;
 
         Report(BinderCatalog.OnlyDeclarationsCanExistInFileScope, location: statement.Location);
@@ -509,6 +542,46 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
             return false;
 
         Report(BinderCatalog.LoopControlInstructionMustBeInLoop, location: statement.Location);
+        return true;
+    }
+
+
+    private bool ReportIfUnknownType(TypeSyntax type) => type switch
+    {
+        BaseTypeSyntax baseType => ReportIfUnknownBaseType(baseType),
+
+        FunctionTypeSyntax functionType => ReportIfUnknownFunctionType(functionType),
+        PointerTypeSyntax pointerType => ReportIfUnknownType(pointerType.InnerType),
+
+        _ => throw new UnreachableException()
+    };
+
+
+    private bool ReportIfUnknownFunctionType(FunctionTypeSyntax functionType)
+    {
+        if (ReportIfUnknownType(functionType.ReturnType))
+            return true;
+
+        foreach (var parameterType in functionType.ParametersType)
+            if (ReportIfUnknownType(parameterType))
+                return true;
+
+        return false;
+    }
+
+
+    private bool ReportIfUnknownBaseType(BaseTypeSyntax type)
+    {
+        if (type.IsPrimitiveType)
+            return false;
+
+        var symbol = type.TypeSymbol;
+        var declaredType = DeclaredTypes.FirstOrDefault(declaredType => declaredType.TypeSymbol.Name == symbol.Name);
+
+        if (declaredType is not null)
+            return false;
+
+        Report(BinderCatalog.UnknownType, [symbol.Name], symbol.Location);
         return true;
     }
 

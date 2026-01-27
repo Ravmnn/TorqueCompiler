@@ -70,4 +70,10 @@
     <data name="ExpectRightCurlyBracket" xml:space="preserve">
         <value>Expect "}}"</value>
     </data>
+    <data name="ExpectAssignment" xml:space="preserve">
+        <value>Expect "="</value>
+    </data>
+    <data name="ReservedIdentifier" xml:space="preserve">
+        <value>Symbol is reserved by the language</value>
+    </data>
 </root>

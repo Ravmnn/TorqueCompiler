@@ -39,23 +39,23 @@ public abstract class Type
 
 
 
-    public abstract BaseType Base { get; }
+    public abstract BasePrimitiveType BasePrimitive { get; }
 
 
-    public bool IsAuto => Base.Type == PrimitiveType.Auto; // "let" variable declarator
-    public bool IsVoid => Base.Type == PrimitiveType.Void;
+    public bool IsAuto => BasePrimitive.Type == PrimitiveType.Auto; // "let" variable declarator
+    public bool IsVoid => BasePrimitive.Type == PrimitiveType.Void;
 
-    public bool IsSigned => Base.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 || IsFloat;
+    public bool IsSigned => BasePrimitive.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 || IsFloat;
     public bool IsUnsigned => !IsSigned;
 
-    public bool IsFloat => IsBase && Base.Type is PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64;
+    public bool IsFloat => IsBase && BasePrimitive.Type is PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64;
     public bool IsInteger => (IsBase || IsPointer) && !IsFloat;
-    public bool IsChar => IsBase && Base.Type == PrimitiveType.Char;
-    public bool IsBool => IsBase && Base.Type == PrimitiveType.Bool;
+    public bool IsChar => IsBase && BasePrimitive.Type == PrimitiveType.Char;
+    public bool IsBool => IsBase && BasePrimitive.Type == PrimitiveType.Bool;
 
     public bool IsString => this is PointerType { Type.IsChar: true };
 
-    public bool IsBase => this is BaseType;
+    public bool IsBase => this is BasePrimitiveType;
     public bool IsPointer => this is PointerType;
     public bool IsGenericPointer => this is PointerType pointerType && pointerType.Type == PrimitiveType.UInt8;
     public bool IsFunction => this is FunctionType;
@@ -68,7 +68,7 @@ public abstract class Type
 
 
 
-    public static implicit operator Type(PrimitiveType type) => new BaseType(type);
+    public static implicit operator Type(PrimitiveType type) => new BasePrimitiveType(type);
 
 
     public static bool operator ==(Type left, Type right) => left.Equals((object)right);
@@ -85,15 +85,15 @@ public abstract class Type
 
 
     protected virtual bool Equals(Type other)
-        => Base.Type == other.Base.Type;
+        => BasePrimitive.Type == other.BasePrimitive.Type;
 
 
     public override int GetHashCode()
-        => HashCode.Combine((int)Base.Type);
+        => HashCode.Combine((int)BasePrimitive.Type);
 
 
 
 
     public override string ToString()
-        => $"{Base.Type.PrimitiveTypeToString()}";
+        => $"{BasePrimitive.Type.PrimitiveTypeToString()}";
 }

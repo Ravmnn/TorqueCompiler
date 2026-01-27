@@ -17,7 +17,8 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements) : DiagnosticReporter<TypeCheckerCatalog>,
+public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, IReadOnlyList<TypeDeclaration> declaredTypes)
+    : DiagnosticReporter<TypeCheckerCatalog>,
     IBoundStatementProcessor, IBoundExpressionProcessor<Type>,
     IBoundDeclarationProcessor
 {
@@ -29,8 +30,10 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements) : Diagn
 
     private bool _acceptVoidExpressions;
 
-
     private Type? _expectedReturnType;
+
+
+    private IReadOnlyList<TypeDeclaration> DeclaredTypes { get; } = declaredTypes;
 
 
     public IReadOnlyList<BoundStatement> Statements { get; } = statements;
@@ -69,14 +72,6 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements) : Diagn
 
     public void Process(IBoundDeclaration declaration)
         => declaration.ProcessDeclaration(this);
-
-
-
-
-    public void ProcessVariableDeclaration(BoundVariableDeclarationStatement declaration)
-    {
-        throw new System.NotImplementedException();
-    }
 
 
 
@@ -695,12 +690,30 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements) : Diagn
     };
 
 
-    private BaseType TypeFromBaseTypeName(BaseTypeSyntax typeSyntax)
+    private Type TypeFromBaseTypeName(BaseTypeSyntax typeSyntax)
     {
         if (typeSyntax.IsAuto)
             Report(TypeCheckerCatalog.CannotUseLetHere, location: typeSyntax.TypeSymbol.Location);
 
-        return new BaseType(typeSyntax.BaseType.TypeSymbol.SymbolToPrimitiveType());
+        if (typeSyntax.IsPrimitiveType)
+            return new BasePrimitiveType(typeSyntax.BaseType.TypeSymbol.SymbolToPrimitiveType());
+
+        return TypeFromTypeDeclaration(typeSyntax);
+    }
+
+
+    private Type TypeFromTypeDeclaration(BaseTypeSyntax typeSyntax)
+    {
+        var typeDeclaration = GetTypeDeclaration(typeSyntax.TypeSymbol);
+        var declarationTypeSyntax = typeDeclaration.GetTypeSyntax();
+        return TypeFromTypeName(declarationTypeSyntax);
+    }
+
+
+    private TypeDeclaration GetTypeDeclaration(SymbolSyntax symbol)
+    {
+        var typeDeclaration = DeclaredTypes.First(declaredType => declaredType.TypeSymbol.Name == symbol.Name);
+        return typeDeclaration;
     }
 
 

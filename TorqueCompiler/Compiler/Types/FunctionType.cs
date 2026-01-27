@@ -12,7 +12,7 @@ namespace Torque.Compiler.Types;
 
 public class FunctionType(Type returnType, IReadOnlyList<Type> parametersType) : PointerType(returnType)
 {
-    public override BaseType Base => ReturnType.Base;
+    public override BasePrimitiveType BasePrimitive => ReturnType.BasePrimitive;
 
     public Type ReturnType => Type;
     public IReadOnlyList<Type> ParametersType { get; } = parametersType;
@@ -56,5 +56,5 @@ public class FunctionType(Type returnType, IReadOnlyList<Type> parametersType) :
 
 
     public override int GetHashCode()
-        => HashCode.Combine((int)Base.Type, ParametersType);
+        => HashCode.Combine((int)BasePrimitive.Type, ParametersType);
 }

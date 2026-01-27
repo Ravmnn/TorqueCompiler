@@ -31,5 +31,11 @@ public static class TokenExtensions
 
         public bool ValueFromBool()
             => token == "true";
+
+
+
+
+        public bool IsReserved()
+            => token.IsKeyword() || token.IsModifier() || token.IsType();
     }
 }

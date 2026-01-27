@@ -13,7 +13,8 @@ namespace Torque.Compiler;
 
 
 
-public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<string>
+public class ASTPrinter
+    : IExpressionProcessor<string>, IStatementProcessor<string>, IGlobalTypeDeclarationProcessor<string>
 {
     private int _indentDegree;
 
@@ -99,7 +100,22 @@ public class ASTPrinter : IExpressionProcessor<string>, IStatementProcessor<stri
 
 
     public string Process(Statement statement)
-        => statement.Process(this);
+    {
+        if (statement is GlobalTypeDeclaration declaration)
+            return Process(declaration);
+
+        return statement.Process(this);
+    }
+
+
+    public string Process(GlobalTypeDeclaration declaration)
+        => declaration.ProcessGlobalTypeDeclaration(this);
+
+
+
+
+    public string ProcessAlias(AliasDeclarationStatement declaration)
+        => $"{BeginStatement()}alias {declaration.Symbol.Name} = {declaration.TypeSyntax}{EndStatement()}";
 
 
 
