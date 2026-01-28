@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -12,17 +11,27 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
+public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIterator<char>
 {
     private int _startInLine;
     private int _endInLine;
     private int _line;
 
+    private IIterator<char> Iterator => this;
+
+
     private int _start;
     private int _end;
 
+    public int Current
+    {
+        get => _end;
+        set => _end = value;
+    }
 
-    public string Source { get; } = source;
+
+    public IReadOnlyList<char> Source => StringSource.ToList();
+    public string StringSource { get; } = source;
 
 
 
@@ -32,7 +41,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
         var tokens = new List<Token>();
         Reset();
 
-        while (!AtEnd())
+        while (!Iterator.AtEnd())
         {
             NextTokenStart();
 
@@ -65,7 +74,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
     private Token? TokenizeNext()
     {
-        var character = Advance();
+        var character = Iterator.Advance();
 
         switch (character)
         {
@@ -143,7 +152,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
         if (data.Count == 0)
             Report(LexerCatalog.SingleCharacterEmpty);
 
-        if (AtEnd())
+        if (Iterator.AtEnd())
             Report(LexerCatalog.UnclosedSingleCharacterString, location: quoteLocation);
 
         else if (data.Count > 1)
@@ -167,7 +176,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
     private void ReportStringErrors(Span quoteLocation)
     {
-        if (AtEnd())
+        if (Iterator.AtEnd())
             Report(LexerCatalog.UnclosedString, location: quoteLocation);
     }
 
@@ -188,18 +197,18 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
     private void AdvanceString(char delimiter)
     {
-        while (!AtEnd())
+        while (!Iterator.AtEnd())
         {
-            if (Peek() == delimiter)
+            if (Iterator.Peek() == delimiter)
                 break;
 
-            if (Peek() == '\\')
-                Advance();
+            if (Iterator.Peek() == '\\')
+                Iterator.Advance();
 
-            Advance();
+            Iterator.Advance();
         }
 
-        Advance(); // advance the string delimiter
+        Iterator.Advance(); // advance the string delimiter
     }
 
 
@@ -245,8 +254,8 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
     private void AdvanceComment()
     {
-        while (Peek() != '\n' && !AtEnd())
-            Advance();
+        while (Iterator.Peek() != '\n' && !Iterator.AtEnd())
+            Iterator.Advance();
     }
 
 
@@ -257,21 +266,21 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
         var startLocation = GetCurrentLocation();
         AdvanceMultilineComment();
 
-        if (AtEnd())
+        if (Iterator.AtEnd())
         {
             Report(LexerCatalog.UnclosedMultilineComment, location: startLocation);
             return;
         }
 
-        Advance(); // advance '<'
-        Advance(); // advance '#'
+        Iterator.Advance(); // advance '<'
+        Iterator.Advance(); // advance '#'
     }
 
 
     private void AdvanceMultilineComment()
     {
-        while (Peek() != '<' && PeekNext() != '#' && !AtEnd())
-            Advance();
+        while (Iterator.Peek() != '<' && Iterator.Next() != '#' && !Iterator.AtEnd())
+            Iterator.Advance();
     }
 
 
@@ -296,8 +305,8 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
     private void AdvanceIdentifier()
     {
-        while (Peek() is var @char && char.IsAsciiLetterOrDigit(@char))
-            Advance();
+        while (Iterator.Peek() is var @char && char.IsAsciiLetterOrDigit(@char))
+            Iterator.Advance();
     }
 
 
@@ -339,7 +348,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
     private void AdvanceWhileDigit()
     {
-        while (Peek() is var character)
+        while (Iterator.Peek() is var character)
         {
             if (!char.IsAsciiDigit(character) && character != '.')
                 break;
@@ -347,13 +356,13 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
             if (character == '.' && !IsNextDigit())
                 break;
 
-            Advance();
+            Iterator.Advance();
         }
     }
 
 
     private bool IsNextDigit()
-        => PeekNext() is var next && char.IsAsciiDigit(next);
+        => Iterator.Next() is var next && char.IsAsciiDigit(next);
 
 
 
@@ -373,53 +382,17 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>
 
 
     private string GetCurrentTokenLexeme()
-        => Source[_start .. _end];
+        => StringSource[_start .. _end];
 
 
-
-
-    private char Advance()
-    {
-        if (AtEnd())
-            return Previous();
-
-        _endInLine++;
-
-        if (Peek() == '\n')
-            NextLine();
-
-        return Source[_end++];
-    }
-
-    private void NextLine()
-    {
-        _startInLine = _endInLine = 0;
-        _line++;
-    }
-
-
-    private char Previous()
-        => Source[_end - 1];
-
-
-    private char Peek()
-        => AtEnd() ? Previous() : Source[_end];
-
-
-    private char PeekNext()
-        => AtEnd() ? Peek() : Source[_end + 1];
 
 
     private bool Match(char character)
     {
-        if (Peek() != character)
+        if (Iterator.Peek() != character)
             return false;
 
-        Advance();
+        Iterator.Advance();
         return true;
     }
-
-
-    private bool AtEnd()
-        => _end >= Source.Length;
 }

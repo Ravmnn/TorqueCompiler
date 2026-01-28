@@ -17,15 +17,16 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<ParserCatalog>
+public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<ParserCatalog>, IIterator<Token>
 {
     private readonly List<Statement> _statements = [];
-    private int _current;
-
     private readonly List<Modifier> _currentModifiers = [];
 
+    private IIterator<Token> Iterator => this;
 
-    public IReadOnlyList<Token> Tokens { get; } = tokens;
+
+    public int Current { get; set; }
+    public IReadOnlyList<Token> Source { get; } = source;
 
 
 
@@ -34,7 +35,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     {
         Reset();
 
-        while (!AtEnd())
+        while (!Iterator.AtEnd())
             ParseDeclarationOrSynchronize();
 
         return _statements;
@@ -44,7 +45,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     private void Reset()
     {
         _statements.Clear();
-        _current = 0;
+        Current = 0;
 
         Diagnostics.Clear();
     }
@@ -74,11 +75,11 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private void Synchronize()
     {
-        Advance();
+        Iterator.Advance();
 
-        while (!AtEnd())
+        while (!Iterator.AtEnd())
         {
-            switch (Peek().Type)
+            switch (Iterator.Peek().Type)
             {
                 case TokenType.SemiColon:
                 case TokenType.KwAlias:
@@ -88,11 +89,11 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
                 case TokenType.KwWhile:
                 case TokenType.KwBreak:
                 case TokenType.KwContinue:
-                    Advance();
+                    Iterator.Advance();
                     return;
             }
 
-            Advance();
+            Iterator.Advance();
         }
     }
 
@@ -102,7 +103,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     private void ParseModifiersIfAny()
     {
         while (MatchAnyModifier())
-            _currentModifiers.Add(new Modifier(Previous()));
+            _currentModifiers.Add(new Modifier(Iterator.Previous()));
     }
 
 
@@ -126,7 +127,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Statement? DeclarationOrStatement()
     {
-        var peek = Peek();
+        var peek = Iterator.Peek();
         return peek switch
         {
             _ when IsCurrentGenericDeclaration() => GenericDeclaration(),
@@ -147,7 +148,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Statement GenericDeclaration()
     {
-        var type = TryParseTypeName();
+        var type = TryParseTypeName()!;
         var symbol = ExpectSymbol();
 
         if (Check(TokenType.LeftParen))
@@ -212,7 +213,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
         return DoWhileComma(() =>
         {
-            var type = TryParseTypeName();
+            var type = TryParseTypeName()!;
             var symbol = ExpectSymbol();
 
             return new FunctionParameterDeclaration(symbol, type);
@@ -224,7 +225,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Statement? Statement()
     {
-        switch (Peek().Type)
+        switch (Iterator.Peek().Type)
         {
         case TokenType.KwAlias: return Alias();
         case TokenType.KwReturn: return Return();
@@ -242,7 +243,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         // some tokens should be ignored:
 
         case TokenType.RightCurlyBracket:
-            Advance();
+            Iterator.Advance();
 
             if (HasReports) // something already went wrong, ignore
                 return null;
@@ -271,11 +272,11 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Statement Alias()
     {
-        var keyword = Advance();
+        var keyword = Iterator.Advance();
         var name = ExpectSymbol();
         ExpectAssignment();
 
-        var type = TryParseTypeName();
+        var type = TryParseTypeName()!;
         var end = ExpectEndOfStatement();
 
         var location = new Span(keyword, end);
@@ -287,7 +288,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Statement Return()
     {
-        var keyword = Advance();
+        var keyword = Iterator.Advance();
         Expression? expression = null;
 
         if (!Check(TokenType.SemiColon))
@@ -306,7 +307,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         var block = new List<Statement>();
         var start = Expect(TokenType.LeftCurlyBracket, ParserCatalog.ExpectBlock);
 
-        while (!AtEnd() && !Check(TokenType.RightCurlyBracket))
+        while (!Iterator.AtEnd() && !Check(TokenType.RightCurlyBracket))
             if (DeclarationWithModifiers() is { } declaration)
                 block.Add(declaration);
 
@@ -320,7 +321,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Statement If()
     {
-        var keyword = Advance();
+        var keyword = Iterator.Advance();
 
         ExpectLeftParen();
         var condition = Expression();
@@ -347,7 +348,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     public Statement While()
     {
-        var keyword = Advance();
+        var keyword = Iterator.Advance();
 
         ExpectLeftParen();
         var condition = Expression();
@@ -364,7 +365,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     public Statement Loop()
     {
-        var keyword = Advance();
+        var keyword = Iterator.Advance();
         var body = Statement()!;
 
         var location = new Span(keyword, keyword);
@@ -376,7 +377,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     public Statement For()
     {
-        var keyword = Advance();
+        var keyword = Iterator.Advance();
 
         ExpectLeftParen();
 
@@ -389,7 +390,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
         var loop = Statement()!;
 
-        var location = new Span(keyword, Previous());
+        var location = new Span(keyword, Iterator.Previous());
         return new SugarForStatement(initialization, condition, step, loop, location);
     }
 
@@ -398,7 +399,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     public Statement Break()
     {
-        var keyword = Advance();
+        var keyword = Iterator.Advance();
         ExpectEndOfStatement();
 
         return new BreakStatement(keyword);
@@ -407,7 +408,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     public Statement Continue()
     {
-        var keyword = Advance();
+        var keyword = Iterator.Advance();
         ExpectEndOfStatement();
 
         return new ContinueStatement(keyword);
@@ -473,7 +474,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
         while (Match(TokenType.KwAs))
         {
-            var type = TryParseTypeName();
+            var type = TryParseTypeName()!;
             var location = new Span(expression.Location, type.BaseType.TypeSymbol.Location);
 
             expression = new CastExpression(expression, type, location);
@@ -569,7 +570,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     }
 
 
-    private Expression? PrimaryOrNull() => Peek().Type switch
+    private Expression? PrimaryOrNull() => Iterator.Peek().Type switch
     {
         _ when CurrentIsLiteral() => ParseLiteral(),
 
@@ -591,7 +592,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Expression ParseLiteral()
     {
-        var literal = Previous();
+        var literal = Iterator.Previous();
         return new LiteralExpression(literal.Value!, literal.Location);
     }
 
@@ -599,14 +600,14 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
 
     private SymbolExpression ParseIdentifier()
-        => new SymbolExpression(new SymbolSyntax(Previous()));
+        => new SymbolExpression(new SymbolSyntax(Iterator.Previous()));
 
 
 
 
     private Expression ParseGroupExpression()
     {
-        var leftParen = Previous();
+        var leftParen = Iterator.Previous();
         var expression = Expression();
         var rightParen = ExpectRightParen();
 
@@ -618,11 +619,11 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Expression? TryParseArrayAndRegressIfFail()
     {
-        var current = _current;
+        var current = Current;
         var array = TryParseArray();
 
         if (array is null)
-            _current = current;
+            Current = current;
 
         return array;
     }
@@ -630,7 +631,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Expression? TryParseArray()
     {
-        var type = TryParseTypeName();
+        var type = TryParseTypeName()!;
 
         if (!Match(TokenType.KwArray))
             return null;
@@ -641,7 +642,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
             ? ArrayWithImplicitSizeAndRequiredInitializationList()
             : ArrayWithExplicitSizeAndOptionalInitializationList();
 
-        var location = new Span(type.BaseType.TypeSymbol.Location, Previous());
+        var location = new Span(type.BaseType.TypeSymbol.Location, Iterator.Previous());
         return new ArrayExpression(type, array.length, array.initializationList, location);
     }
 
@@ -688,9 +689,9 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private Expression ParseDefault()
     {
-        var keyword = Previous();
+        var keyword = Iterator.Previous();
         ExpectLeftParen();
-        var typeName = TryParseTypeName();
+        var typeName = TryParseTypeName()!;
         var rightParen = ExpectRightParen();
 
         return new DefaultExpression(typeName, new Span(keyword, rightParen));
@@ -700,7 +701,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
 
     private Expression ParseNullptr()
-        => new SugarNullptrExpression(Previous());
+        => new SugarNullptrExpression(Iterator.Previous());
 
     #endregion
 
@@ -728,7 +729,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
         while (Match(operators))
         {
-            var @operator = Previous();
+            var @operator = Iterator.Previous();
             var right = rightAssociative ? ParseAssociativeBinaryLayoutExpression<T>(predecessor, rightAssociative, operators) : predecessor();
             expression = T.Create(expression, right, @operator.Type, new Span(expression.Location, right.Location));
         }
@@ -744,7 +745,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     {
         if (Match(operators))
         {
-            var @operator = Previous();
+            var @operator = Iterator.Previous();
             var expression = ParseRightAssociativeUnaryLayoutExpression<T>(predecessor, operators);
 
             return T.Create(expression, @operator.Type, new Span(@operator, expression.Location));
@@ -807,7 +808,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     }
 
 
-    private TypeSyntax? ParsePointerTypeName(TypeSyntax type)
+    private TypeSyntax ParsePointerTypeName(TypeSyntax type)
         => new PointerTypeSyntax(type);
 
 
@@ -820,7 +821,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     }
 
 
-    private TypeSyntax? ParseFunctionTypeName(TypeSyntax type)
+    private TypeSyntax ParseFunctionTypeName(TypeSyntax type)
     {
         ExpectLeftParen();
         var parameters = ParseFunctionTypeNameParameters();
@@ -847,7 +848,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     [DoesNotReturn]
     public override void ReportAndThrow(ParserCatalog item, IReadOnlyList<object>? arguments = null, Span? location = null)
-        => base.ReportAndThrow(item, arguments, location ?? Peek().Location);
+        => base.ReportAndThrow(item, arguments, location ?? Iterator.Peek().Location);
 
 
 
@@ -865,7 +866,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     private Token Expect(TokenType token, ParserCatalog item, Span? location = null)
     {
         if (Check(token))
-            return Advance();
+            return Iterator.Advance();
 
         ReportAndThrow(item, location: location);
         throw new UnreachableException();
@@ -953,8 +954,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private bool IsCurrentGenericDeclaration()
     {
-        var current = _current;
-        var type = Peek();
+        var current = Current;
+        var type = Iterator.Peek();
 
         bool success;
         if (IsValidIdentifierOrPrimitiveType(type))
@@ -962,8 +963,8 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
         else
             return false;
 
-        var name = Peek();
-        _current = current;
+        var name = Iterator.Peek();
+        Current = current;
 
         if (IsValidIdentifier(name))
             return success;
@@ -987,10 +988,10 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
 
     private bool MatchAnyModifier()
     {
-        if (!Peek().Lexeme.IsModifier())
+        if (!Iterator.Peek().Lexeme.IsModifier())
             return false;
 
-        Advance();
+        Iterator.Advance();
         return true;
     }
 
@@ -1002,7 +1003,7 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
             if (!Check(token))
                 continue;
 
-            Advance();
+            Iterator.Advance();
             return true;
         }
 
@@ -1010,57 +1011,13 @@ public class TorqueParser(IReadOnlyList<Token> tokens) : DiagnosticReporter<Pars
     }
 
 
-    private bool CheckNext(TokenType token, int amount = 1)
-    {
-        if (_current >= Tokens.Count)
-            return false;
-
-        return Next(amount).Type == token;
-    }
-
-
     private bool Check(TokenType token)
     {
-        if (AtEnd())
+        if (Iterator.AtEnd())
             return false;
 
-        return Peek().Type == token;
+        return Iterator.Peek().Type == token;
     }
-
-
-    private Token Advance()
-    {
-        if (AtEnd())
-            return Previous();
-
-        return Tokens[_current++];
-    }
-
-
-    private Token Peek()
-        => !AtEnd() ? Tokens[_current] : Previous();
-
-
-    private Token Next(int amount = 1)
-    {
-        if (_current + amount >= Tokens.Count)
-            return Peek();
-
-        return Tokens[_current + amount];
-    }
-
-
-    private Token Previous(int amount = 1)
-    {
-        if (_current <= amount - 1)
-            return Peek();
-
-        return Tokens[_current - amount];
-    }
-
-
-    private bool AtEnd()
-        => _current >= Tokens.Count;
 
     #endregion
 }
