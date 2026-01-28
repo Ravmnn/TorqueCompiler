@@ -34,7 +34,12 @@ public static class ProgramToolchain
 
 
     private static CompilerProgram NewCompilerProgram(string inputFile, string outputFile, CompilerProgramOptions options)
-        => new CompilerProgram { InputFile = inputFile, OutputFile = outputFile, Options = options };
+        => new CompilerProgram
+        {
+            InputFile = inputFile,
+            OutputFile = outputFile,
+            Options = options
+        };
 
 
 
@@ -47,5 +52,10 @@ public static class ProgramToolchain
 
 
     private static LinkerProgram NewLinkerProgram(IReadOnlyList<string> inputFiles, string outputFile, LinkerProgramOptions options)
-        => new LinkerProgram { InputFiles = inputFiles, OutputFile = outputFile, Options = options };
+        => new LinkerProgram
+        {
+            InputFiles = inputFiles,
+            OutputFile = outputFile,
+            Options = options
+        };
 }

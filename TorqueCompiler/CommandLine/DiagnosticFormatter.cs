@@ -14,14 +14,20 @@ public static class DiagnosticFormatter
     public static string Format(Diagnostic diagnostic)
     {
         var diagnosticHeader = new DiagnosticHeaderMessage(diagnostic);
-
-        var codePeek = diagnostic.Location is not null ? GenerateCodePeek(diagnostic.Location.Value) : null;
-        codePeek = $"{(codePeek is not null ? "\n" : "")}{codePeek}";
+        var codePeek = GenerateCodePeekOrEmpty(diagnostic);
 
         return $"({diagnosticHeader})\n{diagnostic.GetFormattedMessage()}{codePeek}";
     }
 
 
+    private static string GenerateCodePeekOrEmpty(Diagnostic diagnostic)
+    {
+        var shouldGenerateCodePeek = diagnostic.Location is not null;
+        var codePeek = shouldGenerateCodePeek ? GenerateCodePeek(diagnostic.Location!.Value) : null;
+        codePeek = $"{(shouldGenerateCodePeek ? "\n" : "")}{codePeek}";
+
+        return codePeek;
+    }
 
 
     public static string GenerateCodePeek(Span location)
@@ -35,17 +41,17 @@ public static class DiagnosticFormatter
 
     public static string GenerateCodePeekIndicator(Span location)
     {
-        const int ExtraOffset = 4;
+        const int ExtraMargin = 4;
 
         var indicatorString = new StringBuilder();
 
-        var initialOffsetAmount = location.Line.ToString().Length + ExtraOffset;
-        var initialOffsetString = new string(' ', initialOffsetAmount);
+        var marginAmount = location.Line.ToString().Length + ExtraMargin;
+        var marginString = new string(' ', marginAmount);
 
         for (var i = 0; i < location.End; i++)
             GetIndicatorCharacterFromIndex(indicatorString, location, i);
 
-        return $"{initialOffsetString}{indicatorString}";
+        return $"{marginString}{indicatorString}";
     }
 
 

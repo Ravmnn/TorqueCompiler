@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Torque.Compiler.Diagnostics;
+using Torque.CommandLine.Exceptions;
 
 
 namespace Torque.CommandLine;
@@ -52,6 +53,6 @@ public class DiagnosticLogger
 
 
 
-    public void LogInternalError(Exception exception)
+    public static void LogInternalError(Exception exception)
         => Console.WriteLine($@"Internal Error: {exception}");
 }

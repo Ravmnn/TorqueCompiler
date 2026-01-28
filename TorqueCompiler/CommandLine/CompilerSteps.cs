@@ -13,6 +13,12 @@ namespace Torque.CommandLine;
 
 
 
+public readonly record struct ModuleContext(IReadOnlyList<BoundStatement> Statements, Scope Scope,
+    IReadOnlyList<TypeDeclaration> DeclaredTypes);
+
+
+
+
 public static class CompilerSteps
 {
     public static string Compile(IReadOnlyList<BoundStatement> boundStatements, Scope scope, CompileCommandSettings settings)
@@ -36,30 +42,32 @@ public static class CompilerSteps
     }
 
 
-    public static void TypeCheck(IReadOnlyList<BoundStatement> boundStatements, IReadOnlyList<TypeDeclaration> declaredTypes)
+    public static void TypeCheck(ModuleContext moduleContext)
     {
-        var typeChecker = new TorqueTypeChecker(boundStatements, declaredTypes);
+        var typeChecker = new TorqueTypeChecker(moduleContext.Statements, moduleContext.DeclaredTypes);
         typeChecker.Check();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(typeChecker.Diagnostics);
     }
 
 
-    public static (IReadOnlyList<BoundStatement>, Scope, IReadOnlyList<TypeDeclaration>) Bind(IReadOnlyList<Statement> statements)
+    public static ModuleContext Bind(IReadOnlyList<Statement> statements)
     {
         var binder = new TorqueBinder(statements);
         var boundStatements = binder.Bind();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(binder.Diagnostics);
 
-        return (boundStatements, binder.Scope, binder.DeclaredTypes);
+        return new ModuleContext(boundStatements, binder.Scope, binder.DeclaredTypes);
     }
 
 
     public static IReadOnlyList<Statement> Desugarize(IReadOnlyList<Statement> statements)
     {
         var desugarizer = new TorqueDesugarizer(statements);
-        statements = desugarizer.Desugarize(); // desugarizer cannot fail
+        statements = desugarizer.Desugarize();
+
+        // desugarizer cannot have report diagnostics
 
         return statements;
     }
@@ -76,9 +84,9 @@ public static class CompilerSteps
     }
 
 
-    public static IReadOnlyList<Token> Tokenize()
+    public static IReadOnlyList<Token> Tokenize(string source)
     {
-        var lexer = new TorqueLexer(SourceCode.Source!);
+        var lexer = new TorqueLexer(source);
         var tokens = lexer.Tokenize();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(lexer.Diagnostics);

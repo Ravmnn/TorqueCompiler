@@ -8,9 +8,9 @@ using System.IO;
 using System.Linq;
 
 using Torque.Compiler;
-using Torque.Compiler.AST.Statements;
-using Torque.Compiler.BoundAST.Statements;
 using Torque.Compiler.Target;
+using Torque.Compiler.AST.Statements;
+using Torque.CommandLine.Exceptions;
 using Torque.CommandLine.Toolchain;
 
 
@@ -54,10 +54,9 @@ public static class Torque
 
     public static void Compile(CompileCommandSettings settings)
     {
-        s_compileSettings = settings;
-
         try
         {
+            s_compileSettings = settings;
             InitializeGlobals(settings);
             CompileSourceCodeToFile(settings);
         }
@@ -65,7 +64,7 @@ public static class Torque
         { }
         catch (Exception exception)
         {
-            Logger.LogInternalError(exception);
+            DiagnosticLogger.LogInternalError(exception);
         }
     }
 
@@ -80,44 +79,6 @@ public static class Torque
     }
 
 
-
-
-    private static string CompileSourceCodeToBitCode()
-    {
-        var statements = BuildFinalAST();
-        PrintASTIfRequested(statements);
-
-        var (boundStatements, scope) = SemanticAnalysis(statements);
-        var bitCode = CompilerSteps.Compile(boundStatements, scope, s_compileSettings);
-
-        PrintLLVMIfRequested(bitCode);
-        PrintASMIfRequested(bitCode);
-
-        return bitCode;
-    }
-
-
-    private static (IReadOnlyList<BoundStatement>, Scope) SemanticAnalysis(IReadOnlyList<Statement> statements)
-    {
-        var (boundStatements, scope, declaredTypes) = CompilerSteps.Bind(statements);
-
-        CompilerSteps.TypeCheck(boundStatements, declaredTypes);
-        CompilerSteps.AnalyzeControlFlow(boundStatements);
-
-        return (boundStatements, scope);
-    }
-
-
-    private static IReadOnlyList<Statement> BuildFinalAST()
-    {
-        var tokens = CompilerSteps.Tokenize();
-        var statements = CompilerSteps.Parse(tokens);
-        statements = CompilerSteps.Desugarize(statements);
-
-        return statements;
-    }
-
-
     private static string GetOutputFileName()
     {
         var fileName = Path.GetFileNameWithoutExtension(s_compileSettings.File.Name);
@@ -126,6 +87,48 @@ public static class Torque
         var outputName = s_compileSettings.Output ?? $"{fileName}.{outputExtension}";
 
         return outputName;
+    }
+
+
+
+
+    private static string CompileSourceCodeToBitCode()
+    {
+        var statements = BuildFinalAST(SourceCode.Source!);
+        PrintASTIfRequested(statements);
+
+        var moduleContext = SemanticAnalysis(statements);
+        var bitCode = CompilerSteps.Compile(moduleContext.Statements, moduleContext.Scope, s_compileSettings);
+
+        PrintLLVMIfRequested(bitCode);
+        PrintASMIfRequested(bitCode);
+
+        return bitCode;
+    }
+
+
+
+
+    private static ModuleContext SemanticAnalysis(IReadOnlyList<Statement> statements)
+    {
+        var moduleContext = CompilerSteps.Bind(statements);
+
+        CompilerSteps.TypeCheck(moduleContext);
+        CompilerSteps.AnalyzeControlFlow(moduleContext.Statements);
+
+        return moduleContext;
+    }
+
+
+
+
+    private static IReadOnlyList<Statement> BuildFinalAST(string source)
+    {
+        var tokens = CompilerSteps.Tokenize(source);
+        var statements = CompilerSteps.Parse(tokens);
+        statements = CompilerSteps.Desugarize(statements);
+
+        return statements;
     }
 
 

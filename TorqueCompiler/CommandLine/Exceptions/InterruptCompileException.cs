@@ -1,7 +1,7 @@
 using System;
 
 
-namespace Torque.CommandLine;
+namespace Torque.CommandLine.Exceptions;
 
 
 
