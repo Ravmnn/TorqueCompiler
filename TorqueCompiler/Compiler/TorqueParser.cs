@@ -17,6 +17,11 @@ namespace Torque.Compiler;
 
 
 
+public readonly record struct GenericDeclaration(TypeSyntax Type, SymbolSyntax Name);
+
+
+
+
 public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<ParserCatalog>, IIterator<Token>
 {
     private readonly List<Statement> _statements = [];
@@ -130,7 +135,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         var peek = Iterator.Peek();
         return peek switch
         {
-            _ when IsCurrentGenericDeclaration() => GenericDeclaration(),
+            _ when IsCurrentGenericDeclaration() => VariableOrFunctionDeclaration(),
 
             _ => Statement()
         };
@@ -146,57 +151,56 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
 
 
-    private Statement GenericDeclaration()
+    private Statement VariableOrFunctionDeclaration()
     {
-        var type = TryParseTypeSyntax()!;
-        var symbol = ExpectSymbol();
+        var genericDeclaration = ParseGenericDeclaration();
 
         if (Check(TokenType.LeftParen))
-            return FunctionDeclaration(type, symbol);
+            return FunctionDeclaration(genericDeclaration);
 
-        return VariableDeclaration(type, symbol);
+        return VariableDeclaration(genericDeclaration);
     }
 
 
 
 
-    private Statement VariableDeclaration(TypeSyntax type, SymbolSyntax name)
+    private Statement VariableDeclaration(GenericDeclaration genericDeclaration)
     {
         Statement? variable;
 
         if (Match(TokenType.SemiColon))
-            variable = DefaultVariableDeclaration(type, name);
+            variable = DefaultVariableDeclaration(genericDeclaration);
         else
-            variable = CompleteVariableDeclaration(type, name);
+            variable = CompleteVariableDeclaration(genericDeclaration);
 
         AddModifiersToModificableDeclaration(variable);
         return variable;
     }
 
 
-    private static SugarDefaultDeclarationStatement DefaultVariableDeclaration(TypeSyntax type, SymbolSyntax name)
-        => new SugarDefaultDeclarationStatement(type, name);
+    private static SugarDefaultDeclarationStatement DefaultVariableDeclaration(GenericDeclaration genericDeclaration)
+        => new SugarDefaultDeclarationStatement(genericDeclaration.Type, genericDeclaration.Name);
 
 
-    private Statement CompleteVariableDeclaration(TypeSyntax type, SymbolSyntax name)
+    private Statement CompleteVariableDeclaration(GenericDeclaration genericDeclaration)
     {
         Expect(TokenType.Equal, ParserCatalog.ExpectAssignmentOperator);
         var value = Expression();
         ExpectEndOfStatement();
 
-        return new VariableDeclarationStatement(type, name, value);
+        return new VariableDeclarationStatement(genericDeclaration.Type, genericDeclaration.Name, value);
     }
 
 
 
 
-    private Statement FunctionDeclaration(TypeSyntax returnType, SymbolSyntax name)
+    private Statement FunctionDeclaration(GenericDeclaration genericDeclaration)
     {
         ExpectLeftParen();
         var parameters = FunctionParameters();
         ExpectRightParen();
 
-        var function = new FunctionDeclarationStatement(returnType, name, parameters, null);
+        var function = new FunctionDeclarationStatement(genericDeclaration.Type, genericDeclaration.Name, parameters, null);
         AddModifiersToModificableDeclaration(function);
 
         if (!Match(TokenType.SemiColon))
@@ -206,18 +210,12 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     }
 
 
-    private IReadOnlyList<FunctionParameterDeclaration> FunctionParameters()
+    private IReadOnlyList<GenericDeclaration> FunctionParameters()
     {
         if (Check(TokenType.RightParen))
             return [];
 
-        return DoWhileComma(() =>
-        {
-            var type = TryParseTypeSyntax()!;
-            var symbol = ExpectSymbol();
-
-            return new FunctionParameterDeclaration(symbol, type);
-        });
+        return DoWhileComma(ParseGenericDeclaration);
     }
 
 
@@ -381,7 +379,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
         ExpectLeftParen();
 
-        var initialization = IsCurrentGenericDeclaration() ? GenericDeclaration() : ExpressionStatement();
+        var initialization = IsCurrentGenericDeclaration() ? VariableDeclaration(ParseGenericDeclaration()) : ExpressionStatement();
         var condition = Expression();
         ExpectEndOfStatement();
         var step = Expression();
@@ -752,6 +750,17 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         }
 
         return predecessor();
+    }
+
+
+
+
+    private GenericDeclaration ParseGenericDeclaration()
+    {
+        var type = TryParseTypeSyntax()!;
+        var symbol = ExpectSymbol();
+
+        return new GenericDeclaration(type, symbol);
     }
 
     #endregion

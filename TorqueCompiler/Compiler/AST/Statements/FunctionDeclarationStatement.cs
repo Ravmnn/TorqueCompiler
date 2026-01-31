@@ -11,16 +11,12 @@ namespace Torque.Compiler.AST.Statements;
 
 
 
-// TODO: should use DeclarationStatement, for struct fields as well
-public readonly record struct FunctionParameterDeclaration(SymbolSyntax Name, TypeSyntax Type);
-
-
-public class FunctionDeclarationStatement(TypeSyntax returnType, SymbolSyntax name, IReadOnlyList<FunctionParameterDeclaration> parameters,
+public class FunctionDeclarationStatement(TypeSyntax returnType, SymbolSyntax name, IReadOnlyList<GenericDeclaration> parameters,
     BlockStatement? body) : Statement(name.Location), IDeclaration
 {
     public TypeSyntax ReturnType { get; } = returnType;
     public SymbolSyntax Name { get; } = name;
-    public IReadOnlyList<FunctionParameterDeclaration> Parameters { get; } = parameters;
+    public IReadOnlyList<GenericDeclaration> Parameters { get; } = parameters;
     public BlockStatement? Body { get; set; } = body;
 
     public IReadOnlyList<Modifier> Modifiers { get; set; } = [];

@@ -199,7 +199,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         => Scope.ForInnerScopeDo(ref _scope, () => ProcessBlockToBound(statement));
 
 
-    private BoundStatement ProcessFunctionBlockAndDeclareParameters(BlockStatement statement, IReadOnlyList<FunctionParameterDeclaration> parameters)
+    private BoundStatement ProcessFunctionBlockAndDeclareParameters(BlockStatement statement, IReadOnlyList<GenericDeclaration> parameters)
         => Scope.ForInnerScopeDo(ref _scope, () =>
         {
             DeclareFunctionParameters(parameters);
@@ -207,7 +207,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         });
 
 
-    private void DeclareFunctionParameters(IReadOnlyList<FunctionParameterDeclaration> parameters)
+    private void DeclareFunctionParameters(IReadOnlyList<GenericDeclaration> parameters)
     {
         foreach (var parameter in parameters)
         {

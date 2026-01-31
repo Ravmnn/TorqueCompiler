@@ -92,7 +92,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, IReadOn
     }
 
 
-    private IReadOnlyList<Type> ParametersTypeFromParametersDeclaration(IReadOnlyList<FunctionParameterDeclaration> parameters)
+    private IReadOnlyList<Type> ParametersTypeFromParametersDeclaration(IReadOnlyList<GenericDeclaration> parameters)
         => parameters.Select(parameter => TypeFromNonVoidTypeName(parameter.Type)).ToArray();
 
 
