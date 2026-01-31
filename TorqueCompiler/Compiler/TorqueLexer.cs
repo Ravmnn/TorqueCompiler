@@ -42,14 +42,18 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
         Reset();
 
         while (!Iterator.AtEnd())
-        {
-            NextTokenStart();
-
-            if (TokenizeNext() is { } token)
-                tokens.Add(token);
-        }
+            TokenizeToken(tokens);
 
         return tokens;
+    }
+
+
+    private void TokenizeToken(List<Token> tokens)
+    {
+        NextTokenStart();
+
+        if (TokenizeNext() is { } token)
+            tokens.Add(token);
     }
 
 
@@ -147,19 +151,6 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
     }
 
 
-    private void ReportCharErrors(IReadOnlyList<byte> data, Span quoteLocation)
-    {
-        if (data.Count == 0)
-            Report(LexerCatalog.SingleCharacterEmpty);
-
-        if (Iterator.AtEnd())
-            Report(LexerCatalog.UnclosedSingleCharacterString, location: quoteLocation);
-
-        else if (data.Count > 1)
-            Report(LexerCatalog.SingleCharacterMoreThanOne);
-    }
-
-
 
 
     private Token ScanString()
@@ -171,13 +162,6 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
         ReportStringErrors(quoteLocation);
 
         return TokenFromTokenType(TokenType.StringValue, data);
-    }
-
-
-    private void ReportStringErrors(Span quoteLocation)
-    {
-        if (Iterator.AtEnd())
-            Report(LexerCatalog.UnclosedString, location: quoteLocation);
     }
 
 
@@ -266,11 +250,8 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
         var startLocation = GetCurrentLocation();
         AdvanceMultilineComment();
 
-        if (Iterator.AtEnd())
-        {
-            Report(LexerCatalog.UnclosedMultilineComment, location: startLocation);
+        if (ReportMultilineCommentDiagnostics(startLocation))
             return;
-        }
 
         Iterator.Advance(); // advance '<'
         Iterator.Advance(); // advance '#'
@@ -289,18 +270,20 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
     private Token ScanIdentifier()
     {
         AdvanceIdentifier();
-
         var lexeme = GetCurrentTokenLexeme();
 
-        return lexeme switch
-        {
-            _ when lexeme.IsKeyword() => TokenFromTokenType(Keywords.General[lexeme]),
-            _ when lexeme.IsModifier() => TokenFromTokenType(Keywords.Modifiers[lexeme]),
-            _ when lexeme.IsLiteralBoolean() => TokenFromTokenType(TokenType.BoolValue, lexeme.ValueFromBool()),
-
-            _ => TokenFromTokenType(TokenType.Identifier)
-        };
+        return TokenFromIdentifier(lexeme);
     }
+
+
+    private Token TokenFromIdentifier(string lexeme) => lexeme switch
+    {
+        _ when lexeme.IsKeyword() => TokenFromTokenType(Keywords.General[lexeme]),
+        _ when lexeme.IsModifier() => TokenFromTokenType(Keywords.Modifiers[lexeme]),
+        _ when lexeme.IsLiteralBoolean() => TokenFromTokenType(TokenType.BoolValue, lexeme.ValueFromBool()),
+
+        _ => TokenFromTokenType(TokenType.Identifier)
+    };
 
 
     private void AdvanceIdentifier()
@@ -366,9 +349,42 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
 
 
 
+    #region Diagnostic Reporting
 
     public override Diagnostic Report(LexerCatalog item, IReadOnlyList<object>? arguments = null, Span? location = null)
         => base.Report(item, arguments, location ?? GetCurrentLocation());
+
+
+    private bool ReportMultilineCommentDiagnostics(Span commentStart)
+    {
+        if (!Iterator.AtEnd())
+            return false;
+
+        Report(LexerCatalog.UnclosedMultilineComment, location: commentStart);
+        return true;
+    }
+
+
+    private void ReportStringErrors(Span quoteLocation)
+    {
+        if (Iterator.AtEnd())
+            Report(LexerCatalog.UnclosedString, location: quoteLocation);
+    }
+
+
+    private void ReportCharErrors(IReadOnlyList<byte> data, Span quoteLocation)
+    {
+        if (data.Count == 0)
+            Report(LexerCatalog.SingleCharacterEmpty);
+
+        if (Iterator.AtEnd())
+            Report(LexerCatalog.UnclosedSingleCharacterString, location: quoteLocation);
+
+        else if (data.Count > 1)
+            Report(LexerCatalog.SingleCharacterMoreThanOne);
+    }
+
+    #endregion
 
 
 

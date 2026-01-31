@@ -148,7 +148,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
     private Statement GenericDeclaration()
     {
-        var type = TryParseTypeName()!;
+        var type = TryParseTypeSyntax()!;
         var symbol = ExpectSymbol();
 
         if (Check(TokenType.LeftParen))
@@ -213,7 +213,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
         return DoWhileComma(() =>
         {
-            var type = TryParseTypeName()!;
+            var type = TryParseTypeSyntax()!;
             var symbol = ExpectSymbol();
 
             return new FunctionParameterDeclaration(symbol, type);
@@ -276,7 +276,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         var name = ExpectSymbol();
         ExpectAssignment();
 
-        var type = TryParseTypeName()!;
+        var type = TryParseTypeSyntax()!;
         var end = ExpectEndOfStatement();
 
         var location = new Span(keyword, end);
@@ -474,7 +474,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
         while (Match(TokenType.KwAs))
         {
-            var type = TryParseTypeName()!;
+            var type = TryParseTypeSyntax()!;
             var location = new Span(expression.Location, type.BaseType.TypeSymbol.Location);
 
             expression = new CastExpression(expression, type, location);
@@ -631,7 +631,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
     private Expression? TryParseArray()
     {
-        var type = TryParseTypeName()!;
+        var type = TryParseTypeSyntax()!;
 
         if (!Match(TokenType.KwArray))
             return null;
@@ -691,7 +691,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     {
         var keyword = Iterator.Previous();
         ExpectLeftParen();
-        var typeName = TryParseTypeName()!;
+        var typeName = TryParseTypeSyntax()!;
         var rightParen = ExpectRightParen();
 
         return new DefaultExpression(typeName, new Span(keyword, rightParen));
@@ -759,10 +759,10 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
 
 
-    #region Type Name
+    #region Type Syntax
 
-    private TypeSyntax? TryParseTypeName()
-        => TryParseTypeName(new Dictionary<TokenType, Func<TypeSyntax, TypeSyntax?>>
+    private TypeSyntax? TryParseTypeSyntax()
+        => TryParseTypeSyntax(new Dictionary<TokenType, Func<TypeSyntax, TypeSyntax?>>
         {
             { TokenType.Star, ParsePointerTypeName },
             { TokenType.LeftSquareBracket, ParseArrayTypeName },
@@ -770,7 +770,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         });
 
 
-    private TypeSyntax? TryParseTypeName(Dictionary<TokenType, Func<TypeSyntax, TypeSyntax?>> processors)
+    private TypeSyntax? TryParseTypeSyntax(Dictionary<TokenType, Func<TypeSyntax, TypeSyntax?>> processors)
     {
         var typeNameSymbol = ExpectSymbolOrPrimitiveType();
         TypeSyntax type = new BaseTypeSyntax(typeNameSymbol);
@@ -836,7 +836,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         if (Check(TokenType.RightParen))
             return [];
 
-        return DoWhileComma(TryParseTypeName)!;
+        return DoWhileComma(TryParseTypeSyntax)!;
     }
 
     #endregion
@@ -955,33 +955,35 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     private bool IsCurrentGenericDeclaration()
     {
         var current = Current;
-        var type = Iterator.Peek();
 
-        bool success;
-        if (IsValidIdentifierOrPrimitiveType(type))
-            success = TryParseTypeName() is not null;
-        else
-            return false;
-
+        var currentTypeIsValid = IsCurrentTypeValid();
         var name = Iterator.Peek();
+
         Current = current;
 
-        if (IsValidIdentifier(name))
-            return success;
+        return IsValidIdentifier(name) && currentTypeIsValid;
+    }
+
+    private bool IsCurrentTypeValid()
+    {
+        var type = Iterator.Peek();
+
+        if (IsValidIdentifierOrPrimitiveType(type))
+            return TryParseTypeSyntax() is not null;
 
         return false;
     }
 
 
-    private bool IsValidIdentifier(Token identifier)
-        => identifier.Type == TokenType.Identifier && !identifier.Lexeme.IsReserved();
-
-
     private bool IsValidIdentifierOrPrimitiveType(Token identifier)
     {
-        var isPrimitiveTypeAndAllowed = identifier.Lexeme.IsType();
-        return IsValidIdentifier(identifier) || isPrimitiveTypeAndAllowed;
+        var isPrimitiveType = identifier.Lexeme.IsType();
+        return IsValidIdentifier(identifier) || isPrimitiveType;
     }
+
+
+    private bool IsValidIdentifier(Token identifier)
+        => identifier.Type == TokenType.Identifier && !identifier.Lexeme.IsReserved();
 
 
 
