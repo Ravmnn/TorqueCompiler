@@ -14,14 +14,6 @@ using Torque.Compiler.Diagnostics.Catalogs;
 
 namespace Torque.Compiler;
 
-
-
-
-public readonly record struct GenericDeclaration(TypeSyntax Type, SymbolSyntax Name);
-
-
-
-
 public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<ParserCatalog>, IIterator<Token>
 {
     private readonly List<Statement> _statements = [];
@@ -226,6 +218,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         switch (Iterator.Peek().Type)
         {
         case TokenType.KwAlias: return Alias();
+        case TokenType.KwStruct: return Struct();
         case TokenType.KwReturn: return Return();
         case TokenType.LeftCurlyBracket: return Block();
         case TokenType.KwIf: return If();
@@ -279,6 +272,36 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
         var location = new Span(keyword, end);
         return new AliasDeclarationStatement(name, type, location);
+    }
+
+
+
+
+    private Statement Struct()
+    {
+        var keyword = Iterator.Advance();
+        var symbol = ExpectSymbol();
+
+        ExpectLeftCurlyBracket();
+        var fields = ParseStructMembers();
+        ExpectRightCurlyBracket();
+
+        var location = new Span(keyword, symbol.Location);
+        return new StructDeclarationStatement(symbol, fields, location);
+    }
+
+
+    private IReadOnlyList<GenericDeclaration> ParseStructMembers()
+    {
+        var fields = new List<GenericDeclaration>();
+
+        while (!Check(TokenType.RightCurlyBracket))
+        {
+            fields.Add(ParseGenericDeclaration());
+            ExpectEndOfStatement();
+        }
+
+        return fields;
     }
 
 
@@ -578,6 +601,8 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         _ when Match(TokenType.KwDefault) => ParseDefault(),
         _ when Match(TokenType.KwNullptr) => ParseNullptr(),
 
+        _ when Match(TokenType.KwNew) => ParseStructExpression(),
+
         _ => null
     };
 
@@ -700,6 +725,32 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
     private Expression ParseNullptr()
         => new SugarNullptrExpression(Iterator.Previous());
+
+
+
+
+    private Expression ParseStructExpression()
+    {
+        var keyword = Iterator.Previous();
+        var symbol = ExpectSymbol();
+
+        ExpectLeftCurlyBracket();
+        var memberInitializations = ParseStructMembersInitialization();
+        ExpectRightCurlyBracket();
+
+        var location = new Span(keyword, symbol.Location);
+        return new StructExpression(symbol, memberInitializations, location);
+    }
+
+
+    private IReadOnlyList<StructMemberInitialization> ParseStructMembersInitialization() => DoWhileComma(() =>
+    {
+        var member = ExpectSymbol();
+        ExpectColon();
+        var value = Expression();
+
+        return new StructMemberInitialization(member, value);
+    });
 
     #endregion
 
@@ -931,6 +982,10 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
     private Token ExpectLiteralInteger()
         => Expect(TokenType.IntegerValue, ParserCatalog.ExpectLiteralInteger);
+
+
+    private Token ExpectColon()
+        => Expect(TokenType.Colon, ParserCatalog.ExpectColon);
 
     #endregion
 

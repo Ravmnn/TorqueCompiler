@@ -10,7 +10,7 @@ class Program
 {
     private static int Main(string[] args)
     {
-        //args = "compile /home/ravmn/Documentos/programming/csharp/TorqueCompiler/examples/Test.tor --debug".Split(' ');
+        args = "compile /home/ravmn/Documentos/programming/csharp/TorqueCompiler/examples/Test.tor --debug".Split(' ');
 
         var root = new CommandApp();
         root.Configure(config =>

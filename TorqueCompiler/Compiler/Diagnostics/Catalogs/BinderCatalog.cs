@@ -18,4 +18,5 @@ public enum BinderCatalog
     [Item(DiagnosticScope.Binder)] ExternalFunctionCannotHaveABody,
     [Item(DiagnosticScope.Binder)] LoopControlInstructionMustBeInLoop,
     [Item(DiagnosticScope.Binder)] UnknownType,
+    [Item(DiagnosticScope.Binder)] InvalidTypeKind,
 }

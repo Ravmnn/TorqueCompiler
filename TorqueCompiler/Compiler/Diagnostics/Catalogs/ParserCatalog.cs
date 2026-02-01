@@ -22,4 +22,5 @@ public enum ParserCatalog
     [Item(DiagnosticScope.Parser)] ExpectRightCurlyBracket,
     [Item(DiagnosticScope.Parser)] ExpectAssignment,
     [Item(DiagnosticScope.Parser)] ReservedIdentifier,
+    [Item(DiagnosticScope.Parser)] ExpectColon,
 }

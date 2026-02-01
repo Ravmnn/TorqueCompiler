@@ -43,6 +43,7 @@ public static class Keywords
     public static readonly IReadOnlyDictionary<string, TokenType> General = new Dictionary<string, TokenType>
     {
         { "alias", TokenType.KwAlias },
+        { "struct", TokenType.KwStruct },
         { "return", TokenType.KwReturn },
         { "if", TokenType.KwIf },
         { "else", TokenType.KwElse },
@@ -54,7 +55,8 @@ public static class Keywords
         { "as", TokenType.KwAs },
         { "array", TokenType.KwArray },
         { "default", TokenType.KwDefault },
-        { "nullptr", TokenType.KwNullptr }
+        { "nullptr", TokenType.KwNullptr },
+        { "new", TokenType.KwNew },
     };
 
 

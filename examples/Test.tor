@@ -49,13 +49,26 @@ void println(char* content)
 
 
 
-alias String = char*;
+struct Person
+{
+    char* name;
+    uint age;
+    uint id;
+}
 
 
 int main(int argc, char** argv)
 {
-    String text = "hello, world";
-    println(text);
+    let person = new Person { name: "Kujo Jotaro", age: 24, id: 710165 };
+    #char* buffer;
+
+    #println(person.name);
+
+    #intToString(buffer, person.age as int);
+    #println(buffer);
+
+    #intToString(buffer, person.id as int);
+    #println(buffer);
 
     return 0;
 }

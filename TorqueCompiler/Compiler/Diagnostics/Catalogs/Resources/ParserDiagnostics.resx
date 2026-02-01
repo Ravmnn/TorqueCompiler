@@ -76,4 +76,7 @@
     <data name="ReservedIdentifier" xml:space="preserve">
         <value>Symbol is reserved by the language</value>
     </data>
+    <data name="ExpectColon" xml:space="preserve">
+        <value>Expect ":"</value>
+    </data>
 </root>

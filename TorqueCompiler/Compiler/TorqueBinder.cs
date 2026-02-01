@@ -33,7 +33,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         private set => _scope = value;
     }
 
-    public List<TypeDeclaration> DeclaredTypes { get; } = [];
+    public DeclaredTypeManager DeclaredTypes { get; private set; } = new DeclaredTypeManager();
 
 
     public List<Statement> Statements { get; } = statements.ToList();
@@ -53,7 +53,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     private void Reset()
     {
         _currentLoopDepth = 0;
-        DeclaredTypes.Clear();
+        DeclaredTypes = new DeclaredTypeManager();
 
         Scope = new Scope();
         Diagnostics.Clear();
@@ -99,7 +99,18 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public void ProcessAliasDeclaration(AliasDeclarationStatement declaration)
     {
-        DeclaredTypes.Add(new AliasTypeDeclaration(declaration.Symbol, declaration.TypeSyntax));
+        DeclaredTypes.Types.Add(new AliasTypeDeclaration(declaration.Symbol, declaration.TypeSyntax));
+    }
+
+
+
+
+    public void ProcessStructDeclaration(StructDeclarationStatement declaration)
+    {
+        var structType = new StructTypeDeclaration(declaration.Symbol, declaration.Members);
+        DeclaredTypes.Types.Add(structType);
+
+        ReportIfUnknownType(structType.GetTypeSyntax());
     }
 
     #endregion
@@ -159,6 +170,8 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundStatement ProcessFunction(FunctionDeclarationStatement statement)
     {
+        // BUG: multiple declarations for parameters and struct fields are allowed
+
         ReportIfUnknownType(statement.ReturnType);
 
         var functionSymbol = (Scope.GetSymbol(statement.Name.Name) as FunctionSymbol)!;
@@ -448,6 +461,21 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         return new BoundDefaultExpression(expression);
     }
 
+
+
+
+    public BoundExpression ProcessStruct(StructExpression expression)
+    {
+        ReportIfDeclaredTypeIsNotOfKind<StructTypeDeclaration>(expression.Symbol);
+
+        var boundMembersInitialization = new List<BoundStructMemberInitialization>();
+
+        foreach (var member in expression.InitializationList)
+            boundMembersInitialization.Add(new BoundStructMemberInitialization(member.Member, Process(member.Value)));
+
+        return new BoundStructExpression(boundMembersInitialization, expression);
+    }
+
     #endregion
 
 
@@ -548,16 +576,27 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     private bool ReportIfUnknownType(TypeSyntax type) => type switch
     {
-        BaseTypeSyntax baseType => ReportIfUnknownBaseType(baseType),
+        BaseTypeSyntax baseType => ReportIfUnknownForBaseType(baseType),
 
-        FunctionTypeSyntax functionType => ReportIfUnknownFunctionType(functionType),
+        FunctionTypeSyntax functionType => ReportIfUnknownForFunctionType(functionType),
         PointerTypeSyntax pointerType => ReportIfUnknownType(pointerType.InnerType),
+        StructTypeSyntax structType => ReportIfUnknownForStructType(structType),
 
         _ => throw new UnreachableException()
     };
 
 
-    private bool ReportIfUnknownFunctionType(FunctionTypeSyntax functionType)
+    private bool ReportIfUnknownForStructType(StructTypeSyntax structType)
+    {
+        foreach (var member in structType.Members)
+            if (ReportIfUnknownType(member.Type))
+                return true;
+
+        return false;
+    }
+
+
+    private bool ReportIfUnknownForFunctionType(FunctionTypeSyntax functionType)
     {
         if (ReportIfUnknownType(functionType.ReturnType))
             return true;
@@ -570,18 +609,29 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     }
 
 
-    private bool ReportIfUnknownBaseType(BaseTypeSyntax type)
+    private bool ReportIfUnknownForBaseType(BaseTypeSyntax type)
     {
         if (type.IsPrimitiveType)
             return false;
 
         var symbol = type.TypeSymbol;
-        var declaredType = DeclaredTypes.FirstOrDefault(declaredType => declaredType.TypeSymbol.Name == symbol.Name);
 
-        if (declaredType is not null)
+        if (DeclaredTypes.IsDeclared(symbol))
             return false;
 
         Report(BinderCatalog.UnknownType, [symbol.Name], symbol.Location);
+        return true;
+    }
+
+
+
+
+    private bool ReportIfDeclaredTypeIsNotOfKind<T>(SymbolSyntax typeSymbol) where T : TypeDeclaration
+    {
+        if (DeclaredTypes.IsDeclared<T>(typeSymbol))
+            return false;
+
+        Report(BinderCatalog.InvalidTypeKind, location: typeSymbol.Location);
         return true;
     }
 

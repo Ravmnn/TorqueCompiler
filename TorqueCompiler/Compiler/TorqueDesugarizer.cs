@@ -68,6 +68,12 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
 
 
 
+    public Statement ProcessStruct(StructDeclarationStatement declaration)
+        => declaration;
+
+
+
+
     public Statement ProcessExpression(ExpressionStatement statement)
     {
         statement.Expression = SugarProcess(statement.Expression);
@@ -280,6 +286,18 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
 
     public Expression ProcessDefault(DefaultExpression expression)
         => expression;
+
+
+    public Expression ProcessStruct(StructExpression expression)
+    {
+        for (var index = 0; index < expression.InitializationList.Count; index++)
+        {
+            var memberInitialization = expression.InitializationList[index];
+            expression.InitializationList[index] = memberInitialization with { Value = Process(memberInitialization.Value) };
+        }
+
+        return expression;
+    }
 
 
 

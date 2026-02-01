@@ -9,4 +9,5 @@ public interface IDeclarationProcessor
 
     void ProcessFunctionDeclaration(FunctionDeclarationStatement declaration);
     void ProcessAliasDeclaration(AliasDeclarationStatement declaration);
+    void ProcessStructDeclaration(StructDeclarationStatement declaration);
 }

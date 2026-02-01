@@ -26,7 +26,9 @@ public enum PrimitiveType
     UInt64,
     Float16,
     Float32,
-    Float64
+    Float64,
+
+    Struct
 }
 
 
@@ -59,6 +61,7 @@ public abstract class Type
     public bool IsPointer => this is PointerType;
     public bool IsGenericPointer => this is PointerType pointerType && pointerType.Type == PrimitiveType.UInt8;
     public bool IsFunction => this is FunctionType;
+    public bool IsCompound => this is StructType;
 
 
 

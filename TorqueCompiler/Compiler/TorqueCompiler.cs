@@ -81,8 +81,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add pre-processing support
         // TODO: add importing system
         // TODO: add enums
+        // TODO: default values for parameters and struct fields
         // TODO: add structs
-        // TODO: full code clean-up (again)
+        // TODO: cleanup
 
         File = file;
 
@@ -885,6 +886,14 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMValueRef ProcessDefault(BoundDefaultExpression expression)
     {
         return Constant.GetDefaultValueForType(expression.Type!);
+    }
+
+
+
+
+    public LLVMValueRef ProcessStruct(BoundStructExpression expression)
+    {
+        throw new NotImplementedException();
     }
 
     #endregion

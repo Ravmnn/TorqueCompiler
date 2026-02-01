@@ -61,4 +61,7 @@
     <data name="UnknownType" xml:space="preserve">
         <value>Type "{0}" could not be found</value>
     </data>
+    <data name="InvalidTypeKind" xml:space="preserve">
+        <value>Cannot have this kind of type here</value>
+    </data>
 </root>

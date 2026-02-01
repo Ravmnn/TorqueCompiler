@@ -5,7 +5,6 @@ using Torque.Compiler;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Statements;
 using Torque.Compiler.Tokens;
-using Torque.Compiler.Types;
 
 
 namespace Torque.CommandLine;
@@ -14,7 +13,7 @@ namespace Torque.CommandLine;
 
 
 public readonly record struct ModuleContext(IReadOnlyList<BoundStatement> Statements, Scope Scope,
-    IReadOnlyList<TypeDeclaration> DeclaredTypes);
+    DeclaredTypeManager DeclaredTypes);
 
 
 

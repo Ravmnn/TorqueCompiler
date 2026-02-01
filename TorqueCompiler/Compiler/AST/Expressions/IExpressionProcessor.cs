@@ -23,6 +23,7 @@ public interface IExpressionProcessor
     void ProcessArray(ArrayExpression expression);
     void ProcessIndexing(IndexingExpression expression);
     void ProcessDefault(DefaultExpression expression);
+    void ProcessStruct(StructExpression expression);
 }
 
 
@@ -46,4 +47,5 @@ public interface IExpressionProcessor<out T>
     T ProcessArray(ArrayExpression expression);
     T ProcessIndexing(IndexingExpression expression);
     T ProcessDefault(DefaultExpression expression);
+    T ProcessStruct(StructExpression expression);
 }

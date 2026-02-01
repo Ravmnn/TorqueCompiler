@@ -411,4 +411,24 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
         Iterator.Advance();
         return true;
     }
+
+
+    public char Advance()
+    {
+        if (Iterator.AtEnd())
+            return Iterator.Previous();
+
+        _endInLine++;
+
+        if (Iterator.Peek() == '\n')
+            NextLine();
+
+        return Source[_end++];
+    }
+
+    private void NextLine()
+    {
+        _startInLine = _endInLine = 0;
+        _line++;
+    }
 }

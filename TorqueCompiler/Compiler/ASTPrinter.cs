@@ -120,6 +120,30 @@ public class ASTPrinter
 
 
 
+    public string ProcessStruct(StructDeclarationStatement declaration)
+    {
+        var builder = new StringBuilder();
+
+        builder.Append(BeginStatement());
+        builder.AppendLine($"struct {declaration.Symbol}");
+        builder.AppendLine("{");
+
+        IncreaseIndent();
+
+        foreach (var member in declaration.Members)
+            builder.Append($"{BeginStatement()}{member}{EndStatement()}");
+
+        DecreaseIndent();
+
+        builder.AppendLine("}");
+        builder.Append(EndStatement());
+
+        return builder.ToString();
+    }
+
+
+
+
     public string ProcessExpression(ExpressionStatement statement)
         => $"{BeginStatement()}{Process(statement.Expression)}{EndStatement()}";
 
@@ -227,13 +251,17 @@ public class ASTPrinter
 
     public string ProcessLiteral(LiteralExpression expression) => expression.Value switch
     {
-        IReadOnlyList<byte> => $"\"{expression.Value}\"",
-        byte => $"'{expression.Value}'",
+        IReadOnlyList<byte> @string => $"\"{ByteListToString(@string)}\"",
+        byte @byte => $"'{ByteListToString([@byte])}'",
 
         ulong or double or bool => expression.Value.ToString()!,
 
         _ => throw new UnreachableException()
     };
+
+
+    private static string ByteListToString(IReadOnlyList<byte> @string)
+        => Encoding.ASCII.GetString(@string.ToArray());
 
 
 
@@ -341,8 +369,13 @@ public class ASTPrinter
 
 
 
+    public string ProcessStruct(StructExpression expression)
+    {
+        var initializationListAsString = expression.InitializationList.ItemsToStringThenJoin(",",
+            member => $"{member.Member}: {Process(member.Value)}");
 
-
+        return $"new {expression.Symbol} {{ {initializationListAsString} }}";
+    }
 
 
     private string ForIndentDo(Statement statement)

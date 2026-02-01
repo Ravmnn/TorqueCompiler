@@ -17,6 +17,7 @@ public enum ModifierTarget
     Function = 1 << 3,
     Method = 1 << 4,
     Alias = 1 << 5,
+    Struct = 1 << 6,
 
     Variables = Field | LocalVariable | Parameter,
     Functions = Function | Method

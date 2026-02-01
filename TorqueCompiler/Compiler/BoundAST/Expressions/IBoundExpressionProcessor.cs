@@ -26,6 +26,7 @@ public interface IBoundExpressionProcessor
     void ProcessArray(BoundArrayExpression expression);
     void ProcessIndexing(BoundIndexingExpression expression);
     void ProcessDefault(BoundDefaultExpression expression);
+    void ProcessStruct(BoundStructExpression expression);
 }
 
 
@@ -52,4 +53,5 @@ public interface IBoundExpressionProcessor<out T>
     T ProcessArray(BoundArrayExpression expression);
     T ProcessIndexing(BoundIndexingExpression expression);
     T ProcessDefault(BoundDefaultExpression expression);
+    T ProcessStruct(BoundStructExpression expression);
 }

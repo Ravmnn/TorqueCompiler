@@ -8,7 +8,7 @@ using Torque.Compiler.Tokens;
 namespace Torque.Compiler.AST.Statements;
 
 
-
+// TODO: global type declarations must be in global (file) scope
 
 public abstract class GlobalTypeDeclaration(SymbolSyntax symbol, Span location)
     : Statement(location), IDeclaration

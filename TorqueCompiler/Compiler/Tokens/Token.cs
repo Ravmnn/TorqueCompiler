@@ -23,10 +23,10 @@ public enum TokenType
     IntegerValue, FloatValue, BoolValue, CharValue, StringValue,
 
     KwExternal,
-    KwAlias,
+    KwAlias, KwStruct,
     KwReturn,
     KwIf, KwElse, KwWhile, KwLoop, KwFor, KwBreak, KwContinue,
-    KwAs, KwArray, KwDefault, KwNullptr
+    KwAs, KwArray, KwDefault, KwNullptr, KwNew
 }
 
 

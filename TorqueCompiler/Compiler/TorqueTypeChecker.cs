@@ -5,11 +5,13 @@ using System.Linq;
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Types;
 using Torque.Compiler.Symbols;
-using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Expressions;
 using Torque.Compiler.BoundAST.Statements;
 using Torque.Compiler.Diagnostics;
 using Torque.Compiler.Diagnostics.Catalogs;
+
+
+using Type = Torque.Compiler.Types.Type;
 
 
 namespace Torque.Compiler;
@@ -17,7 +19,7 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, IReadOnlyList<TypeDeclaration> declaredTypes)
+public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, DeclaredTypeManager declaredTypes)
     : DiagnosticReporter<TypeCheckerCatalog>,
     IBoundStatementProcessor, IBoundExpressionProcessor<Type>,
     IBoundDeclarationProcessor
@@ -33,7 +35,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, IReadOn
     private Type? _expectedReturnType;
 
 
-    private IReadOnlyList<TypeDeclaration> DeclaredTypes { get; } = declaredTypes;
+    private DeclaredTypeManager DeclaredTypes { get; } = declaredTypes;
 
 
     public IReadOnlyList<BoundStatement> Statements { get; } = statements;
@@ -257,7 +259,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, IReadOn
     }
 
 
-    private Type TypeOfLiteralObject(object literal) => literal switch // TODO: exception here
+    private Type TypeOfLiteralObject(object literal) => literal switch
     {
         IReadOnlyList<byte> => StringLiteralType(),
 
@@ -515,6 +517,35 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, IReadOn
         return expression.Type;
     }
 
+
+
+
+    public Type ProcessStruct(BoundStructExpression expression)
+    {
+        var structType = DeclaredTypes.TryGetType<StructTypeDeclaration>(expression.Syntax.Symbol)!;
+
+        for (var index = 0; index < expression.InitializationList.Count; index++)
+        {
+            var initialization = expression.InitializationList[index];
+            var declaration = structType.Members.First(member => member.Name.Name == initialization.Member.Name);
+
+            ProcessStructMemberInitialization(initialization, declaration);
+        }
+
+        expression.Type = TypeFromTypeName(structType.GetTypeSyntax());
+
+        return expression.Type!;
+    }
+
+
+    private void ProcessStructMemberInitialization(BoundStructMemberInitialization initialization, GenericDeclaration declaration)
+    {
+        Process(initialization.Value);
+
+        var expectedType = TypeFromTypeName(declaration.Type);
+        initialization.Value = ImplicitCastOrReport(expectedType, initialization.Value, true);
+    }
+
     #endregion
 
 
@@ -624,6 +655,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, IReadOn
 
 
     #region Implicit Casting
+    // TODO: move all of this to a single class?
 
     private Type? TryImplicitCast(Type from, Type to, bool forceForBaseTypes = false)
     {
@@ -636,6 +668,11 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, IReadOn
 
     private bool CanImplicitCast(Type from, Type to, bool forceForBaseTypes = false)
     {
+        var anyIsCompound = from.IsCompound || to.IsCompound;
+
+        if (anyIsCompound)
+            return false;
+
         var sameTypes = from == to;
         var bothBase = from.IsBase && to.IsBase;
         var anyIsAuto = from.IsAuto || to.IsAuto;
@@ -665,6 +702,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, IReadOn
 
 
     #region Type Convertors
+    // TODO: move all of this to a single class?
 
     private Type TypeFromNonVoidTypeName(TypeSyntax typeSyntax)
     {
@@ -679,15 +717,39 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, IReadOn
 
     private Type TypeFromTypeName(TypeSyntax typeSyntax) => typeSyntax switch
     {
-        BaseTypeSyntax baseTypeName => TypeFromBaseTypeName(baseTypeName),
+        StructTypeSyntax structTypeSyntax => StructTypeFromTypeName(structTypeSyntax),
 
-        // all of the types above are descendant from "PointerTypeName", so it's necessary to first
-        // check the most derivative first
         FunctionTypeSyntax functionTypeName => FunctionTypeFromTypeName(functionTypeName),
         PointerTypeSyntax pointerTypeName => TypeFromPointerTypeName(pointerTypeName),
 
+        BaseTypeSyntax baseTypeName => TypeFromBaseTypeName(baseTypeName),
+
         _ => throw new UnreachableException()
     };
+
+
+    private StructType StructTypeFromTypeName(StructTypeSyntax structTypeSyntax)
+    {
+        var boundMembers = new List<BoundGenericDeclaration>();
+
+        foreach (var member in structTypeSyntax.Members)
+            boundMembers.Add(new BoundGenericDeclaration(TypeFromTypeName(member.Type), member.Name));
+
+        return new StructType(boundMembers);
+    }
+
+
+    private FunctionType FunctionTypeFromTypeName(FunctionTypeSyntax typeSyntax)
+    {
+        var parametersType = typeSyntax.ParametersType.Select(TypeFromTypeName).ToArray();
+        var returnType = TypeFromTypeName(typeSyntax.ReturnType);
+
+        return new FunctionType(returnType, parametersType);
+    }
+
+
+    private PointerType TypeFromPointerTypeName(PointerTypeSyntax pointerTypeSyntax)
+        => new PointerType(TypeFromTypeName(pointerTypeSyntax.InnerType));
 
 
     private Type TypeFromBaseTypeName(BaseTypeSyntax typeSyntax)
@@ -704,29 +766,9 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, IReadOn
 
     private Type TypeFromTypeDeclaration(BaseTypeSyntax typeSyntax)
     {
-        var typeDeclaration = GetTypeDeclaration(typeSyntax.TypeSymbol);
+        var typeDeclaration = DeclaredTypes.TryGetType(typeSyntax.TypeSymbol)!;
         var declarationTypeSyntax = typeDeclaration.GetTypeSyntax();
         return TypeFromTypeName(declarationTypeSyntax);
-    }
-
-
-    private TypeDeclaration GetTypeDeclaration(SymbolSyntax symbol)
-    {
-        var typeDeclaration = DeclaredTypes.First(declaredType => declaredType.TypeSymbol.Name == symbol.Name);
-        return typeDeclaration;
-    }
-
-
-    private PointerType TypeFromPointerTypeName(PointerTypeSyntax pointerTypeSyntax)
-        => new PointerType(TypeFromTypeName(pointerTypeSyntax.InnerType));
-
-
-    private FunctionType FunctionTypeFromTypeName(FunctionTypeSyntax typeSyntax)
-    {
-        var parametersType = typeSyntax.ParametersType.Select(TypeFromTypeName).ToArray();
-        var returnType = TypeFromTypeName(typeSyntax.ReturnType);
-
-        return new FunctionType(returnType, parametersType);
     }
 
     #endregion

@@ -152,5 +152,11 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 return ResourceManager.GetString("ReservedIdentifier", resourceCulture);
             }
         }
+        
+        internal static string ExpectColon {
+            get {
+                return ResourceManager.GetString("ExpectColon", resourceCulture);
+            }
+        }
     }
 }
