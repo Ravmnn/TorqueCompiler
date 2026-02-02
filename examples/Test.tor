@@ -49,26 +49,29 @@ void println(char* content)
 
 
 
-struct Person
+#>struct Person
 {
     char* name;
     uint age;
     uint id;
-}
+}<#
 
 
 int main(int argc, char** argv)
 {
-    let person = new Person { name: "Kujo Jotaro", age: 24, id: 710165 };
-    #char* buffer;
+    #>let person = new Person { name: "Kujo Jotaro", age: 24, id: 710165 };
+    char* buffer;
 
-    #println(person.name);
+    println(person.name);
 
-    #intToString(buffer, person.age as int);
-    #println(buffer);
+    intToString(buffer, person.age as int);
+    println(buffer);
 
-    #intToString(buffer, person.id as int);
-    #println(buffer);
+    intToString(buffer, person.id as int);
+    println(buffer);<#
+
+    for (let i = 0; i < 10; i = i + 1)
+        println("hello, world");
 
     return 0;
 }

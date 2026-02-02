@@ -1,17 +1,12 @@
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
-using Torque.Compiler.Tokens;
 using Torque.Compiler.Symbols;
 using Torque.Compiler.Types;
 using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Expressions;
 using Torque.Compiler.BoundAST.Statements;
-using Torque.Compiler.Diagnostics;
-using Torque.Compiler.Diagnostics.Catalogs;
 
 
 namespace Torque.Compiler;
@@ -19,12 +14,14 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticReporter<BinderCatalog>,
+public class TorqueBinder :
     IExpressionProcessor<BoundExpression>, IStatementProcessor<BoundStatement>,
     IDeclarationProcessor
 {
     private int _currentLoopDepth;
-    private bool IsInsideALoop => _currentLoopDepth > 0;
+
+
+    public bool IsInsideALoop => _currentLoopDepth > 0;
 
     private Scope _scope = new Scope();
     public Scope Scope
@@ -34,9 +31,19 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     }
 
     public DeclaredTypeManager DeclaredTypes { get; private set; } = new DeclaredTypeManager();
+    public List<Statement> Statements { get; }
+
+    public TorqueBinderReporter Reporter { get; private set; }
 
 
-    public List<Statement> Statements { get; } = statements.ToList();
+
+
+    public TorqueBinder(IReadOnlyList<Statement> statements)
+    {
+        Statements = statements.ToList();
+
+        Reporter = new TorqueBinderReporter(this);
+    }
 
 
 
@@ -56,7 +63,9 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         DeclaredTypes = new DeclaredTypeManager();
 
         Scope = new Scope();
-        Diagnostics.Clear();
+        Reporter = new TorqueBinderReporter(this);
+
+        // TODO: remove these Reset methods from all the tools, state recovery should be achieved by recreating the class
     }
 
 
@@ -81,7 +90,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public void Process(IDeclaration declaration)
     {
-        ReportIfMultipleDeclaration(declaration.Symbol);
+        Reporter.Process(declaration);
         declaration.ProcessDeclaration(this);
     }
 
@@ -99,6 +108,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public void ProcessAliasDeclaration(AliasDeclarationStatement declaration)
     {
+        // TODO: create "GlobalTypeDeclaration.GetTypeDeclaration()"... use this also in the binder reporter, struct declaration processing
         DeclaredTypes.Types.Add(new AliasTypeDeclaration(declaration.Symbol, declaration.TypeSyntax));
     }
 
@@ -109,8 +119,6 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     {
         var structType = new StructTypeDeclaration(declaration.Symbol, declaration.Members);
         DeclaredTypes.Types.Add(structType);
-
-        ReportIfUnknownType(structType.GetTypeSyntax());
     }
 
     #endregion
@@ -126,21 +134,8 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundStatement Process(Statement statement)
     {
-        ThrowIfGlobalTypeDeclarationAtLocalScope(statement);
-
-        if (ReportIfNonDeclarationAtFileScope(statement) || ReportIfFunctionDeclarationAtLocalScope(statement))
-            return null!;
-
-        ValidateDeclarationModifiers(statement);
-
+        Reporter.Process(statement);
         return statement.Process(this);
-    }
-
-
-    private void ThrowIfGlobalTypeDeclarationAtLocalScope(Statement statement)
-    {
-        if (statement is GlobalTypeDeclaration)
-            throw new InvalidOperationException("Global type declarations must be in global scope");
     }
 
 
@@ -152,11 +147,8 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
 
 
-    public BoundStatement ProcessVariable(VariableDeclarationStatement statement)
+    public BoundStatement ProcessVariableDefinition(VariableDeclarationStatement statement)
     {
-        ReportIfUnknownType(statement.Type);
-        ReportIfMultipleDeclaration(statement.Name);
-
         var identifier = new VariableSymbol(statement.Name, Scope);
         var value = Process(statement.Value);
 
@@ -168,11 +160,9 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
 
 
-    public BoundStatement ProcessFunction(FunctionDeclarationStatement statement)
+    public BoundStatement ProcessFunctionDefinition(FunctionDeclarationStatement statement)
     {
         // BUG: multiple declarations for parameters and struct fields are allowed
-
-        ReportIfUnknownType(statement.ReturnType);
 
         var functionSymbol = (Scope.GetSymbol(statement.Name.Name) as FunctionSymbol)!;
         var body = ProcessFunctionBlockIfNotExternal(statement, functionSymbol);
@@ -185,8 +175,6 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     {
         // when a function is marked as external, its parameter symbols are not going to be used,
         // so declaring then is also unnecessary
-
-        ValidateFunctionBody(statement);
 
         if (statement.IsExternal || statement.Body is null)
             return null;
@@ -223,10 +211,7 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     private void DeclareFunctionParameters(IReadOnlyList<GenericDeclaration> parameters)
     {
         foreach (var parameter in parameters)
-        {
-            ReportIfUnknownType(parameter.Type);
             Scope.Symbols.Add(new VariableSymbol(parameter.Name, Scope) { IsParameter = true });
-        }
     }
 
 
@@ -267,14 +252,12 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundStatement ProcessBreak(BreakStatement statement)
     {
-        ReportIfNotInsideALoop(statement);
         return new BoundBreakStatement(statement);
     }
 
 
     public BoundStatement ProcessContinue(ContinueStatement statement)
     {
-        ReportIfNotInsideALoop(statement);
         return new BoundContinueStatement(statement);
     }
 
@@ -290,7 +273,10 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     #region Expressions
 
     public BoundExpression Process(Expression expression)
-        => expression.Process(this);
+    {
+        Reporter.Process(expression);
+        return expression.Process(this);
+    }
 
 
     public IReadOnlyList<BoundExpression> ProcessAll(IReadOnlyList<Expression> expressions)
@@ -353,12 +339,6 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
         var symbol = Scope.TryGetSymbol(expression.Symbol.Name);
         var variableSymbol = (symbol as VariableSymbol)!;
 
-        if (symbol is null)
-            ReportSymbol(BinderCatalog.UndeclaredSymbol, expression.Symbol);
-
-        else if (symbol is not VariableSymbol)
-            ReportSymbol(BinderCatalog.SymbolIsNotAValue, expression.Symbol);
-
         return new BoundSymbolExpression(expression, variableSymbol);
     }
 
@@ -374,13 +354,8 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     }
 
 
-    private BoundAddressableExpression ToAddressable(BoundExpression expression)
-    {
-        if (expression is not BoundSymbolExpression and not BoundIndexingExpression)
-            Report(BinderCatalog.ValueMustBeAddressable, location: expression.Location);
-
-        return new BoundAddressableExpression(expression.Syntax, expression);
-    }
+    private static BoundAddressableExpression ToAddressable(BoundExpression expression)
+        => new BoundAddressableExpression(expression.Syntax, expression);
 
 
 
@@ -396,13 +371,8 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
     }
 
 
-    private BoundAssignmentReferenceExpression ToAssignmentReference(BoundExpression expression)
-    {
-        if (expression is not BoundSymbolExpression and not BoundPointerAccessExpression and not BoundIndexingExpression)
-            Report(BinderCatalog.MustBeAssignmentReference, location: expression.Location);
-
-        return new BoundAssignmentReferenceExpression(expression.Syntax, expression);
-    }
+    private static BoundAssignmentReferenceExpression ToAssignmentReference(BoundExpression expression)
+        => new BoundAssignmentReferenceExpression(expression.Syntax, expression);
 
 
 
@@ -429,8 +399,6 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundExpression ProcessCast(CastExpression expression)
     {
-        ReportIfUnknownType(expression.Type);
-
         var value = Process(expression.Expression);
         return new BoundCastExpression(expression, value);
     }
@@ -440,8 +408,6 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundExpression ProcessArray(ArrayExpression expression)
     {
-        ReportIfUnknownType(expression.ElementType);
-
         var boundExpressions = expression.Elements?.Select(Process).ToArray();
         return new BoundArrayExpression(expression, boundExpressions);
     }
@@ -457,7 +423,6 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundExpression ProcessDefault(DefaultExpression expression)
     {
-        ReportIfUnknownType(expression.TypeSyntax);
         return new BoundDefaultExpression(expression);
     }
 
@@ -466,173 +431,12 @@ public class TorqueBinder(IReadOnlyList<Statement> statements) : DiagnosticRepor
 
     public BoundExpression ProcessStruct(StructExpression expression)
     {
-        ReportIfDeclaredTypeIsNotOfKind<StructTypeDeclaration>(expression.Symbol);
-
         var boundMembersInitialization = new List<BoundStructMemberInitialization>();
 
         foreach (var member in expression.InitializationList)
             boundMembersInitialization.Add(new BoundStructMemberInitialization(member.Member, Process(member.Value)));
 
         return new BoundStructExpression(boundMembersInitialization, expression);
-    }
-
-    #endregion
-
-
-
-
-
-
-
-
-    #region Diagnostic Reporting
-
-    private bool ReportIfMultipleDeclaration(SymbolSyntax symbol)
-    {
-        if (!Scope.SymbolExists(symbol.Name))
-            return false;
-
-        ReportSymbol(BinderCatalog.MultipleSymbolDeclaration, symbol);
-        return true;
-    }
-
-
-    private bool ReportIfNonDeclarationAtFileScope(Statement statement)
-    {
-        if (!Scope.IsGlobal || statement is IDeclaration)
-            return false;
-
-        Report(BinderCatalog.OnlyDeclarationsCanExistInFileScope, location: statement.Location);
-        return true;
-    }
-
-
-    private bool ReportIfFunctionDeclarationAtLocalScope(Statement statement)
-    {
-        if (Scope.IsGlobal || statement is not FunctionDeclarationStatement)
-            return false;
-
-        Report(BinderCatalog.FunctionsMustBeAtFileScope, location: statement.Location);
-        return true;
-    }
-
-
-    private void ValidateDeclarationModifiers(Statement declaration)
-    {
-        if (declaration is not IModificable modificable)
-            return;
-
-        ReportIfHasDuplicateModifers(declaration, modificable);
-
-        foreach (var modifier in modificable.Modifiers)
-            ReportIfInvalidModifierTarget(modificable, modifier);
-    }
-
-
-    private bool ReportIfHasDuplicateModifers(Statement declaration, IModificable modificable)
-    {
-        if (modificable.Modifiers.DistinctBy(modifier => modifier.Type).Count() == modificable.Modifiers.Count)
-            return false;
-
-        Report(BinderCatalog.MultipleSameModifiers, location: declaration.Location);
-        return true;
-    }
-
-
-    private bool ReportIfInvalidModifierTarget(IModificable modificable, Modifier modifier)
-    {
-        var modifierTargets = ModifiersTarget.GetFor(modifier);
-
-        if (modifierTargets.Any(target => target.HasFlag(modificable.ThisTargetIdentity)))
-            return false;
-
-        Report(BinderCatalog.InvalidModifierTarget, location: modifier.Location);
-        return true;
-    }
-
-
-    private void ValidateFunctionBody(FunctionDeclarationStatement statement)
-    {
-        var isExternal = statement.IsExternal;
-        var hasBody = statement.Body is not null;
-
-        if (isExternal && hasBody)
-            Report(BinderCatalog.ExternalFunctionCannotHaveABody, location: statement.Location);
-
-        else if (!isExternal && !hasBody)
-            Report(BinderCatalog.FunctionMustHaveABody, location: statement.Location);
-    }
-
-
-    private bool ReportIfNotInsideALoop(Statement statement)
-    {
-        if (IsInsideALoop)
-            return false;
-
-        Report(BinderCatalog.LoopControlInstructionMustBeInLoop, location: statement.Location);
-        return true;
-    }
-
-
-    private bool ReportIfUnknownType(TypeSyntax type) => type switch
-    {
-        BaseTypeSyntax baseType => ReportIfUnknownForBaseType(baseType),
-
-        FunctionTypeSyntax functionType => ReportIfUnknownForFunctionType(functionType),
-        PointerTypeSyntax pointerType => ReportIfUnknownType(pointerType.InnerType),
-        StructTypeSyntax structType => ReportIfUnknownForStructType(structType),
-
-        _ => throw new UnreachableException()
-    };
-
-
-    private bool ReportIfUnknownForStructType(StructTypeSyntax structType)
-    {
-        foreach (var member in structType.Members)
-            if (ReportIfUnknownType(member.Type))
-                return true;
-
-        return false;
-    }
-
-
-    private bool ReportIfUnknownForFunctionType(FunctionTypeSyntax functionType)
-    {
-        if (ReportIfUnknownType(functionType.ReturnType))
-            return true;
-
-        foreach (var parameterType in functionType.ParametersType)
-            if (ReportIfUnknownType(parameterType))
-                return true;
-
-        return false;
-    }
-
-
-    private bool ReportIfUnknownForBaseType(BaseTypeSyntax type)
-    {
-        if (type.IsPrimitiveType)
-            return false;
-
-        var symbol = type.TypeSymbol;
-
-        if (DeclaredTypes.IsDeclared(symbol))
-            return false;
-
-        Report(BinderCatalog.UnknownType, [symbol.Name], symbol.Location);
-        return true;
-    }
-
-
-
-
-    private bool ReportIfDeclaredTypeIsNotOfKind<T>(SymbolSyntax typeSymbol) where T : TypeDeclaration
-    {
-        if (DeclaredTypes.IsDeclared<T>(typeSymbol))
-            return false;
-
-        Report(BinderCatalog.InvalidTypeKind, location: typeSymbol.Location);
-        return true;
     }
 
     #endregion

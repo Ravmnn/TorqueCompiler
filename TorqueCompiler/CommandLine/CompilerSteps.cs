@@ -55,7 +55,7 @@ public static class CompilerSteps
         var binder = new TorqueBinder(statements);
         var boundStatements = binder.Bind();
 
-        Torque.Logger.LogDiagnosticsAndInterruptIfAny(binder.Diagnostics);
+        Torque.Logger.LogDiagnosticsAndInterruptIfAny(binder.Reporter.Diagnostics);
 
         return new ModuleContext(boundStatements, binder.Scope, binder.DeclaredTypes);
     }

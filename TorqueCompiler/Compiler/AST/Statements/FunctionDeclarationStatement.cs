@@ -29,11 +29,11 @@ public class FunctionDeclarationStatement(TypeSyntax returnType, SymbolSyntax na
 
 
     public override void Process(IStatementProcessor processor)
-        => processor.ProcessFunction(this);
+        => processor.ProcessFunctionDefinition(this);
 
 
     public override T Process<T>(IStatementProcessor<T> processor)
-        => processor.ProcessFunction(this);
+        => processor.ProcessFunctionDefinition(this);
 
 
     public void ProcessDeclaration(IDeclarationProcessor processor)

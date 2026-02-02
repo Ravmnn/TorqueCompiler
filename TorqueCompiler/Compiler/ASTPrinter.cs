@@ -150,13 +150,13 @@ public class ASTPrinter
 
 
 
-    public string ProcessVariable(VariableDeclarationStatement statement)
+    public string ProcessVariableDefinition(VariableDeclarationStatement statement)
         => $"{BeginStatement()}{statement.Type} {statement.Name.Name} = {Process(statement.Value)} {EndStatement()}";
 
 
 
 
-    public string ProcessFunction(FunctionDeclarationStatement statement)
+    public string ProcessFunctionDefinition(FunctionDeclarationStatement statement)
     {
         var builder = new StringBuilder();
         var parametersString = statement.Parameters.ItemsToStringThenJoin(", ", param => $"{param.Type} {param.Name}");

@@ -26,11 +26,11 @@ public class VariableDeclarationStatement(TypeSyntax type, SymbolSyntax name, Ex
 
 
     public override void Process(IStatementProcessor processor)
-        => processor.ProcessVariable(this);
+        => processor.ProcessVariableDefinition(this);
 
 
     public override T Process<T>(IStatementProcessor<T> processor)
-        => processor.ProcessVariable(this);
+        => processor.ProcessVariableDefinition(this);
 
 
     public void ProcessDeclaration(IDeclarationProcessor processor)
