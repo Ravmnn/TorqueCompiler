@@ -10,22 +10,21 @@ namespace Torque.Compiler.AST.Statements;
 
 // TODO: global type declarations must be in global (file) scope
 
-public abstract class GlobalTypeDeclaration(SymbolSyntax symbol, Span location)
+public abstract class GlobalTypeDeclarationStatement(SymbolSyntax symbol, Span location)
     : Statement(location), IDeclaration
 {
     public IReadOnlyList<Modifier> Modifiers { get; set; } = [];
     public abstract ModifierTarget ThisTargetIdentity { get; }
     public SymbolSyntax Symbol { get; } = symbol;
 
+    public bool CanBeInFileScope => true;
+    public bool CanBeInFunctionScope => false;
 
 
 
-    public override void Process(IStatementProcessor processor)
-        => throw CannotCallThisMethod();
 
-
-    public override T Process<T>(IStatementProcessor<T> processor)
-        => throw CannotCallThisMethod();
+    public override void Process(IStatementProcessor processor) {}
+    public override T Process<T>(IStatementProcessor<T> processor) => default!;
 
 
     private static Exception CannotCallThisMethod()

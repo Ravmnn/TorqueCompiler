@@ -9,7 +9,7 @@ namespace Torque.Compiler.AST.Statements;
 
 
 public class AliasDeclarationStatement(SymbolSyntax name, TypeSyntax typeSyntax, Span location)
-    : GlobalTypeDeclaration(name, location)
+    : GlobalTypeDeclarationStatement(name, location)
 {
     public TypeSyntax TypeSyntax { get; } = typeSyntax;
 

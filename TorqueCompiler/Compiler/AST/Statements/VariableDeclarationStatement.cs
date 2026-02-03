@@ -23,6 +23,9 @@ public class VariableDeclarationStatement(TypeSyntax type, SymbolSyntax name, Ex
     public ModifierTarget ThisTargetIdentity => ModifierTarget.LocalVariable;
     public SymbolSyntax Symbol => Name;
 
+    public bool CanBeInFileScope => false;
+    public bool CanBeInFunctionScope => true;
+
 
 
 

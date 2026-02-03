@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics;
 using System.Linq;
 
@@ -28,6 +27,8 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
     public void Process(IDeclaration declaration)
     {
         ReportIfMultipleDeclaration(declaration.Symbol);
+        ValidateDeclarationModifiers(declaration);
+
         declaration.ProcessDeclaration(this);
     }
 
@@ -61,22 +62,12 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     public void Process(Statement statement)
     {
-        // TODO: should not this be a report?
-        ThrowIfGlobalTypeDeclarationAtLocalScope(statement);
+        ReportIfNonDeclarationAtFileScope(statement);
 
-        if (ReportIfNonDeclarationAtFileScope(statement) || ReportIfFunctionDeclarationAtLocalScope(statement))
-            return;
-
-        ValidateModifiersIfDeclaration(statement);
+        if (statement is IDeclaration declaration)
+            ReportIfWrongDeclarationPlacement(declaration);
 
         statement.Process(this);
-    }
-
-
-    private void ThrowIfGlobalTypeDeclarationAtLocalScope(Statement statement)
-    {
-        if (statement is GlobalTypeDeclaration)
-            throw new InvalidOperationException("Global type declarations must be in global scope");
     }
 
 
@@ -317,7 +308,7 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     private bool ReportIfNonDeclarationAtFileScope(Statement statement)
     {
-        if (!Binder.Scope.IsGlobal || statement is IDeclaration)
+        if (Binder.IsInFunctionScope || statement is IDeclaration)
             return false;
 
         Report(BinderCatalog.OnlyDeclarationsCanExistInFileScope, location: statement.Location);
@@ -325,36 +316,23 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
     }
 
 
-    private bool ReportIfFunctionDeclarationAtLocalScope(Statement statement)
-    {
-        if (Binder.Scope.IsGlobal || statement is not FunctionDeclarationStatement)
-            return false;
 
-        Report(BinderCatalog.FunctionsMustBeAtFileScope, location: statement.Location);
-        return true;
+
+    private void ValidateDeclarationModifiers(IDeclaration declaration)
+    {
+        ReportIfHasDuplicateModifers(declaration, declaration.Symbol.Location);
+
+        foreach (var modifier in declaration.Modifiers)
+            ReportIfInvalidModifierTarget(declaration, modifier);
     }
 
 
-
-
-    private void ValidateModifiersIfDeclaration(Statement declaration)
-    {
-        if (declaration is not IModificable modificable)
-            return;
-
-        ReportIfHasDuplicateModifers(declaration, modificable);
-
-        foreach (var modifier in modificable.Modifiers)
-            ReportIfInvalidModifierTarget(modificable, modifier);
-    }
-
-
-    private bool ReportIfHasDuplicateModifers(Statement declaration, IModificable modificable)
+    private bool ReportIfHasDuplicateModifers(IModificable modificable, Span location)
     {
         if (modificable.Modifiers.DistinctBy(modifier => modifier.Type).Count() == modificable.Modifiers.Count)
             return false;
 
-        Report(BinderCatalog.MultipleSameModifiers, location: declaration.Location);
+        Report(BinderCatalog.MultipleSameModifiers, location: location);
         return true;
     }
 
@@ -380,6 +358,15 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
         Report(BinderCatalog.LoopControlInstructionMustBeInLoop, location: statement.Location);
         return true;
+    }
+
+
+
+
+    private void ReportIfWrongDeclarationPlacement(IDeclaration declaration)
+    {
+        if ((Binder.IsInFileScope && !declaration.CanBeInFileScope) || (Binder.IsInFunctionScope && !declaration.CanBeInFunctionScope))
+            Report(BinderCatalog.WrongDeclarationPlacement, location: declaration.Symbol.Location);
     }
 
 

@@ -101,14 +101,14 @@ public class ASTPrinter
 
     public string Process(Statement statement)
     {
-        if (statement is GlobalTypeDeclaration declaration)
+        if (statement is GlobalTypeDeclarationStatement declaration)
             return Process(declaration);
 
         return statement.Process(this);
     }
 
 
-    public string Process(GlobalTypeDeclaration declaration)
+    public string Process(GlobalTypeDeclarationStatement declaration)
         => declaration.ProcessGlobalTypeDeclaration(this);
 
 

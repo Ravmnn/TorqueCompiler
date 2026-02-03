@@ -43,7 +43,7 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
         if (statement is SugarStatement sugarStatement)
             return sugarStatement.Process(this);
 
-        if (statement is GlobalTypeDeclaration declaration)
+        if (statement is GlobalTypeDeclarationStatement declaration)
             return declaration.ProcessGlobalTypeDeclaration(this);
 
         return statement.Process(this);
@@ -56,7 +56,7 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
 
 
 
-    public Statement Process(GlobalTypeDeclaration declaration)
+    public Statement Process(GlobalTypeDeclarationStatement declaration)
         => declaration.Process(this);
 
 

@@ -19,4 +19,5 @@ public enum BinderCatalog
     [Item(DiagnosticScope.Binder)] LoopControlInstructionMustBeInLoop,
     [Item(DiagnosticScope.Binder)] UnknownType,
     [Item(DiagnosticScope.Binder)] InvalidTypeKind,
+    [Item(DiagnosticScope.Binder)] WrongDeclarationPlacement,
 }

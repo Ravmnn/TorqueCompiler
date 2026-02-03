@@ -19,9 +19,14 @@ public class TorqueBinder :
     IDeclarationProcessor
 {
     private int _currentLoopDepth;
+    private FunctionDeclarationStatement? _currentFunction;
 
 
     public bool IsInsideALoop => _currentLoopDepth > 0;
+    public bool IsInsideAFunction => _currentFunction is not null;
+    public bool IsInFileScope => !IsInsideAFunction;
+    public bool IsInFunctionScope => IsInsideAFunction;
+
 
     private Scope _scope = new Scope();
     public Scope Scope
@@ -76,11 +81,17 @@ public class TorqueBinder :
             if (statement is not IDeclaration declaration)
                 continue;
 
-            Process(declaration);
-
-            if (statement is GlobalTypeDeclaration)
-                Statements.Remove(statement);
+            DeclareDeclaration(declaration, statement);
         }
+    }
+
+
+    private void DeclareDeclaration(IDeclaration declaration, Statement statement)
+    {
+        Process(declaration);
+
+        if (statement is GlobalTypeDeclarationStatement)
+            Statements.Remove(statement);
     }
 
 
@@ -134,10 +145,21 @@ public class TorqueBinder :
 
     public BoundStatement Process(Statement statement)
     {
-        var boundStatement = statement.Process(this);
+        BoundStatement? boundStatement = null;
+
+        if (!IsFileScopeDeclarationAndHasNotBeenDeclared(statement))
+            boundStatement = statement.Process(this);
+
         Reporter.Process(statement);
 
-        return boundStatement;
+        return boundStatement!;
+    }
+
+
+    private bool IsFileScopeDeclarationAndHasNotBeenDeclared(Statement statement)
+    {
+        return statement is IDeclaration { CanBeInFunctionScope: false, CanBeInFileScope: true } declaration
+               && !Scope.SymbolExists(declaration.Symbol.Name);
     }
 
 
@@ -166,8 +188,12 @@ public class TorqueBinder :
     {
         // BUG: multiple declarations for parameters and struct fields are allowed
 
+        _currentFunction = statement;
+
         var functionSymbol = (Scope.GetSymbol(statement.Name.Name) as FunctionSymbol)!;
         var body = ProcessFunctionBlockIfNotExternal(statement, functionSymbol);
+
+        _currentFunction = null;
 
         return new BoundFunctionDeclarationStatement(statement, body, functionSymbol);
     }

@@ -9,7 +9,7 @@ namespace Torque.Compiler.AST.Statements;
 
 
 public class StructDeclarationStatement(SymbolSyntax symbol, IReadOnlyList<GenericDeclaration> members, Span location)
-    : GlobalTypeDeclaration(symbol, location)
+    : GlobalTypeDeclarationStatement(symbol, location)
 {
     public override ModifierTarget ThisTargetIdentity => ModifierTarget.Struct;
 
