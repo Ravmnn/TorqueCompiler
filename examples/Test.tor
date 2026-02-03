@@ -70,8 +70,8 @@ int main(int argc, char** argv)
     intToString(buffer, person.id as int);
     println(buffer);<#
 
-    for (let i = 0; i < 10; i = i + 1)
-        println("hello, world");
+    let name = "marvin";
+    let number = name;
 
     return 0;
 }

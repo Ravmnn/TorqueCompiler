@@ -10,8 +10,6 @@ namespace Torque.Compiler.Types;
 
 public enum PrimitiveType
 {
-    Auto,
-
     Void,
     PtrSize,
     Bool,
@@ -44,7 +42,6 @@ public abstract class Type
     public abstract BasePrimitiveType BasePrimitive { get; }
 
 
-    public bool IsAuto => BasePrimitive.Type == PrimitiveType.Auto; // "let" variable declarator
     public bool IsVoid => BasePrimitive.Type == PrimitiveType.Void;
 
     public bool IsSigned => BasePrimitive.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 || IsFloat;
@@ -59,7 +56,7 @@ public abstract class Type
 
     public bool IsBase => this is BasePrimitiveType;
     public bool IsPointer => this is PointerType;
-    public bool IsGenericPointer => this is PointerType pointerType && pointerType.Type == PrimitiveType.UInt8;
+    public bool IsRawPointer => this is PointerType pointerType && pointerType.Type == PrimitiveType.UInt8;
     public bool IsFunction => this is FunctionType;
     public bool IsCompound => this is StructType;
 

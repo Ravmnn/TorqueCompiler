@@ -90,7 +90,9 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     public void ProcessVariableDefinition(VariableDeclarationStatement statement)
     {
-        ReportIfUnknownType(statement.Type);
+        if (!statement.InferType)
+            ReportIfUnknownType(statement.Type);
+
         ReportIfMultipleDeclaration(statement.Name);
     }
 
@@ -303,7 +305,7 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     private bool ReportIfMultipleDeclaration(SymbolSyntax symbol)
     {
-        if (!Binder.Scope.SymbolExists(symbol.Name))
+        if (!Binder.Scope.SymbolIsMultiDeclared(symbol.Name))
             return false;
 
         ReportSymbol(BinderCatalog.MultipleSymbolDeclaration, symbol);

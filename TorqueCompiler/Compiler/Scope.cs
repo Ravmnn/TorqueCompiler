@@ -64,11 +64,6 @@ public class Scope(Scope? parent = null)
         => TryGetSymbol(name) ?? throw new ArgumentException($"Invalid symbol \"{name}\".");
 
 
-    public Symbol GetSymbol(LLVMValueRef reference)
-        => TryGetSymbol(reference) ?? throw new ArgumentException($"Invalid symbol reference \"{reference}\"");
-
-
-
 
     public Symbol? TryGetSymbol(string name)
     {
@@ -79,19 +74,14 @@ public class Scope(Scope? parent = null)
     }
 
 
-    public Symbol? TryGetSymbol(LLVMValueRef reference)
-    {
-        if (Symbols.Find(item => item.LLVMReference == reference) is { } symbol)
-            return symbol;
-
-        return Parent?.TryGetSymbol(reference);
-    }
-
-
 
 
     public bool SymbolExists(string name)
         => TryGetSymbol(name) is not null;
+
+
+    public bool SymbolIsMultiDeclared(string name)
+        => Symbols.Count(symbol => symbol.Name == name) > 1;
 
 
 

@@ -12,8 +12,6 @@ public static class Keywords
 {
     public static readonly IReadOnlyDictionary<string, PrimitiveType> PrimitiveTypes = new Dictionary<string, PrimitiveType>
     {
-        { "let", PrimitiveType.Auto },
-
         { "void", PrimitiveType.Void },
 
         { "bool", PrimitiveType.Bool },
@@ -52,6 +50,7 @@ public static class Keywords
         { "for", TokenType.KwFor },
         { "break", TokenType.KwBreak },
         { "continue", TokenType.KwContinue },
+        { "let", TokenType.KwLet },
         { "as", TokenType.KwAs },
         { "array", TokenType.KwArray },
         { "default", TokenType.KwDefault },

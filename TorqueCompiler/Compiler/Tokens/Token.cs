@@ -26,6 +26,7 @@ public enum TokenType
     KwAlias, KwStruct,
     KwReturn,
     KwIf, KwElse, KwWhile, KwLoop, KwFor, KwBreak, KwContinue,
+    KwLet,
     KwAs, KwArray, KwDefault, KwNullptr, KwNew
 }
 

@@ -14,6 +14,7 @@ public class BoundVariableDeclarationStatement(VariableDeclarationStatement synt
     public new VariableDeclarationStatement Syntax => (base.Syntax as VariableDeclarationStatement)!;
 
     public BoundExpression Value { get; set; } = value;
+    public bool InferType => Syntax.InferType;
 
     public VariableSymbol VariableSymbol { get; } = variableSymbol;
     public Symbol Symbol => VariableSymbol;

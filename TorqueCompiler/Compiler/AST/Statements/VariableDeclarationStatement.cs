@@ -11,12 +11,13 @@ namespace Torque.Compiler.AST.Statements;
 
 
 
-public class VariableDeclarationStatement(TypeSyntax type, SymbolSyntax name, Expression value)
-    : Statement(name.Location), IDeclaration
+public class VariableDeclarationStatement(TypeSyntax type, SymbolSyntax name, Expression value, Span location)
+    : Statement(location), IDeclaration
 {
     public TypeSyntax Type { get; } = type;
     public SymbolSyntax Name { get; } = name;
     public Expression Value { get; set; } = value;
+    public bool InferType { get; set; }
 
     public IReadOnlyList<Modifier> Modifiers { get; set; } = [];
     public ModifierTarget ThisTargetIdentity => ModifierTarget.LocalVariable;

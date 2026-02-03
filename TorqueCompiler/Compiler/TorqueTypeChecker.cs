@@ -7,8 +7,6 @@ using Torque.Compiler.Types;
 using Torque.Compiler.Symbols;
 using Torque.Compiler.BoundAST.Expressions;
 using Torque.Compiler.BoundAST.Statements;
-using Torque.Compiler.Diagnostics;
-using Torque.Compiler.Diagnostics.Catalogs;
 
 
 using Type = Torque.Compiler.Types.Type;
@@ -19,10 +17,7 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, DeclaredTypeManager declaredTypes)
-    : DiagnosticReporter<TypeCheckerCatalog>,
-    IBoundStatementProcessor, IBoundExpressionProcessor<Type>,
-    IBoundDeclarationProcessor
+public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProcessor<Type>, IBoundDeclarationProcessor
 {
     public const PrimitiveType DefaultLiteralIntegerType = PrimitiveType.Int32;
     public const PrimitiveType DefaultLiteralFloatType = PrimitiveType.Float32;
@@ -30,15 +25,27 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
 
 
 
-    private bool _acceptVoidExpressions;
-
-    private Type? _expectedReturnType;
-
-
-    private DeclaredTypeManager DeclaredTypes { get; } = declaredTypes;
+    public bool AcceptVoidExpressions { get; private set; }
+    public Type? ExpectedReturnType { get; private set; }
 
 
-    public IReadOnlyList<BoundStatement> Statements { get; } = statements;
+    public DeclaredTypeManager DeclaredTypes { get; }
+    public IReadOnlyList<BoundStatement> Statements { get; }
+
+    public TorqueTypeCheckerReporter Reporter { get; private set; }
+    public TorqueTypeCheckerTypeSyntaxConverter Converter { get; private set; }
+
+
+
+
+    public TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, DeclaredTypeManager declaredTypes)
+    {
+        DeclaredTypes = declaredTypes;
+        Statements = statements;
+
+        Reporter = new TorqueTypeCheckerReporter(this);
+        Converter = new TorqueTypeCheckerTypeSyntaxConverter(this);
+    }
 
 
 
@@ -56,7 +63,6 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
 
     private void Reset()
     {
-        Diagnostics.Clear();
     }
 
 
@@ -73,14 +79,17 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
     #region Declarations
 
     public void Process(IBoundDeclaration declaration)
-        => declaration.ProcessDeclaration(this);
+    {
+        declaration.ProcessDeclaration(this);
+        Reporter.Process(declaration);
+    }
 
 
 
 
     public void ProcessFunctionDeclaration(BoundFunctionDeclarationStatement declaration)
     {
-        var returnType = TypeFromTypeName(declaration.Syntax.ReturnType);
+        var returnType = Converter.TypeFromTypeSyntax(declaration.Syntax.ReturnType);
         var parametersType = ParametersTypeFromParametersDeclaration(declaration.Syntax.Parameters);
 
         SetFunctionAndParametersSymbolsType(declaration.FunctionSymbol, returnType, parametersType);
@@ -95,7 +104,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
 
 
     private IReadOnlyList<Type> ParametersTypeFromParametersDeclaration(IReadOnlyList<GenericDeclaration> parameters)
-        => parameters.Select(parameter => TypeFromNonVoidTypeName(parameter.Type)).ToArray();
+        => parameters.Select(parameter => Converter.TypeFromNonVoidTypeSyntax(parameter.Type)).ToArray();
 
 
     private void SetFunctionSymbolParametersTypeIfNotExternal(FunctionSymbol symbol, IReadOnlyList<Type> parametersType)
@@ -115,29 +124,33 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
     #region Statements
 
     public void Process(BoundStatement statement)
-        => statement.Process(this);
+    {
+        statement.Process(this);
+        Reporter.Process(statement);
+    }
 
 
 
 
     public void ProcessExpression(BoundExpressionStatement statement)
     {
-        _acceptVoidExpressions = true;
+        AcceptVoidExpressions = true;
         Process(statement.Expression);
-        _acceptVoidExpressions = false;
+        AcceptVoidExpressions = false;
     }
+
+
 
 
     public void ProcessVariable(BoundVariableDeclarationStatement statement)
     {
         var typeSyntax = statement.Syntax.Type;
 
-        // the use of "let" is only allowed for function-scope variables
         var valueType = Process(statement.Value);
-        var symbolType = typeSyntax.IsAuto ? valueType : TypeFromNonVoidTypeName(typeSyntax);
+        var symbolType = statement.InferType ? valueType : Converter.TypeFromNonVoidTypeSyntax(typeSyntax);
 
         statement.VariableSymbol.Type = symbolType;
-        statement.Value = ImplicitCastOrReport(symbolType, statement.Value, true);
+        statement.Value = MatchTypeOrImplicitCast(symbolType, statement.Value, true);
     }
 
 
@@ -148,9 +161,9 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
         if (statement.IsExternal)
             return;
 
-        _expectedReturnType = statement.FunctionSymbol.Type!.ReturnType;
+        ExpectedReturnType = statement.FunctionSymbol.Type!.ReturnType;
         Process(statement.Body!);
-        _expectedReturnType = null;
+        ExpectedReturnType = null;
     }
 
 
@@ -159,10 +172,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
     public void ProcessReturn(BoundReturnStatement statement)
     {
         if (statement.Expression is null)
-        {
-            ReportIfExpectedTypeIsNotVoidAndDoesNotReturn(statement.Location);
             return;
-        }
 
         ProcessReturnValue(statement);
     }
@@ -172,8 +182,8 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
     {
         Process(statement.Expression!);
 
-        if (!_expectedReturnType!.IsVoid)
-            statement.Expression = ImplicitCastOrReport(_expectedReturnType, statement.Expression!);
+        if (!ExpectedReturnType!.IsVoid)
+            statement.Expression = MatchTypeOrImplicitCast(ExpectedReturnType, statement.Expression!);
     }
 
 
@@ -191,7 +201,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
     public void ProcessIf(BoundIfStatement statement)
     {
         Process(statement.Condition);
-        statement.Condition = ImplicitCastOrReport(PrimitiveType.Bool, statement.Condition);
+        statement.Condition = MatchTypeOrImplicitCast(PrimitiveType.Bool, statement.Condition);
 
         Process(statement.ThenStatement);
 
@@ -205,7 +215,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
     public void ProcessWhile(BoundWhileStatement statement)
     {
         Process(statement.Condition);
-        statement.Condition = ImplicitCastOrReport(PrimitiveType.Bool, statement.Condition);
+        statement.Condition = MatchTypeOrImplicitCast(PrimitiveType.Bool, statement.Condition);
 
         Process(statement.Loop);
 
@@ -235,7 +245,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
     public Type Process(BoundExpression expression)
     {
         var type = expression.Process(this);
-        ReportIfVoidExpression(type, expression.Location);
+        Reporter.Process(expression);
 
         return type;
     }
@@ -283,7 +293,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
         var leftType = Process(expression.Left);
         Process(expression.Right);
 
-        expression.Right = ImplicitCastOrReport(leftType, expression.Right);
+        expression.Right = MatchTypeOrImplicitCast(leftType, expression.Right);
 
         return expression.Type!;
     }
@@ -299,7 +309,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
         {
             case TokenType.Minus: break;
             case TokenType.Exclamation:
-                expression.Expression = ImplicitCastOrReport(PrimitiveType.Bool, expression.Expression);
+                expression.Expression = MatchTypeOrImplicitCast(PrimitiveType.Bool, expression.Expression);
                 break;
 
             default: throw new UnreachableException();
@@ -324,7 +334,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
         var leftType = Process(expression.Left);
         Process(expression.Right);
 
-        expression.Right = ImplicitCastOrReport(leftType, expression.Right);
+        expression.Right = MatchTypeOrImplicitCast(leftType, expression.Right);
         return expression.Type;
     }
 
@@ -334,7 +344,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
         var leftType = Process(expression.Left);
         Process(expression.Right);
 
-        expression.Right = ImplicitCastOrReport(leftType, expression.Right);
+        expression.Right = MatchTypeOrImplicitCast(leftType, expression.Right);
 
         return expression.Type;
     }
@@ -345,8 +355,8 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
         Process(expression.Left);
         Process(expression.Right);
 
-        expression.Left = ImplicitCastOrReport(PrimitiveType.Bool, expression.Left);
-        expression.Right = ImplicitCastOrReport(PrimitiveType.Bool, expression.Right);
+        expression.Left = MatchTypeOrImplicitCast(PrimitiveType.Bool, expression.Left);
+        expression.Right = MatchTypeOrImplicitCast(PrimitiveType.Bool, expression.Right);
 
         return expression.Type;
     }
@@ -381,7 +391,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
         var referenceType = Process(expression.Reference);
         Process(expression.Value);
 
-        expression.Value = ImplicitCastOrReport(referenceType, expression.Value);
+        expression.Value = MatchTypeOrImplicitCast(referenceType, expression.Value);
 
         return expression.Type!;
     }
@@ -395,9 +405,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
 
     public Type ProcessPointerAccess(BoundPointerAccessExpression expression)
     {
-        var type = Process(expression.Pointer);
-        ReportIfNotAPointer(type, expression.Pointer.Location);
-
+        Process(expression.Pointer);
         return expression.Type!;
     }
 
@@ -422,12 +430,8 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
     private void CheckCallExpression(BoundCallExpression expression)
     {
         if (expression.Callee.Type is not FunctionType functionType)
-        {
-            Report(TypeCheckerCatalog.CannotCallNonFunction, location: expression.Location);
             return;
-        }
 
-        ReportIfArityDiffers(expression);
         MatchArgumentsTypeWithFunctionType(expression.Arguments, functionType);
     }
 
@@ -437,7 +441,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
         var parametersType = functionType.ParametersType;
 
         for (var i = 0; i < parametersType.Count && i < arguments.Count; i++)
-            arguments[i] = ImplicitCastOrReport(parametersType[i], arguments[i]);
+            arguments[i] = MatchTypeOrImplicitCast(parametersType[i], arguments[i]);
     }
 
 
@@ -446,7 +450,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
     public Type ProcessCast(BoundCastExpression expression)
     {
         Process(expression.Value);
-        expression.Type = TypeFromNonVoidTypeName(expression.Syntax.Type);
+        expression.Type = Converter.TypeFromNonVoidTypeSyntax(expression.Syntax.Type);
 
         return expression.Type!;
     }
@@ -462,7 +466,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
 
     public Type ProcessArray(BoundArrayExpression expression)
     {
-        var elementType = TypeFromTypeName(expression.Syntax.ElementType);
+        var elementType = Converter.TypeFromNonVoidTypeSyntax(expression.Syntax.ElementType);
 
         expression.ArrayType = new ArrayType(elementType, expression.Syntax.Length); // this is the type used to the alloca
         expression.Type = new PointerType(elementType); // to avoid any future hidden bug, force the use of the pointer type
@@ -475,9 +479,6 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
 
     private void CheckArrayExpression(BoundArrayExpression expression, Type elementType)
     {
-        if (expression.Syntax.Length == 0)
-            Report(TypeCheckerCatalog.CannotHaveAZeroSizedArray, location: expression.Location);
-
         if (expression.Elements is not null)
             MatchElementTypes(expression.Elements, elementType);
     }
@@ -490,7 +491,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
             var element = elements[i];
 
             Process(element);
-            elements[i] = ImplicitCastOrReport(elementType, element);
+            elements[i] = MatchTypeOrImplicitCast(elementType, element);
         }
     }
 
@@ -502,8 +503,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
         Process(expression.Pointer);
         Process(expression.Index);
 
-        ReportIfNotAPointer(expression.Pointer.Type!, expression.Pointer.Location);
-        expression.Index = ImplicitCastOrReport(PrimitiveType.Int64, expression.Index);
+        expression.Index = MatchTypeOrImplicitCast(PrimitiveType.Int64, expression.Index);
 
         return expression.Type!;
     }
@@ -513,7 +513,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
 
     public Type ProcessDefault(BoundDefaultExpression expression)
     {
-        expression.Type = TypeFromNonVoidTypeName(expression.Syntax.TypeSyntax);
+        expression.Type = Converter.TypeFromNonVoidTypeSyntax(expression.Syntax.TypeSyntax);
         return expression.Type;
     }
 
@@ -532,7 +532,7 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
             ProcessStructMemberInitialization(initialization, declaration);
         }
 
-        expression.Type = TypeFromTypeName(structType.GetTypeSyntax());
+        expression.Type = Converter.TypeFromNonVoidTypeSyntax(structType.GetTypeSyntax());
 
         return expression.Type!;
     }
@@ -542,8 +542,8 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
     {
         Process(initialization.Value);
 
-        var expectedType = TypeFromTypeName(declaration.Type);
-        initialization.Value = ImplicitCastOrReport(expectedType, initialization.Value, true);
+        var expectedType = Converter.TypeFromNonVoidTypeSyntax(declaration.Type);
+        initialization.Value = MatchTypeOrImplicitCast(expectedType, initialization.Value, true);
     }
 
     #endregion
@@ -555,19 +555,17 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
 
 
 
-    #region Diagnostic Reporting
-
-    private BoundExpression ImplicitCastOrReport(Type expected, BoundExpression expression, bool forceIfLiteral = false)
+    private BoundExpression MatchTypeOrImplicitCast(Type expected, BoundExpression expression, bool forceIfLiteral = false)
     {
-        if (TryImplicitCast(expected, expression, forceIfLiteral) is { } result)
+        if (TryMatchTypeOrImplicitCast(expected, expression, forceIfLiteral) is { } result)
             return result;
 
-        Report(TypeCheckerCatalog.TypeDiffers, [expected.ToString(), expression.Type!.ToString()], expression.Location);
+        Reporter.ReportTypeDiffers(expected, expression.Type!, expression.Location);
         return expression;
     }
 
 
-    private BoundExpression? TryImplicitCast(Type expected, BoundExpression expression, bool forceIfLiteral = false)
+    private BoundExpression? TryMatchTypeOrImplicitCast(Type expected, BoundExpression expression, bool forceIfLiteral = false)
     {
         // here, "expression" should already have been processed (typed)
 
@@ -577,199 +575,11 @@ public class TorqueTypeChecker(IReadOnlyList<BoundStatement> statements, Declare
             return expression;
 
         var forceForBaseTypes = expression is BoundLiteralExpression && forceIfLiteral;
+        var couldImplicitCast = TypeCaster.TryImplicitCast(got, expected, forceForBaseTypes) is not null;
 
-        if (TryImplicitCast(got, expected, forceForBaseTypes) is not null || GenericPointerToPointer(expected, expression))
+        if (couldImplicitCast)
             return new BoundImplicitCastExpression(expression, expected);
 
         return null;
     }
-
-
-    private static bool GenericPointerToPointer(Type expected, BoundExpression expression)
-        => expected.IsPointer && expression.Type!.IsGenericPointer;
-
-
-    private bool ReportIfNotAPointer(Type type, Span location)
-    {
-        if (type.IsPointer)
-            return false;
-
-        Report(TypeCheckerCatalog.PointerExpected, location: location);
-        return true;
-    }
-
-
-    private bool ReportIfVoidTypeName(Type type, Span location)
-    {
-        // Here, although "void" should be reported, it is important to check whether
-        // the type is a function type or not, since function types may return void, and
-        // that's alright.
-
-        if (!type.IsVoid || type is FunctionType)
-            return false;
-
-        Report(TypeCheckerCatalog.CannotUseVoidHere, location: location);
-        return true;
-    }
-
-
-    private bool ReportIfVoidExpression(Type type, Span location)
-    {
-        if (_acceptVoidExpressions || !type.IsVoid || type is FunctionType)
-            return false;
-
-        Report(TypeCheckerCatalog.ExpressionDoesNotReturnAnyValue, location: location);
-        return true;
-    }
-
-
-    private bool ReportIfArityDiffers(BoundCallExpression expression)
-    {
-        var functionType = (expression.Callee.Type as FunctionType)!;
-        return ReportIfArityDiffers(functionType.ParametersType.Count, expression.Arguments.Count, expression.Location);
-    }
-
-
-    private bool ReportIfArityDiffers(int expected, int got, Span location)
-    {
-        if (expected == got)
-            return false;
-
-        Report(TypeCheckerCatalog.ArityDiffers, [expected, got], location);
-        return true;
-    }
-
-
-    private bool ReportIfExpectedTypeIsNotVoidAndDoesNotReturn(Span location)
-    {
-        if (_expectedReturnType!.IsVoid)
-            return false;
-
-        Report(TypeCheckerCatalog.ExpectedAReturnValue, location: location);
-        return true;
-    }
-
-    #endregion
-
-
-
-
-    #region Implicit Casting
-    // TODO: move all of this to a single class?
-
-    private Type? TryImplicitCast(Type from, Type to, bool forceForBaseTypes = false)
-    {
-        if (!CanImplicitCast(from, to, forceForBaseTypes))
-            return null;
-
-        return to;
-    }
-
-
-    private bool CanImplicitCast(Type from, Type to, bool forceForBaseTypes = false)
-    {
-        var anyIsCompound = from.IsCompound || to.IsCompound;
-
-        if (anyIsCompound)
-            return false;
-
-        var sameTypes = from == to;
-        var bothBase = from.IsBase && to.IsBase;
-        var anyIsAuto = from.IsAuto || to.IsAuto;
-
-        if (sameTypes || anyIsAuto)
-            return true;
-
-        if (bothBase && forceForBaseTypes)
-            return true;
-
-        if (!bothBase)
-            return false;
-
-        var signDiffers = from.IsSigned != to.IsSigned;
-        var floatToInt = from.IsFloat && to.IsInteger; // float to int may result in loss of data
-        var sourceBigger = from.SizeOfTypeInMemory() > to.SizeOfTypeInMemory();
-
-        if (signDiffers || floatToInt || sourceBigger)
-            return false;
-
-        return true;
-    }
-
-    #endregion
-
-
-
-
-    #region Type Convertors
-    // TODO: move all of this to a single class?
-
-    private Type TypeFromNonVoidTypeName(TypeSyntax typeSyntax)
-    {
-        var type = TypeFromTypeName(typeSyntax);
-        ReportIfVoidTypeName(type, typeSyntax.BaseType.TypeSymbol.Location);
-
-        return type;
-    }
-
-
-
-
-    private Type TypeFromTypeName(TypeSyntax typeSyntax) => typeSyntax switch
-    {
-        StructTypeSyntax structTypeSyntax => StructTypeFromTypeName(structTypeSyntax),
-
-        FunctionTypeSyntax functionTypeName => FunctionTypeFromTypeName(functionTypeName),
-        PointerTypeSyntax pointerTypeName => TypeFromPointerTypeName(pointerTypeName),
-
-        BaseTypeSyntax baseTypeName => TypeFromBaseTypeName(baseTypeName),
-
-        _ => throw new UnreachableException()
-    };
-
-
-    private StructType StructTypeFromTypeName(StructTypeSyntax structTypeSyntax)
-    {
-        var boundMembers = new List<BoundGenericDeclaration>();
-
-        foreach (var member in structTypeSyntax.Members)
-            boundMembers.Add(new BoundGenericDeclaration(TypeFromTypeName(member.Type), member.Name));
-
-        return new StructType(boundMembers);
-    }
-
-
-    private FunctionType FunctionTypeFromTypeName(FunctionTypeSyntax typeSyntax)
-    {
-        var parametersType = typeSyntax.ParametersType.Select(TypeFromTypeName).ToArray();
-        var returnType = TypeFromTypeName(typeSyntax.ReturnType);
-
-        return new FunctionType(returnType, parametersType);
-    }
-
-
-    private PointerType TypeFromPointerTypeName(PointerTypeSyntax pointerTypeSyntax)
-        => new PointerType(TypeFromTypeName(pointerTypeSyntax.InnerType));
-
-
-    private Type TypeFromBaseTypeName(BaseTypeSyntax typeSyntax)
-    {
-        if (typeSyntax.IsAuto)
-            Report(TypeCheckerCatalog.CannotUseLetHere, location: typeSyntax.TypeSymbol.Location);
-
-        if (typeSyntax.IsPrimitiveType)
-            return new BasePrimitiveType(typeSyntax.BaseType.TypeSymbol.SymbolToPrimitiveType());
-
-        return TypeFromTypeDeclaration(typeSyntax);
-    }
-
-
-    private Type TypeFromTypeDeclaration(BaseTypeSyntax typeSyntax)
-    {
-        var typeDeclaration = DeclaredTypes.TryGetType(typeSyntax.TypeSymbol)!;
-        var declarationTypeSyntax = typeDeclaration.GetTypeSyntax();
-        return TypeFromTypeName(declarationTypeSyntax);
-    }
-
-    #endregion
 }

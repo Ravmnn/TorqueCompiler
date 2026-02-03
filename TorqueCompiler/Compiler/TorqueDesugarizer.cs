@@ -145,7 +145,7 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
     public Statement ProcessDefaultDeclaration(SugarDefaultDeclarationStatement statement)
     {
         var defaultValue = new DefaultExpression(statement.Type, statement.Location);
-        return new VariableDeclarationStatement(statement.Type, statement.Name, defaultValue) { Modifiers = statement.Modifiers };
+        return new VariableDeclarationStatement(statement.Type, statement.Name, defaultValue, statement.Location) { Modifiers = statement.Modifiers };
     }
 
 

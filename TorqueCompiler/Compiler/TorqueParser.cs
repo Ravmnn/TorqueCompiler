@@ -125,9 +125,10 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     private Statement? DeclarationOrStatement()
     {
         var peek = Iterator.Peek();
-        return peek switch
+        return peek.Type switch
         {
             _ when IsCurrentGenericDeclaration() => VariableOrFunctionDeclaration(),
+            TokenType.KwLet => TypeInferredVariableDeclaration(),
 
             _ => Statement()
         };
@@ -156,6 +157,20 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
 
 
+    private Statement TypeInferredVariableDeclaration()
+    {
+        Iterator.Advance();
+        var symbol = ExpectSymbol();
+
+        var variable = CompleteVariableDeclaration(new GenericDeclaration(null!, symbol));
+        variable.InferType = true;
+
+        return variable;
+    }
+
+
+
+
     private Statement VariableDeclaration(GenericDeclaration genericDeclaration)
     {
         Statement? variable;
@@ -174,13 +189,14 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         => new SugarDefaultDeclarationStatement(genericDeclaration.Type, genericDeclaration.Name);
 
 
-    private Statement CompleteVariableDeclaration(GenericDeclaration genericDeclaration)
+    private VariableDeclarationStatement CompleteVariableDeclaration(GenericDeclaration genericDeclaration)
     {
         Expect(TokenType.Equal, ParserCatalog.ExpectAssignmentOperator);
         var value = Expression();
         ExpectEndOfStatement();
 
-        return new VariableDeclarationStatement(genericDeclaration.Type, genericDeclaration.Name, value);
+        var location = genericDeclaration.Name.Location;
+        return new VariableDeclarationStatement(genericDeclaration.Type, genericDeclaration.Name, value, location);
     }
 
 

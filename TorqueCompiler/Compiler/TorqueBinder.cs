@@ -90,8 +90,8 @@ public class TorqueBinder :
 
     public void Process(IDeclaration declaration)
     {
-        Reporter.Process(declaration);
         declaration.ProcessDeclaration(this);
+        Reporter.Process(declaration);
     }
 
 
@@ -134,8 +134,10 @@ public class TorqueBinder :
 
     public BoundStatement Process(Statement statement)
     {
+        var boundStatement = statement.Process(this);
         Reporter.Process(statement);
-        return statement.Process(this);
+
+        return boundStatement;
     }
 
 
@@ -274,8 +276,10 @@ public class TorqueBinder :
 
     public BoundExpression Process(Expression expression)
     {
+        var boundExpression = expression.Process(this);
         Reporter.Process(expression);
-        return expression.Process(this);
+
+        return boundExpression;
     }
 
 
