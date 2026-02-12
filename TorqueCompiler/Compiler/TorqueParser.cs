@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Types;
@@ -14,37 +13,40 @@ using Torque.Compiler.Diagnostics.Catalogs;
 
 namespace Torque.Compiler;
 
-public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<ParserCatalog>, IIterator<Token>
+
+
+
+public class TorqueParser : IIterator<Token>
 {
     private readonly List<Statement> _statements = [];
     private readonly List<Modifier> _currentModifiers = [];
 
-    private IIterator<Token> Iterator => this;
+    public IIterator<Token> Iterator => this;
+    public TorqueParserReporter Reporter { get; }
 
 
     public int Current { get; set; }
-    public IReadOnlyList<Token> Source { get; } = source;
+    public IReadOnlyList<Token> Source { get; }
+
+
+
+
+    public TorqueParser(IReadOnlyList<Token> source)
+    {
+        Reporter = new TorqueParserReporter(this);
+
+        Source = source;
+    }
 
 
 
 
     public IReadOnlyList<Statement> Parse()
     {
-        Reset();
-
         while (!Iterator.AtEnd())
             ParseDeclarationOrSynchronize();
 
         return _statements;
-    }
-
-
-    private void Reset()
-    {
-        _statements.Clear();
-        Current = 0;
-
-        Diagnostics.Clear();
     }
 
 
@@ -160,7 +162,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     private Statement TypeInferredVariableDeclaration()
     {
         Iterator.Advance();
-        var symbol = ExpectSymbol();
+        var symbol = Reporter.ExpectSymbol();
 
         var variable = CompleteVariableDeclaration(new GenericDeclaration(null!, symbol));
         variable.InferType = true;
@@ -191,9 +193,9 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
     private VariableDeclarationStatement CompleteVariableDeclaration(GenericDeclaration genericDeclaration)
     {
-        Expect(TokenType.Equal, ParserCatalog.ExpectAssignmentOperator);
+        Reporter.Expect(TokenType.Equal, ParserCatalog.ExpectAssignmentOperator);
         var value = Expression();
-        ExpectEndOfStatement();
+        Reporter.ExpectEndOfStatement();
 
         var location = genericDeclaration.Name.Location;
         return new VariableDeclarationStatement(genericDeclaration.Type, genericDeclaration.Name, value, location);
@@ -204,9 +206,9 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
     private Statement FunctionDeclaration(GenericDeclaration genericDeclaration)
     {
-        ExpectLeftParen();
+        Reporter.ExpectLeftParen();
         var parameters = FunctionParameters();
-        ExpectRightParen();
+        Reporter.ExpectRightParen();
 
         var function = new FunctionDeclarationStatement(genericDeclaration.Type, genericDeclaration.Name, parameters, null);
         AddModifiersToModificableDeclaration(function);
@@ -252,10 +254,10 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         case TokenType.RightCurlyBracket:
             Iterator.Advance();
 
-            if (HasReports) // something already went wrong, ignore
+            if (Reporter.HasReports) // something already went wrong, ignore
                 return null;
 
-            ReportAndThrow(ParserCatalog.UnexpectedToken);
+            Reporter.ReportAndThrow(ParserCatalog.UnexpectedToken);
             throw new UnreachableException();
 
 
@@ -269,7 +271,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     private Statement ExpressionStatement()
     {
         var expression = Expression();
-        ExpectEndOfStatement();
+        Reporter.ExpectEndOfStatement();
 
         return new ExpressionStatement(expression);
     }
@@ -280,11 +282,11 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     private Statement Alias()
     {
         var keyword = Iterator.Advance();
-        var name = ExpectSymbol();
-        ExpectAssignment();
+        var name = Reporter.ExpectSymbol();
+        Reporter.ExpectAssignment();
 
         var type = TryParseTypeSyntax()!;
-        var end = ExpectEndOfStatement();
+        var end = Reporter.ExpectEndOfStatement();
 
         var location = new Span(keyword, end);
         return new AliasDeclarationStatement(name, type, location);
@@ -296,11 +298,11 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     private Statement Struct()
     {
         var keyword = Iterator.Advance();
-        var symbol = ExpectSymbol();
+        var symbol = Reporter.ExpectSymbol();
 
-        ExpectLeftCurlyBracket();
+        Reporter.ExpectLeftCurlyBracket();
         var fields = ParseStructMembers();
-        ExpectRightCurlyBracket();
+        Reporter.ExpectRightCurlyBracket();
 
         var location = new Span(keyword, symbol.Location);
         return new StructDeclarationStatement(symbol, fields, location);
@@ -314,7 +316,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         while (!Check(TokenType.RightCurlyBracket))
         {
             fields.Add(ParseGenericDeclaration());
-            ExpectEndOfStatement();
+            Reporter.ExpectEndOfStatement();
         }
 
         return fields;
@@ -331,7 +333,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         if (!Check(TokenType.SemiColon))
             expression = Expression();
 
-        ExpectEndOfStatement();
+        Reporter.ExpectEndOfStatement();
 
         return new ReturnStatement(keyword, expression);
     }
@@ -342,13 +344,13 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     private Statement Block()
     {
         var block = new List<Statement>();
-        var start = Expect(TokenType.LeftCurlyBracket, ParserCatalog.ExpectBlock);
+        var start = Reporter.Expect(TokenType.LeftCurlyBracket, ParserCatalog.ExpectBlock);
 
         while (!Iterator.AtEnd() && !Check(TokenType.RightCurlyBracket))
             if (DeclarationWithModifiers() is { } declaration)
                 block.Add(declaration);
 
-        Expect(TokenType.RightCurlyBracket, ParserCatalog.UnclosedBlock);
+        Reporter.Expect(TokenType.RightCurlyBracket, ParserCatalog.UnclosedBlock);
 
         return new BlockStatement(block, start.Location);
     }
@@ -360,9 +362,9 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     {
         var keyword = Iterator.Advance();
 
-        ExpectLeftParen();
+        Reporter.ExpectLeftParen();
         var condition = Expression();
-        var rightParen = ExpectRightParen();
+        var rightParen = Reporter.ExpectRightParen();
 
         var thenStatement = Statement()!;
         var elseStatement = ElseOrNull();
@@ -387,9 +389,9 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     {
         var keyword = Iterator.Advance();
 
-        ExpectLeftParen();
+        Reporter.ExpectLeftParen();
         var condition = Expression();
-        var rightParen = ExpectRightParen();
+        var rightParen = Reporter.ExpectRightParen();
 
         var body = Statement()!;
 
@@ -416,14 +418,14 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     {
         var keyword = Iterator.Advance();
 
-        ExpectLeftParen();
+        Reporter.ExpectLeftParen();
 
         var initialization = IsCurrentGenericDeclaration() ? VariableDeclaration(ParseGenericDeclaration()) : ExpressionStatement();
         var condition = Expression();
-        ExpectEndOfStatement();
+        Reporter.ExpectEndOfStatement();
         var step = Expression();
 
-        ExpectRightParen();
+        Reporter.ExpectRightParen();
 
         var loop = Statement()!;
 
@@ -437,7 +439,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     public Statement Break()
     {
         var keyword = Iterator.Advance();
-        ExpectEndOfStatement();
+        Reporter.ExpectEndOfStatement();
 
         return new BreakStatement(keyword);
     }
@@ -446,7 +448,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     public Statement Continue()
     {
         var keyword = Iterator.Advance();
-        ExpectEndOfStatement();
+        Reporter.ExpectEndOfStatement();
 
         return new ContinueStatement(keyword);
     }
@@ -548,7 +550,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         while (Match(TokenType.LeftSquareBracket))
         {
             var index = Expression();
-            var rightSquareBracket = ExpectRightSquareBracket();
+            var rightSquareBracket = Reporter.ExpectRightSquareBracket();
             var location = new Span(expression.Location, rightSquareBracket);
 
             expression = new IndexingExpression(expression, index, location);
@@ -567,7 +569,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         while (Match(TokenType.LeftParen))
         {
             var arguments = Arguments();
-            var parenRight = ExpectRightParen();
+            var parenRight = Reporter.ExpectRightParen();
             var location = new Span(expression.Location, parenRight);
 
             expression = new CallExpression(expression, arguments, location);
@@ -593,7 +595,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         if (ArrayOrPrimaryOrNull() is { } expression)
             return expression;
 
-        ReportAndThrow(ParserCatalog.ExpectExpression);
+        Reporter.ReportAndThrow(ParserCatalog.ExpectExpression);
         throw new UnreachableException();
     }
 
@@ -648,7 +650,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     {
         var leftParen = Iterator.Previous();
         var expression = Expression();
-        var rightParen = ExpectRightParen();
+        var rightParen = Reporter.ExpectRightParen();
 
         return new GroupingExpression(expression, new Span(leftParen, rightParen));
     }
@@ -675,7 +677,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
         if (!Match(TokenType.KwArray))
             return null;
 
-        ExpectLeftSquareBracket();
+        Reporter.ExpectLeftSquareBracket();
 
         var array = Match(TokenType.RightSquareBracket)
             ? ArrayWithImplicitSizeAndRequiredInitializationList()
@@ -697,8 +699,8 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
     private (IReadOnlyList<Expression>? initializationList, ulong length) ArrayWithExplicitSizeAndOptionalInitializationList()
     {
-        var length = (ulong)ExpectLiteralInteger().Value!;
-        ExpectRightSquareBracket();
+        var length = (ulong)Reporter.ExpectLiteralInteger().Value!;
+        Reporter.ExpectRightSquareBracket();
         var initializationList = OptionalExpectArrayInitializationList();
 
         return (initializationList, length);
@@ -716,9 +718,9 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
     private IReadOnlyList<Expression> ExpectArrayInitializationList()
     {
-        ExpectLeftCurlyBracket();
+        Reporter.ExpectLeftCurlyBracket();
         var expressions = DoWhileComma(Expression);
-        ExpectRightCurlyBracket();
+        Reporter.ExpectRightCurlyBracket();
 
         return expressions;
     }
@@ -729,9 +731,9 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     private Expression ParseDefault()
     {
         var keyword = Iterator.Previous();
-        ExpectLeftParen();
+        Reporter.ExpectLeftParen();
         var typeName = TryParseTypeSyntax()!;
-        var rightParen = ExpectRightParen();
+        var rightParen = Reporter.ExpectRightParen();
 
         return new DefaultExpression(typeName, new Span(keyword, rightParen));
     }
@@ -748,11 +750,11 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     private Expression ParseStructExpression()
     {
         var keyword = Iterator.Previous();
-        var symbol = ExpectSymbol();
+        var symbol = Reporter.ExpectSymbol();
 
-        ExpectLeftCurlyBracket();
+        Reporter.ExpectLeftCurlyBracket();
         var memberInitializations = ParseStructMembersInitialization();
-        ExpectRightCurlyBracket();
+        Reporter.ExpectRightCurlyBracket();
 
         var location = new Span(keyword, symbol.Location);
         return new StructExpression(symbol, memberInitializations, location);
@@ -761,8 +763,8 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
     private IReadOnlyList<StructMemberInitialization> ParseStructMembersInitialization() => DoWhileComma(() =>
     {
-        var member = ExpectSymbol();
-        ExpectColon();
+        var member = Reporter.ExpectSymbol();
+        Reporter.ExpectColon();
         var value = Expression();
 
         return new StructMemberInitialization(member, value);
@@ -825,7 +827,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     private GenericDeclaration ParseGenericDeclaration()
     {
         var type = TryParseTypeSyntax()!;
-        var symbol = ExpectSymbol();
+        var symbol = Reporter.ExpectSymbol();
 
         return new GenericDeclaration(type, symbol);
     }
@@ -848,7 +850,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
     private TypeSyntax? TryParseTypeSyntax(Dictionary<TokenType, Func<TypeSyntax, TypeSyntax?>> processors)
     {
-        var typeNameSymbol = ExpectSymbolOrPrimitiveType();
+        var typeNameSymbol = Reporter.ExpectSymbolOrPrimitiveType();
         TypeSyntax type = new BaseTypeSyntax(typeNameSymbol);
 
         while (true)
@@ -899,9 +901,9 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
     private TypeSyntax ParseFunctionTypeName(TypeSyntax type)
     {
-        ExpectLeftParen();
+        Reporter.ExpectLeftParen();
         var parameters = ParseFunctionTypeNameParameters();
-        ExpectRightParen();
+        Reporter.ExpectRightParen();
 
         return new FunctionTypeSyntax(type, parameters);
     }
@@ -914,94 +916,6 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
 
         return DoWhileComma(TryParseTypeSyntax)!;
     }
-
-    #endregion
-
-
-
-
-    #region Diagnostic Reporting
-
-    [DoesNotReturn]
-    public override void ReportAndThrow(ParserCatalog item, IReadOnlyList<object>? arguments = null, Span? location = null)
-        => base.ReportAndThrow(item, arguments, location ?? Iterator.Peek().Location);
-
-
-
-
-    private bool ReportIfIdentifierIsReserved(Token token)
-    {
-        if (!token.Lexeme.IsReserved())
-            return false;
-
-        ReportAndThrow(ParserCatalog.ReservedIdentifier, location: token);
-        return true;
-    }
-
-
-    private Token Expect(TokenType token, ParserCatalog item, Span? location = null)
-    {
-        if (Check(token))
-            return Iterator.Advance();
-
-        ReportAndThrow(item, location: location);
-        throw new UnreachableException();
-    }
-
-
-    private Token ExpectEndOfStatement()
-        => Expect(TokenType.SemiColon, ParserCatalog.ExpectSemicolonAfterStatement);
-
-
-    private Token ExpectAssignment()
-        => Expect(TokenType.Equal, ParserCatalog.ExpectAssignment);
-
-
-    private Token ExpectIdentifier(bool primitiveTypeAllowed = false)
-    {
-        var identifier = Expect(TokenType.Identifier, ParserCatalog.ExpectIdentifier);
-
-        if (!primitiveTypeAllowed || !identifier.Lexeme.IsType())
-            ReportIfIdentifierIsReserved(identifier);
-
-        return identifier;
-    }
-
-
-    private SymbolSyntax ExpectSymbol()
-        => new SymbolSyntax(ExpectIdentifier());
-
-    private SymbolSyntax ExpectSymbolOrPrimitiveType()
-        => new SymbolSyntax(ExpectIdentifier(true));
-
-
-    private Token ExpectLeftParen()
-        => Expect(TokenType.LeftParen, ParserCatalog.ExpectLeftParen);
-
-    private Token ExpectRightParen()
-        => Expect(TokenType.RightParen, ParserCatalog.ExpectRightParen);
-
-
-    private Token ExpectLeftSquareBracket()
-        => Expect(TokenType.LeftSquareBracket, ParserCatalog.ExpectLeftSquareBracket);
-
-    private Token ExpectRightSquareBracket()
-        => Expect(TokenType.RightSquareBracket, ParserCatalog.ExpectRightSquareBracket);
-
-
-    private Token ExpectLeftCurlyBracket()
-        => Expect(TokenType.LeftCurlyBracket, ParserCatalog.ExpectLeftCurlyBracket);
-
-    private Token ExpectRightCurlyBracket()
-        => Expect(TokenType.RightCurlyBracket, ParserCatalog.ExpectRightCurlyBracket);
-
-
-    private Token ExpectLiteralInteger()
-        => Expect(TokenType.IntegerValue, ParserCatalog.ExpectLiteralInteger);
-
-
-    private Token ExpectColon()
-        => Expect(TokenType.Colon, ParserCatalog.ExpectColon);
 
     #endregion
 
@@ -1078,7 +992,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     }
 
 
-    private bool Match(params IReadOnlyList<TokenType> tokens)
+    public bool Match(params IReadOnlyList<TokenType> tokens)
     {
         foreach (var token in tokens)
         {
@@ -1093,7 +1007,7 @@ public class TorqueParser(IReadOnlyList<Token> source) : DiagnosticReporter<Pars
     }
 
 
-    private bool Check(TokenType token)
+    public bool Check(TokenType token)
     {
         if (Iterator.AtEnd())
             return false;

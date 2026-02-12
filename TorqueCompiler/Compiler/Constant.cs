@@ -10,7 +10,7 @@ namespace Torque.Compiler;
 
 public static class Constant
 {
-    public static LLVMTypeRef GenericPointerType { get; }
+    public static LLVMTypeRef RawPointerType { get; }
         = LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0);
 
 
@@ -30,7 +30,7 @@ public static class Constant
         => LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, value ? 1UL : 0UL);
 
     public static LLVMValueRef NullPointer(LLVMTypeRef? pointerType = null)
-        => LLVMValueRef.CreateConstPointerNull(pointerType ?? GenericPointerType);
+        => LLVMValueRef.CreateConstPointerNull(pointerType ?? RawPointerType);
 
 
 

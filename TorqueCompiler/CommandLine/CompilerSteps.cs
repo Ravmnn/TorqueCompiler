@@ -77,7 +77,7 @@ public static class CompilerSteps
         var parser = new TorqueParser(tokens);
         var statements = parser.Parse();
 
-        Torque.Logger.LogDiagnosticsAndInterruptIfAny(parser.Diagnostics);
+        Torque.Logger.LogDiagnosticsAndInterruptIfAny(parser.Reporter.Diagnostics);
 
         return statements;
     }
