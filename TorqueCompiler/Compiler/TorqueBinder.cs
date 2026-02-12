@@ -47,6 +47,8 @@ public class TorqueBinder :
     {
         Statements = statements.ToList();
 
+        DeclaredTypes = new DeclaredTypeManager();
+        Scope = new Scope();
         Reporter = new TorqueBinderReporter(this);
     }
 
@@ -55,22 +57,8 @@ public class TorqueBinder :
 
     public IReadOnlyList<BoundStatement> Bind()
     {
-        Reset();
-
         DeclareAllDeclarations();
         return Statements.Select(Process).ToArray();
-    }
-
-
-    private void Reset()
-    {
-        _currentLoopDepth = 0;
-        DeclaredTypes = new DeclaredTypeManager();
-
-        Scope = new Scope();
-        Reporter = new TorqueBinderReporter(this);
-
-        // TODO: remove these Reset methods from all the tools, state recovery should be achieved by recreating the class
     }
 
 
@@ -119,8 +107,7 @@ public class TorqueBinder :
 
     public void ProcessAliasDeclaration(AliasDeclarationStatement declaration)
     {
-        // TODO: create "GlobalTypeDeclaration.GetTypeDeclaration()"... use this also in the binder reporter, struct declaration processing
-        DeclaredTypes.Types.Add(new AliasTypeDeclaration(declaration.Symbol, declaration.TypeSyntax));
+        DeclaredTypes.Types.Add(declaration.GetTypeDeclaration());
     }
 
 

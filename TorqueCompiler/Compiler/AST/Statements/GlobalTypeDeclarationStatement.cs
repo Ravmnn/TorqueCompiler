@@ -3,12 +3,13 @@ using System.Collections.Generic;
 
 using Torque.Compiler.Symbols;
 using Torque.Compiler.Tokens;
+using Torque.Compiler.Types;
 
 
 namespace Torque.Compiler.AST.Statements;
 
 
-// TODO: global type declarations must be in global (file) scope
+
 
 public abstract class GlobalTypeDeclarationStatement(SymbolSyntax symbol, Span location)
     : Statement(location), IDeclaration
@@ -36,4 +37,9 @@ public abstract class GlobalTypeDeclarationStatement(SymbolSyntax symbol, Span l
     public abstract void ProcessDeclaration(IDeclarationProcessor processor);
 
     public abstract T ProcessGlobalTypeDeclaration<T>(IGlobalTypeDeclarationProcessor<T> processor);
+
+
+
+
+    public abstract TypeDeclaration GetTypeDeclaration();
 }

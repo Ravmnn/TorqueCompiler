@@ -24,4 +24,10 @@ public class AliasDeclarationStatement(SymbolSyntax name, TypeSyntax typeSyntax,
 
     public override T ProcessGlobalTypeDeclaration<T>(IGlobalTypeDeclarationProcessor<T> processor)
         => processor.ProcessAlias(this);
+
+
+
+
+    public override AliasTypeDeclaration GetTypeDeclaration()
+        => new AliasTypeDeclaration(Symbol, TypeSyntax);
 }

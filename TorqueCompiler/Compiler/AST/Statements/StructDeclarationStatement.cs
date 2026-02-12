@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Symbols;
+using Torque.Compiler.Types;
 
 
 namespace Torque.Compiler.AST.Statements;
@@ -24,4 +25,10 @@ public class StructDeclarationStatement(SymbolSyntax symbol, IReadOnlyList<Gener
 
     public override T ProcessGlobalTypeDeclaration<T>(IGlobalTypeDeclarationProcessor<T> processor)
         => processor.ProcessStruct(this);
+
+
+
+
+    public override StructTypeDeclaration GetTypeDeclaration()
+        => new StructTypeDeclaration(Symbol, Members);
 }
