@@ -10,7 +10,7 @@ namespace Torque.Compiler;
 
 
 
-public class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs) : DiagnosticReporter<ControlFlowAnalyzerCatalog>
+public sealed class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> graphs) : DiagnosticReporter<ControlFlowAnalyzerCatalog>
 {
     public IReadOnlyList<ControlFlowGraph> Graphs { get; } = graphs;
 

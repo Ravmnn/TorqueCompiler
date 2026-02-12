@@ -88,7 +88,7 @@ public static class CompilerSteps
         var lexer = new TorqueLexer(source);
         var tokens = lexer.Tokenize();
 
-        Torque.Logger.LogDiagnosticsAndInterruptIfAny(lexer.Diagnostics);
+        Torque.Logger.LogDiagnosticsAndInterruptIfAny(lexer.Reporter.Diagnostics);
 
         return tokens;
     }

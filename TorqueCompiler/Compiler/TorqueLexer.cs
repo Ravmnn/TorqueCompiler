@@ -11,13 +11,14 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIterator<char>
+public class TorqueLexer : IIterator<char>
 {
     private int _startInLine;
     private int _endInLine;
-    private int _line;
+    private int _line = 1;
 
-    private IIterator<char> Iterator => this;
+    public IIterator<char> Iterator => this;
+    public TorqueLexerReporter Reporter { get; }
 
 
     private int _start;
@@ -31,7 +32,17 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
 
 
     public IReadOnlyList<char> Source => StringSource.ToList();
-    public string StringSource { get; } = source;
+    public string StringSource { get; }
+
+
+
+
+    public TorqueLexer(string source)
+    {
+        Reporter = new TorqueLexerReporter(this);
+
+        StringSource = source;
+    }
 
 
 
@@ -39,7 +50,6 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
     public IReadOnlyList<Token> Tokenize()
     {
         var tokens = new List<Token>();
-        Reset();
 
         while (!Iterator.AtEnd())
             TokenizeToken(tokens);
@@ -61,16 +71,6 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
     {
         _start = _end;
         _startInLine = _endInLine;
-    }
-
-
-    private void Reset()
-    {
-        _start = _end = 0;
-        _startInLine = _endInLine = 0;
-        _line = 1;
-
-        Diagnostics.Clear();
     }
 
 
@@ -132,7 +132,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
         if (char.IsAsciiDigit(character))
             return ScanNumber();
 
-        Report(LexerCatalog.UnexpectedToken);
+        Reporter.Report(LexerCatalog.UnexpectedToken);
         return null;
     }
 
@@ -145,7 +145,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
         var text = ScanStringText('\'');
 
         var data = EncodeStringToASCII(text, quoteLocation);
-        ReportCharErrors(data, quoteLocation);
+        Reporter.ReportCharErrors(data, quoteLocation);
 
         return TokenFromTokenType(TokenType.CharValue, data[0]);
     }
@@ -159,7 +159,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
         var text = ScanStringText('\"');
 
         var data = EncodeStringToASCII(text, quoteLocation);
-        ReportStringErrors(quoteLocation);
+        Reporter.ReportStringErrors(quoteLocation);
 
         return TokenFromTokenType(TokenType.StringValue, data);
     }
@@ -213,7 +213,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
         for (var i = 0; i < diagnostics.Count; i++)
             diagnostics[i] = ConvertStringEncoderDiagnosticsToThis(diagnostics[i], stringStartQuoteLocation);
 
-        Diagnostics.AddRange(diagnostics);
+        Reporter.Diagnostics.AddRange(diagnostics);
     }
 
 
@@ -250,7 +250,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
         var startLocation = GetCurrentLocation();
         AdvanceMultilineComment();
 
-        if (ReportMultilineCommentDiagnostics(startLocation))
+        if (Reporter.ReportMultilineCommentDiagnostics(startLocation))
             return;
 
         Iterator.Advance(); // advance '<'
@@ -305,7 +305,7 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
     private Token TokenFromNumber(string lexeme)
     {
         if (lexeme.Count(character => character == '.') > 1)
-            Report(LexerCatalog.MoreThanOneDotInFloatNumber);
+            Reporter.Report(LexerCatalog.MoreThanOneDotInFloatNumber);
 
         var value = GetValueFromNumber(lexeme);
         var tokenType = value is double ? TokenType.FloatValue : TokenType.IntegerValue;
@@ -349,55 +349,16 @@ public class TorqueLexer(string source) : DiagnosticReporter<LexerCatalog>, IIte
 
 
 
-    #region Diagnostic Reporting
-
-    public override Diagnostic Report(LexerCatalog item, IReadOnlyList<object>? arguments = null, Span? location = null)
-        => base.Report(item, arguments, location ?? GetCurrentLocation());
-
-
-    private bool ReportMultilineCommentDiagnostics(Span commentStart)
-    {
-        if (!Iterator.AtEnd())
-            return false;
-
-        Report(LexerCatalog.UnclosedMultilineComment, location: commentStart);
-        return true;
-    }
-
-
-    private void ReportStringErrors(Span quoteLocation)
-    {
-        if (Iterator.AtEnd())
-            Report(LexerCatalog.UnclosedString, location: quoteLocation);
-    }
-
-
-    private void ReportCharErrors(IReadOnlyList<byte> data, Span quoteLocation)
-    {
-        if (data.Count == 0)
-            Report(LexerCatalog.SingleCharacterEmpty);
-
-        if (Iterator.AtEnd())
-            Report(LexerCatalog.UnclosedSingleCharacterString, location: quoteLocation);
-
-        else if (data.Count > 1)
-            Report(LexerCatalog.SingleCharacterMoreThanOne);
-    }
-
-    #endregion
-
-
-
 
     private Token TokenFromTokenType(TokenType type, object? value = null)
         => new Token(GetCurrentTokenLexeme(), type, GetCurrentLocation(), value);
 
 
-    private Span GetCurrentLocation()
+    public Span GetCurrentLocation()
         => new Span(_startInLine, _endInLine, _line);
 
 
-    private string GetCurrentTokenLexeme()
+    public string GetCurrentTokenLexeme()
         => StringSource[_start .. _end];
 
 
