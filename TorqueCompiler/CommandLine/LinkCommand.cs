@@ -35,6 +35,11 @@ public class LinkCommandSettings : CommandSettings
     public bool Debug { get; init; }
 
 
+    [CommandOption("--pie")]
+    [Description("Generate Position Independent Executable")]
+    public bool PIE { get; init; }
+
+
 
 
     public override ValidationResult Validate()

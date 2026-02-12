@@ -70,6 +70,12 @@ public class CompileCommandSettings : CommandSettings
     public bool Debug { get; init; }
 
 
+    [CommandOption("--pic")]
+    [Description("Generate Position Independent Code")]
+    [DefaultValue(true)]
+    public bool PIC { get; init; }
+
+
 
 
     [CommandOption("--print-ast")]

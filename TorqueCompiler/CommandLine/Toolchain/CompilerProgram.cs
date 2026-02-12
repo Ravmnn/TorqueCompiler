@@ -21,9 +21,9 @@ public class CompilerProgram : Program
     {
         var fileType = OutputTypeToLLVMOutputType();
         var debug = Options.Debug ? "-O0" : string.Empty;
+        var pic = $"-relocation-model={(Options.PIC ? "pic" : "static")}";
 
-        // TODO: PIC enabled by default, move this to CLI option later
-        return $"{InputFile} -o \"{OutputFile}\" -filetype={fileType} {debug} -relocation-model=pic";
+        return $"{InputFile} -o \"{OutputFile}\" -filetype={fileType} {debug} {pic}";
     }
 
 

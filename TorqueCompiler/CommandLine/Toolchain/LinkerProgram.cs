@@ -27,10 +27,10 @@ public class LinkerProgram : Program
         // if you want PIC for a library, raw PIC is mandatory, since a library is not executable,
         // so PIE doesn't work
 
-        var filesString = string.Join(' ', InputFiles);
-        var debugString = Options.Debug ? "-O0 -g" : string.Empty;
+        var files = string.Join(' ', InputFiles);
+        var debug = Options.Debug ? "-O0 -g" : string.Empty;
+        var pie = Options.PIE ? "-pie" : "-no-pie";
 
-        // TODO: again, move PIC to CLI option
-        return $"{filesString} -o \"{OutputFile}\" {debugString} -fPIC";
+        return $"{files} -o \"{OutputFile}\" {debug} {pie}";
     }
 }

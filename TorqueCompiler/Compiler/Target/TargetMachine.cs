@@ -52,9 +52,11 @@ public class TargetMachine
         => target.CreateTargetMachine(
             triple,
             "generic",
-            "", // TODO: enabling PIC (or not) should be an option of the CLI, but enabled by default
+            "",
             LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault,
             LLVMRelocMode.LLVMRelocPIC,
+            // TODO: looks like the LLVM API can generate the final native code without the use of LLC:
+            // use the LLVM API or continue with the current approach (LLC)?
             LLVMCodeModel.LLVMCodeModelDefault
         );
 

@@ -5,8 +5,9 @@ namespace Torque.CommandLine.Toolchain;
 
 public record struct CompilerProgramOptions()
 {
-    public OutputType OutputType { get; set; } = OutputType.Object;
+    public OutputType OutputType { get; set; }
     public bool Debug { get; set; }
+    public bool PIC { get; set; }
 
 
 
@@ -15,6 +16,7 @@ public record struct CompilerProgramOptions()
         => new CompilerProgramOptions
         {
             OutputType = settings.OutputType,
-            Debug = settings.Debug
+            Debug = settings.Debug,
+            PIC = settings.PIC
         };
 }
