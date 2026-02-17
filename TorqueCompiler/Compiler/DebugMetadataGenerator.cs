@@ -62,7 +62,7 @@ public class DebugMetadataGenerator
         Compiler.GlobalScope.DebugMetadata = File;
 
 
-        TypeGenerator = new DebugTypeMetadataGenerator(DebugBuilder, File);
+        TypeGenerator = new DebugTypeMetadataGenerator(Compiler, DebugBuilder, File);
     }
 
 

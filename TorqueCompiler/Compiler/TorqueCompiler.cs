@@ -162,6 +162,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     #endregion
 
+    // TODO: you're currently creating a new struct type for every use occurence of the type:
+    // A struct type must be declared once, and its LLVM type reutilized, so you need to store it somewhere
+
 
 
 

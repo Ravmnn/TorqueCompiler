@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 
+using Torque.Compiler.Symbols;
+
 
 namespace Torque.Compiler.Types;
 
 
 
 
-public class StructTypeSyntax(IReadOnlyList<GenericDeclaration> members) : TypeSyntax
+public class StructTypeSyntax(SymbolSyntax name, IReadOnlyList<GenericDeclaration> members) : BaseTypeSyntax(name)
 {
-    public override BaseTypeSyntax BaseType => null!;
-
-
+    public SymbolSyntax Name { get; } = name;
     public IReadOnlyList<GenericDeclaration> Members { get; } = members;
 }

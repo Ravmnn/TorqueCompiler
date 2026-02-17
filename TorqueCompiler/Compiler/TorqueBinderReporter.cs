@@ -374,11 +374,11 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     private bool ReportIfUnknownType(TypeSyntax type) => type switch
     {
-        BaseTypeSyntax baseType => ReportIfUnknownForBaseType(baseType),
-
+        StructTypeSyntax structType => ReportIfUnknownForStructType(structType),
         FunctionTypeSyntax functionType => ReportIfUnknownForFunctionType(functionType),
         PointerTypeSyntax pointerType => ReportIfUnknownType(pointerType.InnerType),
-        StructTypeSyntax structType => ReportIfUnknownForStructType(structType),
+
+        BaseTypeSyntax baseType => ReportIfUnknownForBaseType(baseType),
 
         _ => throw new UnreachableException()
     };

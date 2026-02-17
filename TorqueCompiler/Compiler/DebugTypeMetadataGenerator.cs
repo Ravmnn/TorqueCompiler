@@ -12,7 +12,7 @@ namespace Torque.Compiler;
 
 
 
-public class DebugTypeMetadataGenerator(LLVMDIBuilderRef debugBuilder, LLVMMetadataRef file)
+public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRef debugBuilder, LLVMMetadataRef file)
 {
     // Debug metadata generation methods require the coupled "DebugBuilder" instance.
     // That dependency makes the use of polymorphism not viable, since it would require the objects
@@ -21,6 +21,11 @@ public class DebugTypeMetadataGenerator(LLVMDIBuilderRef debugBuilder, LLVMMetad
     // a bad idea. As consequence, the procedural approach is chosen to solve the problem.
     // It's a bit inconsistent though, since the "Type" object uses the polymorphism approach
     // to convert itself to a valid LLVM's representation.
+
+
+    public TorqueCompiler Compiler { get; } = compiler;
+    public Scope GlobalScope => Compiler.GlobalScope;
+    public Scope Scope => Compiler.Scope;
 
     public LLVMDIBuilderRef DebugBuilder { get; } = debugBuilder;
     public LLVMMetadataRef File { get; } = file;
@@ -55,13 +60,25 @@ public class DebugTypeMetadataGenerator(LLVMDIBuilderRef debugBuilder, LLVMMetad
         {
             // Procedural approach. See the top of the class for detailed explanation.
 
-            BasePrimitiveType => CreateBasicTypeMetadata(name, sizeInBits, encoding),
-
             FunctionType functionType => CreatePointerToFunctionTypeMetadata(functionType),
             PointerType pointerType => CreatePointerTypeMetadata(TypeToMetadata(pointerType.Type), name, sizeInBits),
 
+            //BasePrimitiveType { IsCompound: true } => ,
+            BasePrimitiveType => CreateBasicTypeMetadata(name, sizeInBits, encoding),
+
             _ => throw new UnreachableException()
         };
+
+
+    public LLVMMetadataRef CreateFunctionTypeMetadata(FunctionType type)
+    {
+        var typeArray = CreateFunctionTypeArray(type);
+        var metadataTypeArray = TypesToMetadataArray(typeArray);
+
+        var debugFunctionType = CreateFunctionTypeMetadata(metadataTypeArray);
+
+        return debugFunctionType;
+    }
 
 
     private LLVMMetadataRef CreatePointerToFunctionTypeMetadata(FunctionType type)
@@ -73,18 +90,6 @@ public class DebugTypeMetadataGenerator(LLVMDIBuilderRef debugBuilder, LLVMMetad
         var sizeInBits = pointerToFunctionType.SizeOfTypeInMemoryAsBits();
 
         return CreatePointerTypeMetadata(functionTypeMetadata, name, sizeInBits);
-    }
-
-
-
-    public LLVMMetadataRef CreateFunctionTypeMetadata(FunctionType type)
-    {
-        var typeArray = CreateFunctionTypeArray(type);
-        var metadataTypeArray = TypesToMetadataArray(typeArray);
-
-        var debugFunctionType = CreateFunctionTypeMetadata(metadataTypeArray);
-
-        return debugFunctionType;
     }
 
 
@@ -109,6 +114,20 @@ public class DebugTypeMetadataGenerator(LLVMDIBuilderRef debugBuilder, LLVMMetad
             name.StringToSBytePtr(),
             (uint)name.Length
         );
+
+
+    // TODO: create debug info for structs
+    // public unsafe LLVMMetadataRef CreateStructTypeMetadata(string name)
+    // {
+    //     return LLVM.DIBuilderCreateStructType(
+    //         DebugBuilder,
+    //         GlobalScope.DebugMetadata!.Value,
+    //         name.StringToSBytePtr(),
+    //         (uint)name.Length,
+    //         File,
+    //
+    //     );
+    // }
 
 
     public unsafe LLVMMetadataRef CreateBasicTypeMetadata(string name, int sizeInBits, int encoding)

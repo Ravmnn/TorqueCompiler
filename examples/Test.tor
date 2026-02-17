@@ -49,12 +49,12 @@ void println(char* content)
 
 
 
-#>struct Person
+struct Person
 {
     char* name;
     uint age;
     uint id;
-}<#
+}
 
 
 int main(int argc, char** argv)
@@ -70,10 +70,8 @@ int main(int argc, char** argv)
     intToString(buffer, person.id as int);
     println(buffer);<#
 
-    let name = "marvin";
-    let number = name;
-
-    println(name);
+    Person someone;
+    Person anotherOne;
 
     return 0;
 }

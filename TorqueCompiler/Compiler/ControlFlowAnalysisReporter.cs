@@ -34,7 +34,7 @@ public sealed class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> 
 
     private bool ReportIfNonVoidAndDoesNotReturn(FunctionType functionType, ControlFlowGraph graph)
     {
-        if (functionType.IsVoid || AllExecutionPathOfGraphReturns(graph.Entry))
+        if (functionType.ReturnType.IsVoid || AllExecutionPathOfGraphReturns(graph.Entry))
             return false;
 
         Report(ControlFlowAnalyzerCatalog.FunctionMustReturnFromAllPaths, location: graph.FunctionDeclaration.Location);
@@ -44,7 +44,7 @@ public sealed class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> 
 
     private bool ReportIfVoidAndReturn(FunctionType functionType, ControlFlowGraph graph)
     {
-        if (!functionType.IsVoid || !AnyExecutionPathOfGraphReturns(graph.Entry))
+        if (!functionType.ReturnType.IsVoid || !AnyExecutionPathOfGraphReturns(graph.Entry))
             return false;
 
         Report(ControlFlowAnalyzerCatalog.FunctionCannotReturnAValue, location: graph.FunctionDeclaration.Location);

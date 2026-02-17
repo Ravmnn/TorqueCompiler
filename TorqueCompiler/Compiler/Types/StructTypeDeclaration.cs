@@ -17,5 +17,5 @@ public class StructTypeDeclaration(SymbolSyntax typeSymbol, IReadOnlyList<Generi
 
 
     public override TypeSyntax GetTypeSyntax()
-        => new StructTypeSyntax(Members);
+        => new StructTypeSyntax(TypeSymbol, Members);
 }

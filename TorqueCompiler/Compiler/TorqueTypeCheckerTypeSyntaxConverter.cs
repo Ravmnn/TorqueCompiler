@@ -48,7 +48,7 @@ public class TorqueTypeCheckerTypeSyntaxConverter(TorqueTypeChecker typeChecker)
         foreach (var member in structTypeSyntax.Members)
             boundMembers.Add(new BoundGenericDeclaration(TypeFromTypeSyntax(member.Type), member.Name));
 
-        return new StructType(boundMembers);
+        return new StructType(structTypeSyntax.SymbolSyntax, boundMembers);
     }
 
 

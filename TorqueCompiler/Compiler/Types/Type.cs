@@ -42,13 +42,13 @@ public abstract class Type
     public abstract BasePrimitiveType BasePrimitive { get; }
 
 
-    public bool IsVoid => BasePrimitive.Type == PrimitiveType.Void;
+    public bool IsVoid => IsBase && BasePrimitive.Type == PrimitiveType.Void;
 
-    public bool IsSigned => BasePrimitive.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 || IsFloat;
-    public bool IsUnsigned => !IsSigned;
+    public bool IsSigned => IsBase && BasePrimitive.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 || IsFloat;
+    public bool IsUnsigned => IsBase && IsInteger && !IsSigned;
 
     public bool IsFloat => IsBase && BasePrimitive.Type is PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64;
-    public bool IsInteger => (IsBase || IsPointer) && !IsFloat;
+    public bool IsInteger => (IsBase || IsPointer) && !IsFloat && !IsCompound;
     public bool IsChar => IsBase && BasePrimitive.Type == PrimitiveType.Char;
     public bool IsBool => IsBase && BasePrimitive.Type == PrimitiveType.Bool;
 

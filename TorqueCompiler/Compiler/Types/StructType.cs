@@ -1,6 +1,9 @@
 using System.Collections.Generic;
+using System.Linq;
 
 using LLVMSharp.Interop;
+
+using Torque.Compiler.Symbols;
 
 
 namespace Torque.Compiler.Types;
@@ -8,17 +11,35 @@ namespace Torque.Compiler.Types;
 
 
 
-// TODO: this must not be inherit from BasePrimitiveType
-// TODO: check if you can remove PrimitiveType.Struct
-public class StructType(IReadOnlyList<BoundGenericDeclaration> members) : BasePrimitiveType(PrimitiveType.Struct)
+public class StructType(SymbolSyntax name, IReadOnlyList<BoundGenericDeclaration> members) : BasePrimitiveType(PrimitiveType.Struct)
 {
+    public SymbolSyntax Name { get; } = name;
     public IReadOnlyList<BoundGenericDeclaration> Members { get; } = members;
 
 
 
 
-    public override LLVMTypeRef ToLLVMType()
+    public override unsafe LLVMTypeRef ToLLVMType()
     {
-        throw new System.NotImplementedException();
+        var fieldTypes = (from member in Members select member.Type.ToLLVMType()).ToArray();
+
+        fixed (LLVMOpaqueType** fieldOpaqueTypes = LLVMTypeRefsToOpaqueTypePointers(fieldTypes))
+        {
+            var structType = LLVM.StructCreateNamed(LLVM.GetGlobalContext(), Name.Name.StringToSBytePtr());
+            LLVM.StructSetBody(structType, fieldOpaqueTypes, (uint)fieldTypes.Length, 0);
+
+            return structType;
+        }
+    }
+
+
+    private static unsafe LLVMOpaqueType*[] LLVMTypeRefsToOpaqueTypePointers(LLVMTypeRef[] fieldTypes)
+    {
+        var fieldOpaqueTypes = new LLVMOpaqueType*[fieldTypes.Length];
+
+        for (var i = 0; i < fieldTypes.Length; i++)
+            fieldOpaqueTypes[i] = fieldTypes[i];
+
+        return fieldOpaqueTypes;
     }
 }
