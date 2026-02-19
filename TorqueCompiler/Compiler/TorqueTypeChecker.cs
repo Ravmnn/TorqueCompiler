@@ -522,7 +522,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
     public Type ProcessStruct(BoundStructExpression expression)
     {
-        var structType = DeclaredTypes.TryGetType<StructTypeDeclaration>(expression.Syntax.Symbol)!;
+        var structType = DeclaredTypes.TryGetType<StructTypeDeclaration>(expression.Syntax.Symbol.Name)!;
 
         for (var index = 0; index < expression.InitializationList.Count; index++)
         {

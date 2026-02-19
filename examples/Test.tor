@@ -59,19 +59,7 @@ struct Person
 
 int main(int argc, char** argv)
 {
-    #>let person = new Person { name: "Kujo Jotaro", age: 24, id: 710165 };
-    char* buffer;
-
-    println(person.name);
-
-    intToString(buffer, person.age as int);
-    println(buffer);
-
-    intToString(buffer, person.id as int);
-    println(buffer);<#
-
-    Person someone;
-    Person anotherOne;
+    println("hello, world");
 
     return 0;
 }

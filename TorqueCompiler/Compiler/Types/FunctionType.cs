@@ -20,18 +20,8 @@ public class FunctionType(Type returnType, IReadOnlyList<Type> parametersType) :
 
 
 
-    public override LLVMTypeRef ToLLVMType()
-        => LLVMTypeRef.CreatePointer(ToRawLLVMType(), 0);
-
-
-    public LLVMTypeRef ToRawLLVMType()
-    {
-        var llvmReturnType = ReturnType.ToLLVMType();
-        var llvmParametersType = ParametersType.TypesToLLVMTypes();
-        var llvmFunctionType = LLVMTypeRef.CreateFunction(llvmReturnType, llvmParametersType.ToArray());
-
-        return llvmFunctionType;
-    }
+    public override T Process<T>(ITypeProcessor<T> processor)
+        => processor.ProcessFunction(this);
 
 
 

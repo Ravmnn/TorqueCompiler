@@ -23,7 +23,6 @@ public static class TypeCaster
         var bothBase = from.IsBase && to.IsBase;
         var signDiffers = from.IsSigned != to.IsSigned;
         var floatToInt = from.IsFloat && to.IsInteger;
-        var targetSmaller = from.SizeOfTypeInMemory() > to.SizeOfTypeInMemory();
 
         var rawPointerToPointer = to.IsPointer && from.IsRawPointer;
         var anyIsCompound = from.IsCompound || to.IsCompound;
@@ -33,6 +32,10 @@ public static class TypeCaster
 
         if (rawPointerToPointer || sameTypes)
             return true;
+
+
+        var typeBuilder = new TypeBuilder();
+        var targetSmaller = typeBuilder.SizeOfTypeInMemory(from) > typeBuilder.SizeOfTypeInMemory(to);
 
         if (bothBase && forceForBaseTypes)
             return true;

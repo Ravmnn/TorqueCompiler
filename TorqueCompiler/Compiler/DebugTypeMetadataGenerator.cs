@@ -24,8 +24,12 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
 
 
     public TorqueCompiler Compiler { get; } = compiler;
+
     public Scope GlobalScope => Compiler.GlobalScope;
     public Scope Scope => Compiler.Scope;
+
+    public TypeBuilder TypeBuilder => Compiler.TypeBuilder;
+
 
     public LLVMDIBuilderRef DebugBuilder { get; } = debugBuilder;
     public LLVMMetadataRef File { get; } = file;
@@ -48,7 +52,7 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
     {
         var name = type.ToString();
 
-        var sizeInBits = type.SizeOfTypeInMemoryAsBits();
+        var sizeInBits = TypeBuilder.SizeOfTypeInMemoryAsBits(type);
         var encoding = GetEncodingFromType(type);
 
         return TypeToMetadata(type, name, sizeInBits, encoding);
@@ -87,7 +91,7 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
         var functionTypeMetadata = CreateFunctionTypeMetadata(type);
 
         var name = pointerToFunctionType.ToString();
-        var sizeInBits = pointerToFunctionType.SizeOfTypeInMemoryAsBits();
+        var sizeInBits = TypeBuilder.SizeOfTypeInMemoryAsBits(pointerToFunctionType);
 
         return CreatePointerTypeMetadata(functionTypeMetadata, name, sizeInBits);
     }

@@ -414,7 +414,7 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
         var symbol = type.TypeSymbol;
 
-        if (Binder.DeclaredTypes.IsDeclared(symbol))
+        if (Binder.DeclaredTypes.IsDeclared(symbol.Name))
             return false;
 
         Report(BinderCatalog.UnknownType, [symbol.Name], symbol.Location);
@@ -426,7 +426,7 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     private bool ReportIfDeclaredTypeIsNotOfKind<T>(SymbolSyntax typeSymbol) where T : TypeDeclaration
     {
-        if (Binder.DeclaredTypes.IsDeclared<T>(typeSymbol))
+        if (Binder.DeclaredTypes.IsDeclared<T>(typeSymbol.Name))
             return false;
 
         Report(BinderCatalog.InvalidTypeKind, location: typeSymbol.Location);

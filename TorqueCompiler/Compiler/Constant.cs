@@ -35,10 +35,18 @@ public static class Constant
 
 
 
-    public static LLVMValueRef GetDefaultValueForType(Type type) => type switch
+    public static LLVMValueRef GetDefaultValueForType(Type type)
     {
-        _ when type.IsPointer => NullPointer(),
-        _ when type.IsFloat => Real(0, type.ToLLVMType()),
-        _ => Integer(0, type.ToLLVMType())
-    };
+        var typeBuilder = new TypeBuilder();
+        var llvmType = typeBuilder.Process(type);
+
+        return type switch
+        {
+            _ when type.IsPointer => NullPointer(),
+            _ when type.IsFloat => Real(0, llvmType),
+            _ => Integer(0, llvmType)
+
+            // TODO: default value for structs
+        };
+    }
 }

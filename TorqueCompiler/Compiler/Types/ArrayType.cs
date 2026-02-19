@@ -15,8 +15,5 @@ public class ArrayType(Type type, ulong length) : PointerType(type)
     public ulong Length { get; } = length;
 
 
-
-
-    public override LLVMTypeRef ToLLVMType()
-        => LLVMTypeRef.CreateArray2(Type.ToLLVMType(), Length);
+    //=> LLVMTypeRef.CreateArray2(Type.ToLLVMType(), Length);
 }

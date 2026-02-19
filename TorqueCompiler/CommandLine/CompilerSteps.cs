@@ -12,17 +12,11 @@ namespace Torque.CommandLine;
 
 
 
-public readonly record struct ModuleContext(IReadOnlyList<BoundStatement> Statements, Scope Scope,
-    DeclaredTypeManager DeclaredTypes);
-
-
-
-
 public static class CompilerSteps
 {
-    public static string Compile(IReadOnlyList<BoundStatement> boundStatements, Scope scope, CompileCommandSettings settings)
+    public static string Compile(ModuleContext module, CompileCommandSettings settings)
     {
-        var compiler = new TorqueCompiler(boundStatements, scope, settings.File, settings.Debug);
+        var compiler = new TorqueCompiler(module.Statements, module.Scope, settings.File, settings.Debug);
         var bitCode = compiler.Compile();
 
         return bitCode;

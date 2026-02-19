@@ -58,12 +58,12 @@ public abstract class Type
     public bool IsPointer => this is PointerType;
     public bool IsRawPointer => this is PointerType pointerType && pointerType.Type == PrimitiveType.UInt8;
     public bool IsFunction => this is FunctionType;
-    public bool IsCompound => this is StructType;
+    public bool IsCompound => this is BasePrimitiveType { Type: PrimitiveType.Struct };
 
 
 
 
-    public abstract LLVMTypeRef ToLLVMType();
+    public abstract T Process<T>(ITypeProcessor<T> processor);
 
 
 

@@ -15,6 +15,6 @@ public class BasePrimitiveType(PrimitiveType type) : Type
 
 
 
-    public override LLVMTypeRef ToLLVMType()
-        => Type.PrimitiveTypeToLLVMType();
+    public override T Process<T>(ITypeProcessor<T> processor)
+        => processor.ProcessPrimitive(this);
 }

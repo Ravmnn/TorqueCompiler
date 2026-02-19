@@ -6,6 +6,7 @@ using LLVMSharp.Interop;
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Types;
 using Torque.Compiler.Symbols;
+using Type = Torque.Compiler.Types.Type;
 
 
 namespace Torque.Compiler;
@@ -39,12 +40,14 @@ public class DebugMetadataGenerator
 
     public TorqueCompiler Compiler { get; }
 
-    public LLVMModuleRef Module => Compiler.Module;
+    public LLVMModuleRef Module => Compiler.LLVMModule;
     public LLVMBuilderRef Builder => Compiler.Builder;
     public LLVMTargetDataRef TargetData => Compiler.DataLayout;
 
     public Scope GlobalScope => Compiler.GlobalScope;
     public Scope Scope => Compiler.Scope;
+
+    public TypeBuilder TypeBuilder => Compiler.TypeBuilder;
 
 
     public DebugTypeMetadataGenerator TypeGenerator { get; }
@@ -158,7 +161,7 @@ public class DebugMetadataGenerator
     public unsafe LLVMMetadataRef GenerateLocalVariable(VariableSymbol variable)
     {
         var typeMetadata = TypeGenerator.TypeToMetadata(variable.Type!);
-        var sizeInBits = (uint)variable.Type!.SizeOfTypeInMemoryAsBits(TargetData);
+        var sizeInBits = (uint)TypeBuilder.SizeOfTypeInMemoryAsBits(variable.Type!, TargetData);
         var llvmLocation = CreateDebugLocation(variable.Location);
 
         var debugReference = CreateLocalVariable(variable.Name, variable.Location.Line, typeMetadata, sizeInBits);

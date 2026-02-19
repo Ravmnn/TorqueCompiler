@@ -34,8 +34,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public FileInfo? File { get; }
 
 
-    private readonly LLVMModuleRef _module = LLVMModuleRef.CreateWithName("MainModule");
-    public LLVMModuleRef Module => _module;
+    private readonly LLVMModuleRef _llvmModule = LLVMModuleRef.CreateWithName("MainModule");
+    public LLVMModuleRef LLVMModule => _llvmModule;
 
     public LLVMBuilderRef Builder { get; } = LLVMBuilderRef.Create(LLVMContextRef.Global);
 
@@ -64,10 +64,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         private init => _scope = value;
     }
 
+    public TypeBuilder TypeBuilder { get; }
 
 
 
-    public TorqueCompiler(IReadOnlyList<BoundStatement> statements, Scope globalScope, FileInfo? file = null, bool generateDebugMetadata = false)
+
+    public TorqueCompiler(IReadOnlyList<BoundStatement> statements, Scope scope, FileInfo? file = null, bool generateDebugMetadata = false)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add support to generic code
@@ -89,18 +91,20 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         File = file;
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
-        _module.Target = TargetMachine.Triple;
-        _module.DataLayout = TargetMachine.StringDataLayout;
+        _llvmModule.Target = TargetMachine.Triple;
+        _llvmModule.DataLayout = TargetMachine.StringDataLayout;
 
-        _intrinsics = new IntrinsicCaller(Module, Builder);
+        _intrinsics = new IntrinsicCaller(LLVMModule, Builder);
 
-        GlobalScope = globalScope;
+        Statements = statements;
+
+        GlobalScope = scope;
         Scope = GlobalScope;
+
+        TypeBuilder = new TypeBuilder();
 
         if (generateDebugMetadata)
             Debug = new DebugMetadataGenerator(this);
-
-        Statements = statements.ToArray();
     }
 
 
@@ -115,6 +119,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // due to null access or bad type conversion, or it is a bug, or the caller of the compiler API
         // didn't set up (binding, type checking...) the statements correctly.
 
+
         DeclareAllDeclarations();
 
         foreach (var statement in Statements)
@@ -122,7 +127,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         Debug?.FinalizeGenerator();
 
-        return Module.PrintToString();
+        return LLVMModule.PrintToString();
     }
 
 
@@ -152,8 +157,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         var functionSymbol = declaration.FunctionSymbol;
 
-        var llvmFunctionType = functionSymbol.Type!.ToRawLLVMType();
-        var llvmReference = Module.AddFunction(functionSymbol.Name, llvmFunctionType);
+        var llvmFunctionType = TypeBuilder.ProcessRawFunction(functionSymbol.Type!);
+        var llvmReference = LLVMModule.AddFunction(functionSymbol.Name, llvmFunctionType);
         llvmReference.Linkage = LLVMLinkage.LLVMExternalLinkage;
 
         functionSymbol.SetLLVMProperties(llvmReference, llvmFunctionType, null);
@@ -300,9 +305,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public unsafe void ProcessIf(BoundIfStatement statement)
     {
-        var thenBlock = LLVM.CreateBasicBlockInContext(Module.Context, "then".StringToSBytePtr());
-        var elseBlock = LLVM.CreateBasicBlockInContext(Module.Context, "else".StringToSBytePtr());
-        var joinBlock = LLVM.CreateBasicBlockInContext(Module.Context, "join".StringToSBytePtr());
+        var thenBlock = LLVM.CreateBasicBlockInContext(LLVMModule.Context, "then".StringToSBytePtr());
+        var elseBlock = LLVM.CreateBasicBlockInContext(LLVMModule.Context, "else".StringToSBytePtr());
+        var joinBlock = LLVM.CreateBasicBlockInContext(LLVMModule.Context, "join".StringToSBytePtr());
 
         var hasElse = statement.ElseStatement is not null;
 
@@ -325,10 +330,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public unsafe void ProcessWhile(BoundWhileStatement statement)
     {
-        var conditionBlock = LLVM.CreateBasicBlockInContext(Module.Context, "condition".StringToSBytePtr());
-        var loopBlock = LLVM.CreateBasicBlockInContext(Module.Context, "loop".StringToSBytePtr());
-        var postLoopBlock = LLVM.CreateBasicBlockInContext(Module.Context, "postLoop".StringToSBytePtr());
-        var joinBlock = LLVM.CreateBasicBlockInContext(Module.Context, "join".StringToSBytePtr());
+        var conditionBlock = LLVM.CreateBasicBlockInContext(LLVMModule.Context, "condition".StringToSBytePtr());
+        var loopBlock = LLVM.CreateBasicBlockInContext(LLVMModule.Context, "loop".StringToSBytePtr());
+        var postLoopBlock = LLVM.CreateBasicBlockInContext(LLVMModule.Context, "postLoop".StringToSBytePtr());
+        var joinBlock = LLVM.CreateBasicBlockInContext(LLVMModule.Context, "join".StringToSBytePtr());
 
         ProcessWhileConditionBlock(statement, conditionBlock, loopBlock, joinBlock);
         ProcessWhileBodyBlock(statement, conditionBlock, loopBlock, postLoopBlock, joinBlock);
@@ -407,7 +412,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMValueRef ProcessLiteral(BoundLiteralExpression expression)
     {
         var type = expression.Type!;
-        var llvmType = type.ToLLVMType();
+        var llvmType = TypeBuilder.Process(type);
         var value = expression.Value!;
 
         var llvmReference = ValueFromLiteral(type, value, llvmType);
@@ -488,7 +493,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         var value = Process(expression.Expression);
         var type = expression.Type!;
-        var llvmType = type.ToLLVMType();
+        var llvmType = TypeBuilder.Process(type);
 
         var operation = expression.Syntax.Operator;
 
@@ -765,7 +770,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMValueRef ProcessPointerAccess(BoundPointerAccessExpression expression)
     {
         var value = Process(expression.Pointer);
-        var llvmType = expression.Type!.ToLLVMType();
+        var llvmType = TypeBuilder.Process(expression.Type!);
 
         return Builder.BuildLoad2(llvmType, value, "access.ptr");
     }
@@ -779,7 +784,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var arguments = ProcessAll(expression.Arguments.AsReadOnly());
 
         var functionType = (expression.Callee.Type as FunctionType)!;
-        var llvmFunctionType = functionType.ToRawLLVMType();
+        var llvmFunctionType = TypeBuilder.ProcessRawFunction(functionType);
 
         return Call(function, llvmFunctionType, arguments);
     }
@@ -815,41 +820,45 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessArray(BoundArrayExpression expression)
     {
-        var llvmArrayType = expression.ArrayType!.ToLLVMType();
+        var arrayType = (expression.ArrayType as ArrayType)!;
+
+        var llvmArrayType = TypeBuilder.Process(arrayType);
+        var llvmArrayElementType = TypeBuilder.Process(arrayType.Type);
+
         var arrayAddress = Builder.BuildAlloca(llvmArrayType, "array.address");
 
-        InitializeArrayElements(expression, llvmArrayType, arrayAddress);
-        var firstElementAddress = IndexArray(llvmArrayType, arrayAddress, Constant.Zero);
+        InitializeArrayElements(expression, llvmArrayElementType, arrayAddress);
+        var firstElementAddress = IndexPointer(llvmArrayElementType, arrayAddress, Constant.Zero, false);
 
         return firstElementAddress;
     }
 
 
-    private void InitializeArrayElements(BoundArrayExpression expression, LLVMTypeRef llvmArrayType, LLVMValueRef arrayAddress)
+    private void InitializeArrayElements(BoundArrayExpression expression, LLVMTypeRef llvmArrayElementType, LLVMValueRef arrayAddress)
     {
         var initializationList = expression.Elements?.Select(Process).ToArray() ?? [];
 
-        InitializeArrayFromInitializationList(llvmArrayType, arrayAddress, initializationList);
+        InitializeArrayFromInitializationList(llvmArrayElementType, arrayAddress, initializationList);
 
         if ((ulong)initializationList.Length < expression.Syntax.Length)
-            InitializeRemainingArrayElements((expression.ArrayType as ArrayType)!, llvmArrayType, arrayAddress, (ulong)initializationList.Length);
+            InitializeRemainingArrayElements((expression.ArrayType as ArrayType)!, llvmArrayElementType, arrayAddress, (ulong)initializationList.Length);
     }
 
 
-    private void InitializeArrayFromInitializationList(LLVMTypeRef llvmArrayType, LLVMValueRef arrayAddress, LLVMValueRef[] llvmElements)
+    private void InitializeArrayFromInitializationList(LLVMTypeRef llvmArrayElementType, LLVMValueRef arrayAddress, LLVMValueRef[] llvmElements)
     {
         for (var i = 0; i < llvmElements.Length; i++)
         {
-            var elementAddress = IndexArray(llvmArrayType, arrayAddress, Constant.Integer((ulong)i));
+            var elementAddress = IndexPointer(llvmArrayElementType, arrayAddress, Constant.Integer((ulong)i), false);
             Builder.BuildStore(llvmElements[i], elementAddress);
         }
     }
 
 
-    private void InitializeRemainingArrayElements(ArrayType arrayType, LLVMTypeRef llvmArrayType, LLVMValueRef arrayAddress, ulong initializationListLength)
+    private void InitializeRemainingArrayElements(ArrayType arrayType, LLVMTypeRef llvmArrayElementType, LLVMValueRef arrayAddress, ulong initializationListLength)
     {
-        var elementTypeSize = (ulong)arrayType.Type.SizeOfTypeInMemory();
-        var startAddress = IndexArray(llvmArrayType, arrayAddress, Constant.Integer(initializationListLength));
+        var elementTypeSize = (ulong)TypeBuilder.SizeOfTypeInMemory(arrayType.Type);
+        var startAddress = IndexPointer(llvmArrayElementType, arrayAddress, Constant.Integer(initializationListLength), false);
 
         var remainingSizeInBytes = GetRemainingEmptyBytesOfArray(arrayType.Length, initializationListLength, elementTypeSize);
         var remainingSizeInBytesValue = Constant.Integer(remainingSizeInBytes, LLVMTypeRef.Int64);
@@ -876,9 +885,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private LLVMValueRef ProcessIndexingExpression(BoundIndexingExpression expression, bool getValue = true)
     {
-        var pointerElementType = (expression.Pointer.Type as PointerType)!.Type.ToLLVMType();
-        var pointer = Process(expression.Pointer);
+        var pointerType = (expression.Pointer.Type as PointerType)!;
+        var pointerElementType = TypeBuilder.Process(pointerType.Type);
 
+        var pointer = Process(expression.Pointer);
         var index = Process(expression.Index);
 
         return IndexPointer(pointerElementType, pointer, index, getValue);
@@ -913,7 +923,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private LLVMValueRef CreateVariableAlloca(VariableSymbol symbol, string allocaName)
     {
-        var llvmType = symbol.Type!.ToLLVMType();
+        var llvmType = TypeBuilder.Process(symbol.Type!);
 
         var reference = Builder.BuildAlloca(llvmType, allocaName);
         symbol.SetLLVMProperties(reference, llvmType, null);
@@ -926,8 +936,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private LLVMValueRef Cast(Type from, Type to, LLVMValueRef value)
     {
-        var llvmFrom = from.ToLLVMType();
-        var llvmTo = to.ToLLVMType();
+        var llvmFrom = TypeBuilder.Process(from);
+        var llvmTo = TypeBuilder.Process(to);
 
         var sourceTypeSize = llvmFrom.SizeOfThisInMemory();
         var targetTypeSize = llvmTo.SizeOfThisInMemory();
@@ -968,17 +978,14 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private LLVMValueRef IndexPointer(LLVMTypeRef addressElementType, LLVMValueRef address, LLVMValueRef index, bool getValue = true)
         => Index(addressElementType, address, index, getValue: getValue);
 
-    private LLVMValueRef IndexArray(LLVMTypeRef addressElementType, LLVMValueRef address, LLVMValueRef index)
-        => Index(addressElementType, address, index, false, false);
 
-    // although this is a pointer, if you are indexing it, we suppose it's an array as well.
     private LLVMValueRef Index(LLVMTypeRef addressElementType, LLVMValueRef address, LLVMValueRef index, bool scalar = true, bool getValue = true)
     {
         var indices = scalar ? new[] { index } : new[] { Constant.Zero, index };
-        var elementAddress = Builder.BuildGEP2(addressElementType, address, indices, "array.index.ptr");
+        var elementAddress = Builder.BuildGEP2(addressElementType, address, indices, "indexing.address");
 
         if (getValue)
-            return Builder.BuildLoad2(addressElementType, elementAddress, "array.index.value");
+            return Builder.BuildLoad2(addressElementType, elementAddress, "indexing.value");
 
         return elementAddress;
     }

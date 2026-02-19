@@ -98,7 +98,7 @@ public static class Torque
         PrintASTIfRequested(statements);
 
         var moduleContext = SemanticAnalysis(statements);
-        var bitCode = CompilerSteps.Compile(moduleContext.Statements, moduleContext.Scope, s_compileSettings);
+        var bitCode = CompilerSteps.Compile(moduleContext, s_compileSettings);
 
         PrintLLVMIfRequested(bitCode);
         PrintASMIfRequested(bitCode);

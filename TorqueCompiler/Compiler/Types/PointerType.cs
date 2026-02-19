@@ -15,8 +15,8 @@ public class PointerType(Type type) : Type
 
 
 
-    public override LLVMTypeRef ToLLVMType()
-        => LLVMTypeRef.CreatePointer(Type.ToLLVMType(), 0);
+    public override T Process<T>(ITypeProcessor<T> processor)
+        => processor.ProcessPointer(this);
 
 
 
