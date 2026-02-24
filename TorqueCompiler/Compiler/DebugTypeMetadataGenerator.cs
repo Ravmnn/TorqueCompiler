@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 
 using LLVMSharp.Interop;
-
+using Torque.Compiler.Target;
 using Torque.Compiler.Types;
 
 
@@ -12,17 +12,8 @@ namespace Torque.Compiler;
 
 
 
-public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRef debugBuilder, LLVMMetadataRef file)
+public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRef debugBuilder, LLVMMetadataRef file, LLVMMetadataRef compileUnit)
 {
-    // Debug metadata generation methods require the coupled "DebugBuilder" instance.
-    // That dependency makes the use of polymorphism not viable, since it would require the objects
-    // to have an accessible reference to the debug builder somewhere. Injecting the dependency inside
-    // the object is possible, but a bit ugly and weird. And creating a static global instance is definetely
-    // a bad idea. As consequence, the procedural approach is chosen to solve the problem.
-    // It's a bit inconsistent though, since the "Type" object uses the polymorphism approach
-    // to convert itself to a valid LLVM's representation.
-
-
     public TorqueCompiler Compiler { get; } = compiler;
 
     public Scope GlobalScope => Compiler.GlobalScope;
@@ -33,6 +24,7 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
 
     public LLVMDIBuilderRef DebugBuilder { get; } = debugBuilder;
     public LLVMMetadataRef File { get; } = file;
+    public LLVMMetadataRef CompileUnit { get; } = compileUnit;
 
 
 
@@ -45,6 +37,18 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
             metadataArray[i] = TypeToMetadata(types[i]);
 
         return metadataArray;
+    }
+
+
+    public unsafe LLVMOpaqueMetadata*[] TypesToMetadataArrayPointer(IReadOnlyList<Type> types)
+    {
+        var llvmTypes = TypesToMetadataArray(types).ToArray();
+        var llvmPointerTypes = new LLVMOpaqueMetadata*[llvmTypes.Length];
+
+        for (var i = 0; i < llvmTypes.Length; i++)
+            llvmPointerTypes[i] = llvmTypes[i];
+
+        return llvmPointerTypes;
     }
 
 
@@ -62,12 +66,10 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
     private LLVMMetadataRef TypeToMetadata(Type type, string name, int sizeInBits, int encoding)
         => type switch
         {
-            // Procedural approach. See the top of the class for detailed explanation.
-
             FunctionType functionType => CreatePointerToFunctionTypeMetadata(functionType),
             PointerType pointerType => CreatePointerTypeMetadata(TypeToMetadata(pointerType.Type), name, sizeInBits),
+            StructType structType => CreateStructTypeMetadata(structType),
 
-            //BasePrimitiveType { IsCompound: true } => ,
             BasePrimitiveType => CreateBasicTypeMetadata(name, sizeInBits, encoding),
 
             _ => throw new UnreachableException()
@@ -121,17 +123,83 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
 
 
     // TODO: create debug info for structs
-    // public unsafe LLVMMetadataRef CreateStructTypeMetadata(string name)
-    // {
-    //     return LLVM.DIBuilderCreateStructType(
-    //         DebugBuilder,
-    //         GlobalScope.DebugMetadata!.Value,
-    //         name.StringToSBytePtr(),
-    //         (uint)name.Length,
-    //         File,
-    //
-    //     );
-    // }
+    public unsafe LLVMMetadataRef CreateStructTypeMetadata(StructType type)
+    {
+        var llvmType = Compiler.TypeBuilder.Process(type);
+
+        var sizeInBits = llvmType.SizeOfThisInMemory();
+        var alignmentInBits = llvmType.AlignmentOfThisInMemory();
+
+        var name = type.Name.Name;
+
+        // TODO: only use File as scope for functions
+
+        fixed (LLVMOpaqueMetadata** fields = CreateStructFieldsMetadata(type))
+            return CreateStructTypeMetadata(type.Name.Location.Line, name, sizeInBits, alignmentInBits, fields, (uint)type.Fields.Count);
+    }
+
+    private unsafe LLVMOpaqueMetadata*[] CreateStructFieldsMetadata(StructType type)
+    {
+        var fields = new LLVMOpaqueMetadata*[type.Fields.Count];
+        var llvmType = TypeBuilder.Process(type);
+
+        for (var i = 0; i < type.Fields.Count; i++)
+            fields[i] = CreateStructFieldMetadata(type.Fields[i], i, llvmType);
+
+        return fields;
+    }
+
+
+    private unsafe LLVMOpaqueMetadata* CreateStructFieldMetadata(BoundGenericDeclaration field, int i, LLVMTypeRef llvmType)
+    {
+        var sizeInBits = TypeBuilder.SizeOfTypeInMemoryAsBits(field.Type);
+        var alignmentInBits = TypeBuilder.AlignmentOfTypeInMemoryAsBits(field.Type);
+        var offsetInBits = TargetMachine.Global!.DataLayout.OffsetOfElement(llvmType, (uint)i) * 8;
+
+        var name = field.Name.Name;
+        var typeMetadata = TypeToMetadata(field.Type);
+
+        return CreateStructFieldMetadata(field.Name.Location.Line, name, sizeInBits, alignmentInBits, offsetInBits, typeMetadata);
+    }
+
+
+    private unsafe LLVMOpaqueMetadata* CreateStructFieldMetadata(int line, string name, int sizeInBits, int alignmentInBits, ulong offsetInBits, LLVMMetadataRef typeMetadata)
+        => LLVM.DIBuilderCreateMemberType(
+            DebugBuilder,
+            CompileUnit,
+            name.StringToSBytePtr(),
+            (uint)name.Length,
+            File,
+            (uint)line,
+            (uint)sizeInBits,
+            (uint)alignmentInBits,
+            (uint)offsetInBits,
+            LLVMDIFlags.LLVMDIFlagZero,
+            typeMetadata
+        );
+
+
+    private unsafe LLVMMetadataRef CreateStructTypeMetadata(int line, string name, int sizeInBits, int alignmentInBits, LLVMOpaqueMetadata** fields, uint membersCount)
+        => LLVM.DIBuilderCreateStructType(
+            DebugBuilder,
+            GlobalScope.DebugMetadata!.Value,
+            name.StringToSBytePtr(),
+            (uint)name.Length,
+            File,
+            (uint)line,
+            (uint)sizeInBits,
+            (uint)alignmentInBits,
+            LLVMDIFlags.LLVMDIFlagZero,
+            null,
+            fields,
+            membersCount,
+            0,
+            null,
+            name.StringToSBytePtr(),
+            (uint)name.Length
+        );
+
+
 
 
     public unsafe LLVMMetadataRef CreateBasicTypeMetadata(string name, int sizeInBits, int encoding)

@@ -167,9 +167,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     #endregion
 
-    // TODO: you're currently creating a new struct type for every use occurence of the type:
-    // A struct type must be declared once, and its LLVM type reutilized, so you need to store it somewhere
-
 
 
 
@@ -899,7 +896,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessDefault(BoundDefaultExpression expression)
     {
-        return Constant.GetDefaultValueForType(expression.Type!);
+        return GetDefaultValueForType(expression.Type!);
     }
 
 
@@ -1016,6 +1013,48 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         LLVM.AppendExistingBasicBlock(_currentFunction!.Value, block);
         Builder.PositionAtEnd(block);
+    }
+
+
+
+
+    public LLVMValueRef GetDefaultValueForType(Type type)
+    {
+        var typeBuilder = new TypeBuilder();
+        var llvmType = typeBuilder.Process(type);
+
+        return type switch
+        {
+            _ when type.IsStruct => GetDefaultValueForStruct((type as StructType)!),
+            _ when type.IsPointer => Constant.NullPointer(),
+            _ when type.IsFloat => Constant.Real(0, llvmType),
+
+            _ => Constant.Integer(0, llvmType)
+        };
+    }
+
+
+    private LLVMValueRef GetDefaultValueForStruct(StructType type)
+    {
+        var llvmStructType = TypeBuilder.Process(type);
+        var llvmStruct = Builder.BuildAlloca(llvmStructType, "struct.default");
+
+        InitializeStructFieldsWithDefault(type, llvmStructType, llvmStruct);
+
+        return llvmStruct;
+    }
+
+
+    private void InitializeStructFieldsWithDefault(StructType type, LLVMTypeRef llvmStructType, LLVMValueRef llvmStruct)
+    {
+        for (var i = 0; i < type.Fields.Count; i++)
+        {
+            var field = Builder.BuildStructGEP2(llvmStructType, llvmStruct, (uint)i, $"struct.field.{i}");
+            var fieldType = type.Fields[i].Type;
+            var fieldValue = GetDefaultValueForType(fieldType);
+
+            Builder.BuildStore(fieldValue, field);
+        }
     }
 
     #endregion

@@ -26,9 +26,12 @@ public static class PrimitiveTypeExtensions
 
 
     public static string PrimitiveTypeToString(this PrimitiveType type)
-        => Keywords.PrimitiveTypes.First(pair => pair.Value == type).Key;
+    {
+        if (Keywords.PrimitiveTypes.Any(pair => pair.Value == type))
+            return Keywords.PrimitiveTypes.First(pair => pair.Value == type).Key;
 
-
+        return type.ToString().ToLower();
+    }
 
 
     public static LLVMTypeRef TokenToLLVMType(this Token token, LLVMTargetDataRef? targetData = null)

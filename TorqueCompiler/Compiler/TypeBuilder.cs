@@ -75,7 +75,7 @@ public class TypeBuilder : ITypeProcessor<LLVMTypeRef>
         var llvmType = LLVM.StructCreateNamed(LLVM.GetGlobalContext(), type.Name.Name.StringToSBytePtr());
 
         fixed (LLVMOpaqueType** fieldsOpaqueTypes = GetStructFieldsOpaqueTypes(type))
-            LLVM.StructSetBody(llvmType, fieldsOpaqueTypes, (uint)type.Members.Count, 0);
+            LLVM.StructSetBody(llvmType, fieldsOpaqueTypes, (uint)type.Fields.Count, 0);
 
         StructCache.Add(type.Name.Name, llvmType);
 
@@ -85,10 +85,10 @@ public class TypeBuilder : ITypeProcessor<LLVMTypeRef>
 
     private unsafe LLVMOpaqueType*[] GetStructFieldsOpaqueTypes(StructType type)
     {
-        var types = new LLVMOpaqueType*[type.Members.Count];
+        var types = new LLVMOpaqueType*[type.Fields.Count];
 
-        for (var i = 0; i < type.Members.Count; i++)
-            types[i] = Process(type.Members[i].Type);
+        for (var i = 0; i < type.Fields.Count; i++)
+            types[i] = Process(type.Fields[i].Type);
 
         return types;
     }
@@ -105,5 +105,19 @@ public class TypeBuilder : ITypeProcessor<LLVMTypeRef>
         _ when type.IsVoid => 0,
 
         _ => Process(type).SizeOfThisInMemory(targetData)
+    };
+
+
+
+
+    public int AlignmentOfTypeInMemoryAsBits(Type type, LLVMTargetDataRef? targetData = null)
+        => AlignmentOfTypeInMemory(type, targetData) * 8;
+
+
+    public int AlignmentOfTypeInMemory(Type type, LLVMTargetDataRef? targetData = null) => type switch
+    {
+        _ when type.IsVoid => 0,
+
+        _ => Process(type).AlignmentOfThisInMemory(targetData)
     };
 }

@@ -25,7 +25,7 @@ public static class TypeCaster
         var floatToInt = from.IsFloat && to.IsInteger;
 
         var rawPointerToPointer = to.IsPointer && from.IsRawPointer;
-        var anyIsCompound = from.IsCompound || to.IsCompound;
+        var anyIsCompound = from.IsStruct || to.IsStruct;
 
         if (anyIsCompound)
             return false;

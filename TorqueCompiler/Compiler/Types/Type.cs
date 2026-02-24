@@ -48,7 +48,7 @@ public abstract class Type
     public bool IsUnsigned => IsBase && IsInteger && !IsSigned;
 
     public bool IsFloat => IsBase && BasePrimitive.Type is PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64;
-    public bool IsInteger => (IsBase || IsPointer) && !IsFloat && !IsCompound;
+    public bool IsInteger => (IsBase || IsPointer) && !IsFloat && !IsStruct;
     public bool IsChar => IsBase && BasePrimitive.Type == PrimitiveType.Char;
     public bool IsBool => IsBase && BasePrimitive.Type == PrimitiveType.Bool;
 
@@ -58,7 +58,7 @@ public abstract class Type
     public bool IsPointer => this is PointerType;
     public bool IsRawPointer => this is PointerType pointerType && pointerType.Type == PrimitiveType.UInt8;
     public bool IsFunction => this is FunctionType;
-    public bool IsCompound => this is BasePrimitiveType { Type: PrimitiveType.Struct };
+    public bool IsStruct => this is BasePrimitiveType { Type: PrimitiveType.Struct };
 
 
 

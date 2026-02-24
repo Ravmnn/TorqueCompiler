@@ -8,10 +8,10 @@ namespace Torque.Compiler.Types;
 
 
 
-public class StructType(SymbolSyntax name, IReadOnlyList<BoundGenericDeclaration> members) : BasePrimitiveType(PrimitiveType.Struct)
+public class StructType(SymbolSyntax name, IReadOnlyList<BoundGenericDeclaration> fields) : BasePrimitiveType(PrimitiveType.Struct)
 {
     public SymbolSyntax Name { get; } = name;
-    public IReadOnlyList<BoundGenericDeclaration> Members { get; } = members;
+    public IReadOnlyList<BoundGenericDeclaration> Fields { get; } = fields;
 
 
 

@@ -31,22 +31,4 @@ public static class Constant
 
     public static LLVMValueRef NullPointer(LLVMTypeRef? pointerType = null)
         => LLVMValueRef.CreateConstPointerNull(pointerType ?? RawPointerType);
-
-
-
-
-    public static LLVMValueRef GetDefaultValueForType(Type type)
-    {
-        var typeBuilder = new TypeBuilder();
-        var llvmType = typeBuilder.Process(type);
-
-        return type switch
-        {
-            _ when type.IsPointer => NullPointer(),
-            _ when type.IsFloat => Real(0, llvmType),
-            _ => Integer(0, llvmType)
-
-            // TODO: default value for structs
-        };
-    }
 }

@@ -12,4 +12,8 @@ public static class LLVMTypeExtensions
 {
     public static int SizeOfThisInMemory(this LLVMTypeRef type, LLVMTargetDataRef? targetData = null)
         => (int)TargetMachine.GetDataLayoutOfOrGlobal(targetData).ABISizeOfType(type);
+
+
+    public static int AlignmentOfThisInMemory(this LLVMTypeRef type, LLVMTargetDataRef? targetData = null)
+        => (int)TargetMachine.GetDataLayoutOfOrGlobal(targetData).ABIAlignmentOfType(type);
 }
