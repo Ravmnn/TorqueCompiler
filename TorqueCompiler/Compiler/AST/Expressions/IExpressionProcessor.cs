@@ -24,6 +24,7 @@ public interface IExpressionProcessor
     void ProcessIndexing(IndexingExpression expression);
     void ProcessDefault(DefaultExpression expression);
     void ProcessStruct(StructExpression expression);
+    void ProcessMemberAccess(MemberAccessExpression expression);
 }
 
 
@@ -48,4 +49,5 @@ public interface IExpressionProcessor<out T>
     T ProcessIndexing(IndexingExpression expression);
     T ProcessDefault(DefaultExpression expression);
     T ProcessStruct(StructExpression expression);
+    T ProcessMemberAccess(MemberAccessExpression expression);
 }

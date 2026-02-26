@@ -300,6 +300,12 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
     }
 
 
+    public Expression ProcessMemberAccess(MemberAccessExpression expression)
+    {
+        expression.Compound = Process(expression.Compound);
+
+        return expression;
+    }
 
 
     private BinaryLayoutExpression ProcessBinaryLayout(BinaryLayoutExpression expression)

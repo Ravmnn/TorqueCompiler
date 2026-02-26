@@ -456,5 +456,11 @@ public class TorqueBinder :
         return new BoundStructExpression(boundMembersInitialization, expression);
     }
 
+
+
+
+    public BoundExpression ProcessMemberAccess(MemberAccessExpression expression)
+        => new BoundMemberAccessExpression(expression, Process(expression.Compound), expression.Member);
+
     #endregion
 }

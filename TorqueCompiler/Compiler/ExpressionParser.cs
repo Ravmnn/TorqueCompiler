@@ -115,7 +115,7 @@ public partial class TorqueParser
 
     private Expression Call()
     {
-        var expression = Primary();
+        var expression = MemberAccess();
 
         while (Match(TokenType.LeftParen))
         {
@@ -136,6 +136,24 @@ public partial class TorqueParser
             return [];
 
         return DoWhileComma(Expression);
+    }
+
+
+
+
+    private Expression MemberAccess()
+    {
+        var expression = Primary();
+
+        while (Match(TokenType.Dot))
+        {
+            var member = Reporter.ExpectSymbol();
+            var location = new Span(expression.Location, member.Location);
+
+            expression = new MemberAccessExpression(expression, member, location);
+        }
+
+        return expression;
     }
 
 

@@ -294,6 +294,20 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     }
 
+    public void ProcessMemberAccess(BoundMemberAccessExpression expression)
+    {
+        var structType = (expression.Type as StructType)!;
+
+        if (!expression.Compound.Type!.IsStruct)
+        {
+            Report(TypeCheckerCatalog.StructExpected, location: expression.Location);
+            return;
+        }
+
+        if (structType.GetField(expression.Member.Name) is null)
+            Report(TypeCheckerCatalog.UndeclaredStructMember, [expression.Member.Name, structType.Name.Name], expression.Location);
+    }
+
 
 
 

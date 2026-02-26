@@ -14,4 +14,6 @@ public enum TypeCheckerCatalog
     [Item(DiagnosticScope.TypeChecker)] ArityDiffers,
     [Item(DiagnosticScope.TypeChecker)] CannotHaveAZeroSizedArray,
     [Item(DiagnosticScope.TypeChecker)] ExpectedAReturnValue,
+    [Item(DiagnosticScope.TypeChecker)] StructExpected,
+    [Item(DiagnosticScope.TypeChecker)] UndeclaredStructMember,
 }

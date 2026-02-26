@@ -224,7 +224,7 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     public void ProcessAddress(AddressExpression expression)
     {
-        if (expression.Expression is not SymbolExpression and not IndexingExpression)
+        if (expression.Expression is not SymbolExpression and not IndexingExpression and not MemberAccessExpression)
             Report(BinderCatalog.ValueMustBeAddressable, location: expression.Location);
     }
 
@@ -233,7 +233,7 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     public void ProcessAssignment(AssignmentExpression expression)
     {
-        if (expression.Target is not SymbolExpression and not PointerAccessExpression and not IndexingExpression)
+        if (expression.Target is not SymbolExpression and not PointerAccessExpression and not IndexingExpression and not MemberAccessExpression)
             Report(BinderCatalog.MustBeAssignmentReference, location: expression.Location);
     }
 
@@ -290,6 +290,8 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
 
 
+    public void ProcessMemberAccess(MemberAccessExpression expression)
+    { }
 
 
 

@@ -86,7 +86,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: default values for parameters and struct fields
         // TODO: add structs
 
-        // TODO: cleanup
 
         File = file;
 
@@ -716,8 +715,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var llvmReference = symbol.LLVMReference!.Value;
         var llvmType = symbol.LLVMType!.Value;
 
+        // TODO: use polymorphism: the way a symbol will be loaded (value or reference) should be defined by the own kind of symbol
         // Sometimes, we want the symbol memory address instead of its value.
-        if (symbol is FunctionSymbol)
+        if (symbol is FunctionSymbol || symbol.Type is StructType)
             return llvmReference;
 
         return Builder.BuildLoad2(llvmType, llvmReference, "symbol.value");
@@ -757,6 +757,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         BoundSymbolExpression symbol => symbol.Symbol.LLVMReference!.Value, // if it is a symbol, we want its memory address
         BoundPointerAccessExpression pointer => Process(pointer.Pointer), // if it is a pointer, we want the memory address stored by it
         BoundIndexingExpression indexing => ProcessIndexingExpression(indexing, false),
+        BoundMemberAccessExpression member => ProcessMemberAccessExpression(member, false),
 
         _ => throw new UnreachableException()
     };
@@ -907,6 +908,21 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         throw new NotImplementedException();
     }
 
+
+
+
+    public LLVMValueRef ProcessMemberAccess(BoundMemberAccessExpression expression)
+        => ProcessMemberAccessExpression(expression);
+
+
+    private LLVMValueRef ProcessMemberAccessExpression(BoundMemberAccessExpression expression, bool getValue = true)
+    {
+        var structType = (expression.Compound.Type as StructType)!;
+        var structAddress = Process(expression.Compound);
+
+        return IndexStruct(structAddress, structType, expression.Member.Name, getValue);
+    }
+
     #endregion
 
 
@@ -970,6 +986,21 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
 
+
+
+    private LLVMValueRef IndexStruct(LLVMValueRef structAddress, StructType structType, string memberName, bool getValue = true)
+    {
+        var llvmStructType = TypeBuilder.Process(structType);
+
+        var (member, memberIndex) = structType.GetField(memberName)!.Value;
+        var llvmMemberType = TypeBuilder.Process(member.Type);
+        var memberAddress = Builder.BuildStructGEP2(llvmStructType, structAddress, (uint)memberIndex, $"member.${memberName}.address");
+
+        if (getValue)
+            return Builder.BuildLoad2(llvmMemberType, memberAddress, $"member.${memberName}");
+
+        return memberAddress;
+    }
 
 
     private LLVMValueRef IndexPointer(LLVMTypeRef addressElementType, LLVMValueRef address, LLVMValueRef index, bool getValue = true)
@@ -1039,21 +1070,21 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var llvmStructType = TypeBuilder.Process(type);
         var llvmStruct = Builder.BuildAlloca(llvmStructType, "struct.default");
 
-        InitializeStructFieldsWithDefault(type, llvmStructType, llvmStruct);
+        InitializeStructMembersWithDefault(type, llvmStructType, llvmStruct);
 
         return llvmStruct;
     }
 
 
-    private void InitializeStructFieldsWithDefault(StructType type, LLVMTypeRef llvmStructType, LLVMValueRef llvmStruct)
+    private void InitializeStructMembersWithDefault(StructType type, LLVMTypeRef llvmStructType, LLVMValueRef llvmStruct)
     {
-        for (var i = 0; i < type.Fields.Count; i++)
+        for (var i = 0; i < type.Members.Count; i++)
         {
-            var field = Builder.BuildStructGEP2(llvmStructType, llvmStruct, (uint)i, $"struct.field.{i}");
-            var fieldType = type.Fields[i].Type;
-            var fieldValue = GetDefaultValueForType(fieldType);
+            var member = Builder.BuildStructGEP2(llvmStructType, llvmStruct, (uint)i, $"struct.field.{i}");
+            var memberType = type.Members[i].Type;
+            var memberValue = GetDefaultValueForType(memberType);
 
-            Builder.BuildStore(fieldValue, field);
+            Builder.BuildStore(memberValue, member);
         }
     }
 

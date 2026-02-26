@@ -378,6 +378,14 @@ public class ASTPrinter
     }
 
 
+
+
+    public string ProcessMemberAccess(MemberAccessExpression expression)
+        => $"({Process(expression.Compound)}.{expression.Member.Name})";
+
+
+
+
     private string ForIndentDo(Statement statement)
     {
         var isBlock = statement is BlockStatement;

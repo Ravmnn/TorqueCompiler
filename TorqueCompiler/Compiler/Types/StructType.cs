@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-
+using System.Linq;
 using Torque.Compiler.Symbols;
 
 
@@ -8,14 +8,26 @@ namespace Torque.Compiler.Types;
 
 
 
-public class StructType(SymbolSyntax name, IReadOnlyList<BoundGenericDeclaration> fields) : BasePrimitiveType(PrimitiveType.Struct)
+public class StructType(SymbolSyntax name, IReadOnlyList<BoundGenericDeclaration> members) : BasePrimitiveType(PrimitiveType.Struct)
 {
     public SymbolSyntax Name { get; } = name;
-    public IReadOnlyList<BoundGenericDeclaration> Fields { get; } = fields;
+    public IReadOnlyList<BoundGenericDeclaration> Members { get; } = members;
 
 
 
 
     public override T Process<T>(ITypeProcessor<T> processor)
         => processor.ProcessStruct(this);
+
+
+
+
+    public (BoundGenericDeclaration member, int index)? GetField(string name)
+    {
+        for (var i = 0; i < Members.Count; i++)
+            if (Members[i].Name.Name == name)
+                return (Members[i], i);
+
+        return null;
+    }
 }

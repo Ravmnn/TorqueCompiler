@@ -98,5 +98,17 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 return ResourceManager.GetString("ExpectedAReturnValue", resourceCulture);
             }
         }
+        
+        internal static string StructExpected {
+            get {
+                return ResourceManager.GetString("StructExpected", resourceCulture);
+            }
+        }
+        
+        internal static string UndeclaredStructMember {
+            get {
+                return ResourceManager.GetString("UndeclaredStructMember", resourceCulture);
+            }
+        }
     }
 }

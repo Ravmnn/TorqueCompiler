@@ -6,7 +6,7 @@ namespace Torque.Compiler.Tokens;
 public enum TokenType
 {
     SemiColon, Colon, Arrow,
-    Comma,
+    Comma, Dot,
 
     Exclamation, Ampersand, Pipe,
     Plus, Minus, Star, Slash, Equal,

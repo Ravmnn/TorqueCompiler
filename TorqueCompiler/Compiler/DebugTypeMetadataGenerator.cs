@@ -122,7 +122,8 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
         );
 
 
-    // TODO: create debug info for structs
+
+
     public unsafe LLVMMetadataRef CreateStructTypeMetadata(StructType type)
     {
         var llvmType = Compiler.TypeBuilder.Process(type);
@@ -134,19 +135,19 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
 
         // TODO: only use File as scope for functions
 
-        fixed (LLVMOpaqueMetadata** fields = CreateStructFieldsMetadata(type))
-            return CreateStructTypeMetadata(type.Name.Location.Line, name, sizeInBits, alignmentInBits, fields, (uint)type.Fields.Count);
+        fixed (LLVMOpaqueMetadata** members = CreateStructMembersMetadata(type))
+            return CreateStructTypeMetadata(type.Name.Location.Line, name, sizeInBits, alignmentInBits, members, (uint)type.Members.Count);
     }
 
-    private unsafe LLVMOpaqueMetadata*[] CreateStructFieldsMetadata(StructType type)
+    private unsafe LLVMOpaqueMetadata*[] CreateStructMembersMetadata(StructType type)
     {
-        var fields = new LLVMOpaqueMetadata*[type.Fields.Count];
+        var members = new LLVMOpaqueMetadata*[type.Members.Count];
         var llvmType = TypeBuilder.Process(type);
 
-        for (var i = 0; i < type.Fields.Count; i++)
-            fields[i] = CreateStructFieldMetadata(type.Fields[i], i, llvmType);
+        for (var i = 0; i < type.Members.Count; i++)
+            members[i] = CreateStructFieldMetadata(type.Members[i], i, llvmType);
 
-        return fields;
+        return members;
     }
 
 

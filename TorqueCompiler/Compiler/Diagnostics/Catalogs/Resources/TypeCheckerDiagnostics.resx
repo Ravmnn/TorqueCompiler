@@ -49,4 +49,10 @@
     <data name="ExpectedAReturnValue" xml:space="preserve">
         <value>Function is not "void" and must return a value</value>
     </data>
+    <data name="StructExpected" xml:space="preserve">
+        <value>Struct type expected</value>
+    </data>
+    <data name="UndeclaredStructMember" xml:space="preserve">
+        <value>Member "{0}" is not declared in struct "{1}"</value>
+    </data>
 </root>

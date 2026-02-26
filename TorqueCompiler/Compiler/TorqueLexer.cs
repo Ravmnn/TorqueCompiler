@@ -91,6 +91,7 @@ public class TorqueLexer : IIterator<char>
             case ':': return TokenFromTokenType(TokenType.Colon);
             case ';': return TokenFromTokenType(TokenType.SemiColon);
             case ',': return TokenFromTokenType(TokenType.Comma);
+            case '.': return TokenFromTokenType(TokenType.Dot);
             case '-': return Match('>') ? TokenFromTokenType(TokenType.Arrow) : TokenFromTokenType(TokenType.Minus);
             case '+': return TokenFromTokenType(TokenType.Plus);
             case '*': return TokenFromTokenType(TokenType.Star);

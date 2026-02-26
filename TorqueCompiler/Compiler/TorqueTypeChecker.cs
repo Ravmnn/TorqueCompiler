@@ -538,6 +538,22 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
     }
 
 
+
+
+    public Type ProcessMemberAccess(BoundMemberAccessExpression expression)
+    {
+        if (Process(expression.Compound) is StructType structType)
+            if (structType.GetField(expression.Member.Name) is var (field, _))
+                expression.Type = field.Type;
+
+        // TODO: finish this and use Scope to better store struct members
+
+        return expression.Type!;
+    }
+
+
+
+
     private void ProcessStructMemberInitialization(BoundStructMemberInitialization initialization, GenericDeclaration declaration)
     {
         Process(initialization.Value);
