@@ -59,15 +59,9 @@ struct Person
 
 int main(int argc, char** argv)
 {
-    # Person peak = new Person { name: "Kujo Jotaro", age: 20, id: 123456 };
+    let peak = new Person { name: "Kujo Jotaro", age: 20, id: 123456 };
 
-    Person someone;
-
-    someone.name = "Peter Parker";
-    someone.age = 20 as uint;
-    someone.id = 123456 as uint;
-    
-    println(someone.name);
+    println(peak.name);
 
     return 0;
 }

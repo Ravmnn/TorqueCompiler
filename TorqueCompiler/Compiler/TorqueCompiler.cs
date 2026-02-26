@@ -734,6 +734,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         BoundSymbolExpression symbolExpression => symbolExpression.Symbol.LLVMReference!.Value,
         BoundIndexingExpression indexingExpression => ProcessIndexingExpression(indexingExpression, false),
+        BoundMemberAccessExpression memberAccessExpression => ProcessMemberAccessExpression(memberAccessExpression, false),
 
         _ => throw new UnreachableException()
     };
@@ -754,10 +755,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessAssignmentReference(BoundAssignmentReferenceExpression expression) => expression.Reference switch
     {
-        BoundSymbolExpression symbol => symbol.Symbol.LLVMReference!.Value, // if it is a symbol, we want its memory address
-        BoundPointerAccessExpression pointer => Process(pointer.Pointer), // if it is a pointer, we want the memory address stored by it
-        BoundIndexingExpression indexing => ProcessIndexingExpression(indexing, false),
-        BoundMemberAccessExpression member => ProcessMemberAccessExpression(member, false),
+        BoundSymbolExpression symbolExpression => symbolExpression.Symbol.LLVMReference!.Value,
+        BoundPointerAccessExpression pointerExpression => Process(pointerExpression.Pointer),
+        BoundIndexingExpression indexingExpression => ProcessIndexingExpression(indexingExpression, false),
+        BoundMemberAccessExpression memberAccessExpression => ProcessMemberAccessExpression(memberAccessExpression, false),
 
         _ => throw new UnreachableException()
     };
@@ -905,10 +906,11 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessStruct(BoundStructExpression expression)
     {
-        throw new NotImplementedException();
+        var structType = (expression.Type as StructType)!;
+        var structAddress = CreateConstStruct(structType, expression.InitializationList);
+
+        return structAddress;
     }
-
-
 
 
     public LLVMValueRef ProcessMemberAccess(BoundMemberAccessExpression expression)
@@ -918,9 +920,21 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private LLVMValueRef ProcessMemberAccessExpression(BoundMemberAccessExpression expression, bool getValue = true)
     {
         var structType = (expression.Compound.Type as StructType)!;
-        var structAddress = Process(expression.Compound);
+        var @struct = Process(expression.Compound);
 
-        return IndexStruct(structAddress, structType, expression.Member.Name, getValue);
+        if (@struct.TypeOf.Kind != LLVMTypeKind.LLVMPointerTypeKind)
+            @struct = CreateTemporaryStruct(structType, @struct);
+
+        return IndexStruct(@struct, structType, expression.Member.Name, getValue);
+    }
+
+
+    private LLVMValueRef CreateTemporaryStruct(StructType structType, LLVMValueRef value)
+    {
+        var @struct = Builder.BuildAlloca(TypeBuilder.Process(structType), "tmp.struct");
+        Builder.BuildStore(value, @struct);
+
+        return @struct;
     }
 
     #endregion
@@ -1066,25 +1080,45 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
     private LLVMValueRef GetDefaultValueForStruct(StructType type)
+        => CreateConstStruct(type);
+
+
+    public LLVMValueRef CreateConstStruct(StructType type, IReadOnlyList<BoundStructMemberInitialization>? initializationList = null)
     {
-        var llvmStructType = TypeBuilder.Process(type);
-        var llvmStruct = Builder.BuildAlloca(llvmStructType, "struct.default");
+        var defaultValues = GetDefaultValuesFromStruct(type);
 
-        InitializeStructMembersWithDefault(type, llvmStructType, llvmStruct);
+        if (initializationList is not null)
+            InsertInitializationList(type, initializationList, defaultValues);
 
-        return llvmStruct;
+        return LLVMValueRef.CreateConstStruct(defaultValues.ToArray(), false);
     }
 
 
-    private void InitializeStructMembersWithDefault(StructType type, LLVMTypeRef llvmStructType, LLVMValueRef llvmStruct)
+    private List<LLVMValueRef> GetDefaultValuesFromStruct(StructType type)
     {
+        var defaultValues = new List<LLVMValueRef>();
+
         for (var i = 0; i < type.Members.Count; i++)
         {
-            var member = Builder.BuildStructGEP2(llvmStructType, llvmStruct, (uint)i, $"struct.field.{i}");
             var memberType = type.Members[i].Type;
             var memberValue = GetDefaultValueForType(memberType);
 
-            Builder.BuildStore(memberValue, member);
+            defaultValues.Add(memberValue);
+        }
+
+        return defaultValues;
+    }
+
+
+    private void InsertInitializationList(StructType type, IReadOnlyList<BoundStructMemberInitialization> initializationList, List<LLVMValueRef> source)
+    {
+        for (var i = 0; i < initializationList.Count; i++)
+        {
+            var current = initializationList[i];
+            var initializationIndex = type.GetField(current.Member.Name)!.Value.index;
+            var value = Process(current.Value);
+
+            source[initializationIndex] = value;
         }
     }
 

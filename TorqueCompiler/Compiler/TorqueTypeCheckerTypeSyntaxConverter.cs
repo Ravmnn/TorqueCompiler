@@ -41,8 +41,13 @@ public class TorqueTypeCheckerTypeSyntaxConverter(TorqueTypeChecker typeChecker)
     };
 
 
+    // TODO: "variable as Person*" throws an exception
+    // TODO: add "->" operator for pointers
+    // TODO: structs should pass their copy
     public StructType StructTypeFromTypeSyntax(StructTypeSyntax structTypeSyntax)
     {
+        // TODO: allow struct type recursion (the same struct inside the struct)
+
         var boundMembers = new List<BoundGenericDeclaration>();
 
         foreach (var member in structTypeSyntax.Members)

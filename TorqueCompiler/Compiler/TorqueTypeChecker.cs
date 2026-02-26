@@ -546,7 +546,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
             if (structType.GetField(expression.Member.Name) is var (field, _))
                 expression.Type = field.Type;
 
-        // TODO: finish this and use Scope to better store struct members
+        // TODO: solve crashes when the member doesn't exist
 
         return expression.Type!;
     }

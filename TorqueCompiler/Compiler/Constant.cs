@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using LLVMSharp.Interop;
 
 using Torque.Compiler.Types;
