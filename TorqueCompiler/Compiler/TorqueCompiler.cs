@@ -710,17 +710,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public LLVMValueRef ProcessSymbol(BoundSymbolExpression expression)
     {
-        var symbol = expression.Symbol;
-
-        var llvmReference = symbol.LLVMReference!.Value;
-        var llvmType = symbol.LLVMType!.Value;
-
-        // TODO: use polymorphism: the way a symbol will be loaded (value or reference) should be defined by the own kind of symbol
-        // Sometimes, we want the symbol memory address instead of its value.
-        if (symbol is FunctionSymbol || symbol.Type is StructType)
-            return llvmReference;
-
-        return Builder.BuildLoad2(llvmType, llvmReference, "symbol.value");
+        return ResolveSymbol(expression.Symbol);
     }
 
 
@@ -956,6 +946,18 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         symbol.SetLLVMProperties(reference, llvmType, null);
 
         return reference;
+    }
+
+
+    private LLVMValueRef ResolveSymbol(Symbol symbol)
+    {
+        var llvmReference = symbol.LLVMReference!.Value;
+        var llvmType = symbol.LLVMType!.Value;
+
+        if (symbol is not VariableSymbol variable || symbol is FunctionSymbol || variable.Type is StructType)
+            return llvmReference;
+
+        return Builder.BuildLoad2(llvmType, llvmReference, "symbol.value");
     }
 
 

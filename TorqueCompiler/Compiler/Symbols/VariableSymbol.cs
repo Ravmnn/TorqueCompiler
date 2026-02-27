@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using LLVMSharp.Interop;
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Types;
 

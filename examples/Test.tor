@@ -60,6 +60,9 @@ struct Person
 int main(int argc, char** argv)
 {
     let peak = new Person { name: "Kujo Jotaro", age: 20, id: 123456 };
+    let peak2 = peak;
+
+    peak2.name = "someone else";
 
     println(peak.name);
 

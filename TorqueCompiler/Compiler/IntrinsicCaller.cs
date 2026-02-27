@@ -22,6 +22,10 @@ public class IntrinsicCaller(LLVMModuleRef module, LLVMBuilderRef builder)
     {
         { "llvm.memset.p0i8.i64", LLVMTypeRef.CreateFunction(LLVMTypeRef.Void, [
             LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0), LLVMTypeRef.Int8, LLVMTypeRef.Int64, LLVMTypeRef.Int1
+        ]) },
+
+        { "llvm.memcpy.p0.p0.i64", LLVMTypeRef.CreateFunction(LLVMTypeRef.Void, [
+            LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0), LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0), LLVMTypeRef.Int64, LLVMTypeRef.Int1
         ]) }
     };
 
@@ -37,6 +41,16 @@ public class IntrinsicCaller(LLVMModuleRef module, LLVMBuilderRef builder)
 
     public static string GetMemsetName()
         => IntrinsicDeclarations.Keys.ElementAt(0);
+
+
+
+
+    public void CallMemcpy(LLVMValueRef destination, LLVMValueRef source, LLVMValueRef sizeInBytes)
+        => CallIntrinsic(GetMemcpyName(), [destination, source, sizeInBytes, Constant.Boolean(false)]);
+
+
+    public static string GetMemcpyName()
+        => IntrinsicDeclarations.Keys.ElementAt(1);
 
 
 
