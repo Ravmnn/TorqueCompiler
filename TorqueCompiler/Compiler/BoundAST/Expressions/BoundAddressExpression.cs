@@ -7,11 +7,11 @@ namespace Torque.Compiler.BoundAST.Expressions;
 
 
 
-public class BoundAddressExpression(AddressExpression syntax, BoundAddressableExpression expression) : BoundExpression(syntax)
+public class BoundAddressExpression(AddressExpression syntax, BoundExpression expression) : BoundExpression(syntax)
 {
     public new AddressExpression Syntax => (base.Syntax as AddressExpression)!;
 
-    public BoundAddressableExpression Expression { get; } = expression;
+    public BoundExpression Expression { get; } = expression;
     public override Type Type => new PointerType(Expression.Type!);
 
 

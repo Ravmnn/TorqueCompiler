@@ -361,6 +361,8 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
         return expression.Type;
     }
 
+    // TODO: improve the way you're reporting type errors, since some of them are throwing exceptions
+
 
 
 
@@ -377,13 +379,6 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
     }
 
 
-    public Type ProcessAddressable(BoundAddressableExpression expression)
-    {
-        Process(expression.Expression);
-        return expression.Type!;
-    }
-
-
 
 
     public Type ProcessAssignment(BoundAssignmentExpression expression)
@@ -395,10 +390,6 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
         return expression.Type!;
     }
-
-
-    public Type ProcessAssignmentReference(BoundAssignmentReferenceExpression expression)
-        => Process(expression.Reference);
 
 
 

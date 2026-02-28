@@ -16,9 +16,7 @@ public interface IBoundExpressionProcessor
     void ProcessLogic(BoundLogicExpression expression);
     void ProcessSymbol(BoundSymbolExpression expression);
     void ProcessAddress(BoundAddressExpression expression);
-    void ProcessAddressable(BoundAddressableExpression expression);
     void ProcessAssignment(BoundAssignmentExpression expression);
-    void ProcessAssignmentReference(BoundAssignmentReferenceExpression expression);
     void ProcessPointerAccess(BoundPointerAccessExpression expression);
     void ProcessCall(BoundCallExpression expression);
     void ProcessCast(BoundCastExpression expression);
@@ -44,9 +42,7 @@ public interface IBoundExpressionProcessor<out T>
     T ProcessLogic(BoundLogicExpression expression);
     T ProcessSymbol(BoundSymbolExpression expression);
     T ProcessAddress(BoundAddressExpression expression);
-    T ProcessAddressable(BoundAddressableExpression expression);
     T ProcessAssignment(BoundAssignmentExpression expression);
-    T ProcessAssignmentReference(BoundAssignmentReferenceExpression expression);
     T ProcessPointerAccess(BoundPointerAccessExpression expression);
     T ProcessCall(BoundCallExpression expression);
     T ProcessCast(BoundCastExpression expression);

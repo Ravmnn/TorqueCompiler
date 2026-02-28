@@ -315,7 +315,7 @@ public class ASTPrinter
 
 
     public string ProcessAssignment(AssignmentExpression expression)
-        => Stringify("=", expression.Target, expression.Value);
+        => Stringify("=", expression.Reference, expression.Value);
 
 
 

@@ -45,6 +45,15 @@ public class TypeBuilder : ITypeProcessor<LLVMTypeRef>
 
 
 
+    public LLVMTypeRef ProcessArray(ArrayType type)
+    {
+        var innerType = Process(type.Type);
+        return LLVMTypeRef.CreateArray2(innerType, type.Length);
+    }
+
+
+
+
     public LLVMTypeRef ProcessFunction(FunctionType type)
         => LLVMTypeRef.CreatePointer(ProcessRawFunction(type), 0);
 

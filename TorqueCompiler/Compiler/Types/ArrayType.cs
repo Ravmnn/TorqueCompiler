@@ -15,5 +15,8 @@ public class ArrayType(Type type, ulong length) : PointerType(type)
     public ulong Length { get; } = length;
 
 
-    //=> LLVMTypeRef.CreateArray2(Type.ToLLVMType(), Length);
+
+
+    public override T Process<T>(ITypeProcessor<T> processor)
+        => processor.ProcessArray(this);
 }

@@ -71,30 +71,6 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
 
 
-    public void ProcessVariableDefinition(BoundVariableDeclarationStatement statement)
-    {
-
-    }
-
-
-
-
-    public void ProcessFunctionDefinition(BoundFunctionDeclarationStatement statement)
-    {
-
-    }
-
-
-
-
-    private void ValidateFunctionBody(BoundFunctionDeclarationStatement statement)
-    {
-
-    }
-
-
-
-
     public void ProcessReturn(BoundReturnStatement statement)
     {
         if (statement.Expression is null)
@@ -206,21 +182,9 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
     }
 
 
-    public void ProcessAddressable(BoundAddressableExpression expression)
-    {
-
-    }
-
-
 
 
     public void ProcessAssignment(BoundAssignmentExpression expression)
-    {
-
-    }
-
-
-    public void ProcessAssignmentReference(BoundAssignmentReferenceExpression expression)
     {
 
     }
@@ -275,7 +239,8 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public void ProcessIndexing(BoundIndexingExpression expression)
     {
-        ReportIfNotAPointer(expression.Pointer.Type!, expression.Pointer.Location);
+        if (expression.Pointer.Type is not null)
+            ReportIfNotAPointer(expression.Pointer.Type, expression.Pointer.Location);
     }
 
 

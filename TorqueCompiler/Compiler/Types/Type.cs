@@ -1,7 +1,5 @@
 using System;
 
-using LLVMSharp.Interop;
-
 
 namespace Torque.Compiler.Types;
 
@@ -26,7 +24,7 @@ public enum PrimitiveType
     Float32,
     Float64,
 
-    Struct
+    Struct,
 }
 
 

@@ -364,32 +364,21 @@ public class TorqueBinder :
 
     public BoundExpression ProcessAddress(AddressExpression expression)
     {
-        var target = Process(expression.Expression);
-        var addressable = ToAddressable(target);
+        var reference = Process(expression.Expression);
 
-        return new BoundAddressExpression(expression, addressable);
+        return new BoundAddressExpression(expression, reference);
     }
-
-
-    private static BoundAddressableExpression ToAddressable(BoundExpression expression)
-        => new BoundAddressableExpression(expression.Syntax, expression);
 
 
 
 
     public BoundExpression ProcessAssignment(AssignmentExpression expression)
     {
-        var target = Process(expression.Target);
-        var reference = ToAssignmentReference(target);
-
+        var target = Process(expression.Reference);
         var value = Process(expression.Value);
 
-        return new BoundAssignmentExpression(expression, reference, value);
+        return new BoundAssignmentExpression(expression, target, value);
     }
-
-
-    private static BoundAssignmentReferenceExpression ToAssignmentReference(BoundExpression expression)
-        => new BoundAssignmentReferenceExpression(expression.Syntax, expression);
 
 
 

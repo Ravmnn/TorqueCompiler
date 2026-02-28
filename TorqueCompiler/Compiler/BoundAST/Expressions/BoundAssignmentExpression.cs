@@ -7,12 +7,12 @@ namespace Torque.Compiler.BoundAST.Expressions;
 
 
 
-public class BoundAssignmentExpression(AssignmentExpression syntax, BoundAssignmentReferenceExpression reference, BoundExpression value)
+public class BoundAssignmentExpression(AssignmentExpression syntax, BoundExpression reference, BoundExpression value)
     : BoundExpression(syntax)
 {
     public new AssignmentExpression Syntax => (base.Syntax as AssignmentExpression)!;
 
-    public BoundAssignmentReferenceExpression Reference { get; set; } = reference;
+    public BoundExpression Reference { get; set; } = reference;
     public BoundExpression Value { get; set; } = value;
 
     public override Type? Type => Reference.Type;

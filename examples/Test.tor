@@ -1,4 +1,4 @@
-external byte* fdopen(int fileDescriptor, char* mode);
+#>external byte* fdopen(int fileDescriptor, char* mode);
 external int64 getline(char** buffer, usize* bufferSize, byte* fileDescriptor);
 external int printf(char* content);
 
@@ -32,7 +32,7 @@ void println(char* content)
 {
     printf(content);
     printf("\n");
-}
+}<#
 
 
 
@@ -49,22 +49,34 @@ void println(char* content)
 
 
 
-struct Person
+#>struct Person
 {
     char* name;
     uint age;
     uint id;
-}
+}<#
 
 
 int main(int argc, char** argv)
 {
-    let peak = new Person { name: "Kujo Jotaro", age: 20, id: 123456 };
-    let peak2 = peak;
+    let x = 20;
+    let y = 10;
+    let z = x + y;
 
-    peak2.name = "someone else";
+    let px = &x;
+    let py = &y;
+    let pz = &z;
+    
+    *px = 123;
+    *py = *px / 2;
 
-    println(peak.name);
+    let numbers = int array[] { 10, 20, 5, 2, -5, 194 };
+
+    let first = numbers[0];
+    let last = numbers[5];
+
+    let secondPtr = &numbers[3];
+    *secondPtr = 67;
 
     return 0;
 }

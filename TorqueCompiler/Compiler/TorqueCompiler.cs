@@ -26,7 +26,7 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcessor<LLVMValueRef>, IBoundDeclarationProcessor
+public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcessor<ExpressionResult>, IBoundDeclarationProcessor
 {
 
     // if debug metadata generation is desired, this property must be set, since
@@ -199,7 +199,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             var reference = CreateVariableAlloca(symbol, $"var.${symbol.Name}");
             symbol.LLVMDebugMetadata = DebugGenerateLocalVariable(symbol);
 
-            Builder.BuildStore(Process(statement.Value), reference);
+            var value = EnsureValue(Process(statement.Value)).Value;
+            Builder.BuildStore(value, reference);
         });
     }
 
@@ -228,7 +229,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         if (statement.Expression is not null)
             DebugForSetLocationDo(statement.Location, () =>
-                Builder.BuildRet(Process(statement.Expression)));
+                Builder.BuildRet(EnsureValue(Process(statement.Expression)).Value));
         else
             Builder.BuildRetVoid();
 
@@ -307,7 +308,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         var hasElse = statement.ElseStatement is not null;
 
-        var condition = Process(statement.Condition);
+        var condition = EnsureValue(Process(statement.Condition)).Value;
 
         DebugForSetLocationDo(statement.Location, () =>
         {
@@ -364,7 +365,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         DebugSetLocationTo(statement.Condition.Location);
 
         AppendBlockAndPositionAtEnd(conditionBlock);
-        var condition = Process(statement.Condition);
+        var condition = EnsureValue(Process(statement.Condition)).Value;
         Builder.BuildCondBr(condition, loopBlock, joinBlock);
     }
 
@@ -395,25 +396,24 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     #region Expressions
 
-    public LLVMValueRef Process(BoundExpression expression)
+    public ExpressionResult Process(BoundExpression expression)
         => expression.Process(this);
 
 
-    public IReadOnlyList<LLVMValueRef> ProcessAll(IReadOnlyList<BoundExpression> expressions)
+    public IReadOnlyList<ExpressionResult> ProcessAll(IReadOnlyList<BoundExpression> expressions)
         => expressions.Select(Process).ToArray();
 
 
 
 
-    public LLVMValueRef ProcessLiteral(BoundLiteralExpression expression)
+    public ExpressionResult ProcessLiteral(BoundLiteralExpression expression)
     {
         var type = expression.Type!;
         var llvmType = TypeBuilder.Process(type);
         var value = expression.Value!;
 
-        var llvmReference = ValueFromLiteral(type, value, llvmType);
-
-        return llvmReference;
+        var literalValue = ValueFromLiteral(type, value, llvmType);
+        return Value(literalValue, llvmType);
     }
 
 
@@ -440,14 +440,15 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    public LLVMValueRef ProcessBinary(BoundBinaryExpression expression)
+    public ExpressionResult ProcessBinary(BoundBinaryExpression expression)
     {
-        var left = Process(expression.Left);
-        var right = Process(expression.Right);
+        var left = EnsureValue(Process(expression.Left)).Value;
+        var right = EnsureValue(Process(expression.Right)).Value;
 
         var leftType = expression.Left.Type!;
+        var llvmLeftType = TypeBuilder.Process(leftType);
 
-        return ProcessBinaryOperation(expression, leftType, left, right);
+        return Value(ProcessBinaryOperation(expression, leftType, left, right), llvmLeftType);
     }
 
 
@@ -485,15 +486,16 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    public LLVMValueRef ProcessUnary(BoundUnaryExpression expression)
+    public ExpressionResult ProcessUnary(BoundUnaryExpression expression)
     {
-        var value = Process(expression.Expression);
+        var value = EnsureValue(Process(expression.Expression)).Value;
         var type = expression.Type!;
         var llvmType = TypeBuilder.Process(type);
 
         var operation = expression.Syntax.Operator;
 
-        return ProcessUnaryOperation(operation, type, llvmType, value);
+        var operationResult = ProcessUnaryOperation(operation, type, llvmType, value);
+        return Value(operationResult, llvmType);
     }
 
 
@@ -530,23 +532,25 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    public LLVMValueRef ProcessGrouping(BoundGroupingExpression expression)
+    public ExpressionResult ProcessGrouping(BoundGroupingExpression expression)
         => Process(expression.Expression);
 
 
 
 
-    public LLVMValueRef ProcessComparison(BoundComparisonExpression expression)
+    public ExpressionResult ProcessComparison(BoundComparisonExpression expression)
     {
-        var left = Process(expression.Left);
-        var right = Process(expression.Right);
+        var left = EnsureValue(Process(expression.Left)).Value;
+        var right = EnsureValue(Process(expression.Right)).Value;
 
         var leftType = expression.Left.Type!;
+        var llvmLeftType = TypeBuilder.Process(leftType);
 
         var @operator = expression.Syntax.Operator;
         var isSigned = expression.Type.IsSigned;
 
-        return ProcessComparisonOperation(leftType, @operator, left, right, isSigned);
+        var operationResult = ProcessComparisonOperation(leftType, @operator, left, right, isSigned);
+        return Value(operationResult, llvmLeftType);
     }
 
 
@@ -593,14 +597,16 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    public LLVMValueRef ProcessEquality(BoundEqualityExpression expression)
+    public ExpressionResult ProcessEquality(BoundEqualityExpression expression)
     {
-        var left = Process(expression.Left);
-        var right = Process(expression.Right);
+        var left = EnsureValue(Process(expression.Left)).Value;
+        var right = EnsureValue(Process(expression.Right)).Value;
 
         var leftType = expression.Left.Type!;
+        var llvmLeftType = TypeBuilder.Process(leftType);
 
-        return ProcessEqualityOperation(expression, leftType, left, right);
+        var operationValue = ProcessEqualityOperation(expression, leftType, left, right);
+        return Value(operationValue, llvmLeftType);
     }
 
 
@@ -643,7 +649,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    public LLVMValueRef ProcessLogic(BoundLogicExpression expression)
+    public ExpressionResult ProcessLogic(BoundLogicExpression expression)
     {
         // due to LLVM's SSA system, the use of "phi" is needed to implement a logic expression
 
@@ -668,18 +674,18 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         Builder.PositionAtEnd(joinBlock);
 
-
-        return BuildLogicOperationPhi(trueBlock, falseBlock);
+        var llvmType = TypeBuilder.Process(expression.Type);
+        return Value(BuildLogicOperationPhi(trueBlock, falseBlock), llvmType);
     }
 
 
     private void BuildLogicOperationOperandEvaluationBlocks(BoundLogicExpression expression, LLVMBasicBlockRef leftThenBlock,
         LLVMBasicBlockRef leftElseBlock, LLVMBasicBlockRef rhsBlock, LLVMBasicBlockRef trueBlock, LLVMBasicBlockRef falseBlock)
     {
-        Builder.BuildCondBr(Process(expression.Left), leftThenBlock, leftElseBlock);
+        Builder.BuildCondBr(EnsureValue(Process(expression.Left)).Value, leftThenBlock, leftElseBlock);
 
         Builder.PositionAtEnd(rhsBlock);
-        Builder.BuildCondBr(Process(expression.Right), trueBlock, falseBlock);
+        Builder.BuildCondBr(EnsureValue(Process(expression.Right)).Value, trueBlock, falseBlock);
     }
 
 
@@ -708,129 +714,131 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    public LLVMValueRef ProcessSymbol(BoundSymbolExpression expression)
+    public ExpressionResult ProcessSymbol(BoundSymbolExpression expression)
     {
-        return ResolveSymbol(expression.Symbol);
+        var symbol = expression.Symbol;
+
+        var llvmReference = symbol.LLVMReference!.Value;
+        var llvmType = symbol.LLVMType!.Value;
+
+        return Address(llvmReference, llvmType);
     }
 
 
 
 
-    public LLVMValueRef ProcessAddress(BoundAddressExpression expression)
-        => Process(expression.Expression);
-
-
-    public LLVMValueRef ProcessAddressable(BoundAddressableExpression expression) => expression.Expression switch
+    public ExpressionResult ProcessAddress(BoundAddressExpression expression)
     {
-        BoundSymbolExpression symbolExpression => symbolExpression.Symbol.LLVMReference!.Value,
-        BoundIndexingExpression indexingExpression => ProcessIndexingExpression(indexingExpression, false),
-        BoundMemberAccessExpression memberAccessExpression => ProcessMemberAccessExpression(memberAccessExpression, false),
+        var address =  EnsureAddress(Process(expression.Expression)).Value;
+        var llvmType = TypeBuilder.Process(expression.Type);
 
-        _ => throw new UnreachableException()
-    };
-
+        return Value(address, llvmType);
+    }
 
 
 
-    public LLVMValueRef ProcessAssignment(BoundAssignmentExpression expression)
+
+    public ExpressionResult ProcessAssignment(BoundAssignmentExpression expression)
     {
-        var reference = Process(expression.Reference);
-        var value = Process(expression.Value);
+        var reference = EnsureAddress(Process(expression.Reference)).Value;
+        var value = EnsureValue(Process(expression.Value)).Value;
 
         Builder.BuildStore(value, reference);
 
-        return value;
+        var llvmType = TypeBuilder.Process(expression.Type!);
+        return Value(value, llvmType);
     }
 
 
-    public LLVMValueRef ProcessAssignmentReference(BoundAssignmentReferenceExpression expression) => expression.Reference switch
+
+
+    public ExpressionResult ProcessPointerAccess(BoundPointerAccessExpression expression)
     {
-        BoundSymbolExpression symbolExpression => symbolExpression.Symbol.LLVMReference!.Value,
-        BoundPointerAccessExpression pointerExpression => Process(pointerExpression.Pointer),
-        BoundIndexingExpression indexingExpression => ProcessIndexingExpression(indexingExpression, false),
-        BoundMemberAccessExpression memberAccessExpression => ProcessMemberAccessExpression(memberAccessExpression, false),
-
-        _ => throw new UnreachableException()
-    };
-
-
-
-
-    public LLVMValueRef ProcessPointerAccess(BoundPointerAccessExpression expression)
-    {
-        var value = Process(expression.Pointer);
+        var address = EnsureAddress(Process(expression.Pointer)).Value;
+        var llvmPointerType = TypeBuilder.Process(expression.Pointer.Type!);
         var llvmType = TypeBuilder.Process(expression.Type!);
 
-        return Builder.BuildLoad2(llvmType, value, "access.ptr");
+        var value = Builder.BuildLoad2(llvmPointerType, address, "access.ptr");
+        return Address(value, llvmType);
     }
 
 
 
 
-    public LLVMValueRef ProcessCall(BoundCallExpression expression)
+    public ExpressionResult ProcessCall(BoundCallExpression expression)
     {
-        var function = Process(expression.Callee);
-        var arguments = ProcessAll(expression.Arguments.AsReadOnly());
+        var function = EnsureAddress(Process(expression.Callee)).Value;
+        var arguments = ProcessAll(expression.Arguments.AsReadOnly()).Select(EnsureValue);
+        var llvmValueArguments = arguments.Select(argument => argument.Value).ToArray();
 
         var functionType = (expression.Callee.Type as FunctionType)!;
         var llvmFunctionType = TypeBuilder.ProcessRawFunction(functionType);
 
-        return Call(function, llvmFunctionType, arguments);
+        var llvmReturnType = TypeBuilder.Process(functionType.ReturnType);
+        var returnValue = Call(function, llvmFunctionType, llvmValueArguments);
+
+        return Value(returnValue, llvmReturnType);
     }
 
 
 
 
-    public LLVMValueRef ProcessCast(BoundCastExpression expression)
+    public ExpressionResult ProcessCast(BoundCastExpression expression)
     {
-        var value = Process(expression.Value);
+        var value = EnsureValue(Process(expression.Value)).Value;
 
         var from = expression.Value.Type!;
         var to = expression.Type!;
+        var llvmToType = TypeBuilder.Process(to);
 
-        return Cast(from, to, value);
+        var cast = Cast(from, to, value);
+        return Value(cast, llvmToType);
     }
 
 
 
 
-    public LLVMValueRef ProcessImplicitCast(BoundImplicitCastExpression expression)
+    public ExpressionResult ProcessImplicitCast(BoundImplicitCastExpression expression)
     {
-        var value = Process(expression.Value);
+        var value = EnsureValue(Process(expression.Value)).Value;
 
         var from = expression.Value.Type!;
         var to = expression.Type!;
+        var llvmToType = TypeBuilder.Process(to);
 
-        return Cast(from, to, value);
+        var cast = Cast(from, to, value);
+        return Value(cast, llvmToType);
     }
 
 
 
 
-    public LLVMValueRef ProcessArray(BoundArrayExpression expression)
+    public ExpressionResult ProcessArray(BoundArrayExpression expression)
     {
         var arrayType = (expression.ArrayType as ArrayType)!;
 
         var llvmArrayType = TypeBuilder.Process(arrayType);
         var llvmArrayElementType = TypeBuilder.Process(arrayType.Type);
 
+        // TODO: don't use alloca
         var arrayAddress = Builder.BuildAlloca(llvmArrayType, "array.address");
 
         InitializeArrayElements(expression, llvmArrayElementType, arrayAddress);
         var firstElementAddress = IndexPointer(llvmArrayElementType, arrayAddress, Constant.Zero, false);
 
-        return firstElementAddress;
+        return Value(firstElementAddress, llvmArrayType);
     }
 
 
     private void InitializeArrayElements(BoundArrayExpression expression, LLVMTypeRef llvmArrayElementType, LLVMValueRef arrayAddress)
     {
-        var initializationList = expression.Elements?.Select(Process).ToArray() ?? [];
+        var initializationList = expression.Elements is not null ? ProcessAll(expression.Elements.ToArray()).Select(EnsureValue).ToArray() : [];
+        var llvmValueInitializationList = initializationList.Select(item => item.Value).ToArray();
 
-        InitializeArrayFromInitializationList(llvmArrayElementType, arrayAddress, initializationList);
+        InitializeArrayFromInitializationList(llvmArrayElementType, arrayAddress, llvmValueInitializationList);
 
-        if ((ulong)initializationList.Length < expression.Syntax.Length)
-            InitializeRemainingArrayElements((expression.ArrayType as ArrayType)!, llvmArrayElementType, arrayAddress, (ulong)initializationList.Length);
+        if ((ulong)llvmValueInitializationList.Length < expression.Syntax.Length)
+            InitializeRemainingArrayElements((expression.ArrayType as ArrayType)!, llvmArrayElementType, arrayAddress, (ulong)llvmValueInitializationList.Length);
     }
 
 
@@ -868,63 +876,57 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    public LLVMValueRef ProcessIndexing(BoundIndexingExpression expression)
+    public ExpressionResult ProcessIndexing(BoundIndexingExpression expression)
         => ProcessIndexingExpression(expression);
 
 
-    private LLVMValueRef ProcessIndexingExpression(BoundIndexingExpression expression, bool getValue = true)
+    private ExpressionResult ProcessIndexingExpression(BoundIndexingExpression expression, bool getValue = true)
     {
         var pointerType = (expression.Pointer.Type as PointerType)!;
-        var pointerElementType = TypeBuilder.Process(pointerType.Type);
+        var llvmPointerElementType = TypeBuilder.Process(pointerType.Type);
 
-        var pointer = Process(expression.Pointer);
-        var index = Process(expression.Index);
+        var pointer = EnsureAddress(Process(expression.Pointer)).Value;
+        var index = EnsureValue(Process(expression.Index)).Value;
 
-        return IndexPointer(pointerElementType, pointer, index, getValue);
+        var element = IndexPointer(llvmPointerElementType, pointer, index, getValue);
+        return Value(element, llvmPointerElementType);
     }
 
 
 
 
-    public LLVMValueRef ProcessDefault(BoundDefaultExpression expression)
+    public ExpressionResult ProcessDefault(BoundDefaultExpression expression)
     {
-        return GetDefaultValueForType(expression.Type!);
+        var llvmType = TypeBuilder.Process(expression.Type!);
+        return Value(GetDefaultValueForType(expression.Type!), llvmType);
     }
 
 
 
 
-    public LLVMValueRef ProcessStruct(BoundStructExpression expression)
+    public ExpressionResult ProcessStruct(BoundStructExpression expression)
     {
         var structType = (expression.Type as StructType)!;
-        var structAddress = CreateConstStruct(structType, expression.InitializationList);
+        var llvmStructType = TypeBuilder.Process(structType);
+        var structValue = CreateConstStruct(structType, expression.InitializationList);
 
-        return structAddress;
+        return Value(structValue, llvmStructType);
     }
 
 
-    public LLVMValueRef ProcessMemberAccess(BoundMemberAccessExpression expression)
+    public ExpressionResult ProcessMemberAccess(BoundMemberAccessExpression expression)
         => ProcessMemberAccessExpression(expression);
 
 
-    private LLVMValueRef ProcessMemberAccessExpression(BoundMemberAccessExpression expression, bool getValue = true)
+    private ExpressionResult ProcessMemberAccessExpression(BoundMemberAccessExpression expression, bool getValue = true)
     {
         var structType = (expression.Compound.Type as StructType)!;
-        var @struct = Process(expression.Compound);
+        var @struct = EnsureAddress(Process(expression.Compound)).Value;
 
-        if (@struct.TypeOf.Kind != LLVMTypeKind.LLVMPointerTypeKind)
-            @struct = CreateTemporaryStruct(structType, @struct);
-
-        return IndexStruct(@struct, structType, expression.Member.Name, getValue);
-    }
-
-
-    private LLVMValueRef CreateTemporaryStruct(StructType structType, LLVMValueRef value)
-    {
-        var @struct = Builder.BuildAlloca(TypeBuilder.Process(structType), "tmp.struct");
-        Builder.BuildStore(value, @struct);
-
-        return @struct;
+        var memberName = expression.Member.Name;
+        var memberType = structType.GetField(memberName)!.Value.member.Type;
+        var llvmMemberType = TypeBuilder.Process(memberType);
+        return Address(IndexStruct(@struct, structType, memberName, getValue), llvmMemberType);
     }
 
     #endregion
@@ -946,18 +948,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         symbol.SetLLVMProperties(reference, llvmType, null);
 
         return reference;
-    }
-
-
-    private LLVMValueRef ResolveSymbol(Symbol symbol)
-    {
-        var llvmReference = symbol.LLVMReference!.Value;
-        var llvmType = symbol.LLVMType!.Value;
-
-        if (symbol is not VariableSymbol variable || symbol is FunctionSymbol || variable.Type is StructType)
-            return llvmReference;
-
-        return Builder.BuildLoad2(llvmType, llvmReference, "symbol.value");
     }
 
 
@@ -1012,6 +1002,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var llvmMemberType = TypeBuilder.Process(member.Type);
         var memberAddress = Builder.BuildStructGEP2(llvmStructType, structAddress, (uint)memberIndex, $"member.${memberName}.address");
 
+        // TODO: the use of getValue is now irrelevant
         if (getValue)
             return Builder.BuildLoad2(llvmMemberType, memberAddress, $"member.${memberName}");
 
@@ -1118,7 +1109,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         {
             var current = initializationList[i];
             var initializationIndex = type.GetField(current.Member.Name)!.Value.index;
-            var value = Process(current.Value);
+            var value = EnsureValue(Process(current.Value)).Value;
 
             source[initializationIndex] = value;
         }
@@ -1198,6 +1189,41 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
     #endregion
+
+
+
+
+    private ExpressionResult Address(LLVMValueRef address, LLVMTypeRef type)
+        => new ExpressionResult(address, type, true);
+
+
+    private ExpressionResult Value(LLVMValueRef value, LLVMTypeRef type)
+        => new ExpressionResult(value, type, false);
+
+
+    private ExpressionResult EnsureAddress(ExpressionResult expression)
+    {
+        // TODO: all allocas should be in the function entry (check GPT)
+
+        if (expression.IsAddress)
+            return expression;
+
+        var temporaryAddress = Builder.BuildAlloca(expression.Type, "tmp.address");
+        Builder.BuildStore(expression.Value, temporaryAddress);
+
+        return Address(temporaryAddress, expression.Type);
+    }
+
+
+    private ExpressionResult EnsureValue(ExpressionResult expression)
+    {
+        if (expression.IsValue)
+            return expression;
+
+        var value = Builder.BuildLoad2(expression.Type, expression.Value, "value");
+
+        return Value(value, expression.Type);
+    }
 
 
 
