@@ -49,34 +49,36 @@ void println(char* content)
 
 
 
-#>struct Person
+struct Person
 {
     char* name;
     uint age;
     uint id;
-}<#
+}
 
 
 int main(int argc, char** argv)
 {
-    let x = 20;
-    let y = 10;
-    let z = x + y;
+    let people = Person array[] {
+        new Person { name: "John Wick", age: 24, id: 047155 },
+        new Person { name: "Peter Parker", age: 23, id: 895921 },
+        new Person { name: "Ariana Grande", age: 30, id: 991644 },
+        new Person { name: "Osmany Something", age: 21, id: 010465 },
+        new Person { name: "Marvin Marjan", age: 17, id: 123456 }
+    };
 
-    let px = &x;
-    let py = &y;
-    let pz = &z;
-    
-    *px = 123;
-    *py = *px / 2;
+    let johnPtr = &people[0];
+    let peterPtr = &people[1];
+    let arianaPtr = &people[2];
+    let osmanyPtr = &people[3];
+    let marvinPtr = &people[4];
 
-    let numbers = int array[] { 10, 20, 5, 2, -5, 194 };
+    people[2].name = "Ariana Small";
 
-    let first = numbers[0];
-    let last = numbers[5];
+    (*arianaPtr).id = 987654 as uint;
 
-    let secondPtr = &numbers[3];
-    *secondPtr = 67;
+    let ariana = people[2];
+    ariana.age = 9 as uint;
 
     return 0;
 }

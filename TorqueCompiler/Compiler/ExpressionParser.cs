@@ -89,26 +89,7 @@ public partial class TorqueParser
 
 
     private Expression Address()
-        => ParseRightAssociativeUnaryLayoutExpression<AddressExpression>(Indexing, TokenType.Ampersand);
-
-
-
-
-    private Expression Indexing()
-    {
-        var expression = Call();
-
-        while (Match(TokenType.LeftSquareBracket))
-        {
-            var index = Expression();
-            var rightSquareBracket = Reporter.ExpectRightSquareBracket();
-            var location = new Span(expression.Location, rightSquareBracket);
-
-            expression = new IndexingExpression(expression, index, location);
-        }
-
-        return expression;
-    }
+        => ParseRightAssociativeUnaryLayoutExpression<AddressExpression>(Call, TokenType.Ampersand);
 
 
 
@@ -143,7 +124,7 @@ public partial class TorqueParser
 
     private Expression MemberAccess()
     {
-        var expression = Primary();
+        var expression = Indexing();
 
         while (Match(TokenType.Dot))
         {
@@ -151,6 +132,25 @@ public partial class TorqueParser
             var location = new Span(expression.Location, member.Location);
 
             expression = new MemberAccessExpression(expression, member, location);
+        }
+
+        return expression;
+    }
+
+
+
+
+    private Expression Indexing()
+    {
+        var expression = Primary();
+
+        while (Match(TokenType.LeftSquareBracket))
+        {
+            var index = Expression();
+            var rightSquareBracket = Reporter.ExpectRightSquareBracket();
+            var location = new Span(expression.Location, rightSquareBracket);
+
+            expression = new IndexingExpression(expression, index, location);
         }
 
         return expression;

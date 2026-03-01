@@ -128,8 +128,8 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
     {
         var llvmType = Compiler.TypeBuilder.Process(type);
 
-        var sizeInBits = llvmType.SizeOfThisInMemory();
-        var alignmentInBits = llvmType.AlignmentOfThisInMemory();
+        var sizeInBits = llvmType.SizeOfThisInMemoryAsBits();
+        var alignmentInBits = llvmType.AlignmentOfThisInMemoryAsBits();
 
         var name = type.Name.Name;
 

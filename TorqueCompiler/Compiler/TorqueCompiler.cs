@@ -818,44 +818,41 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var arrayType = (expression.ArrayType as ArrayType)!;
 
         var llvmArrayType = TypeBuilder.Process(arrayType);
-        var llvmArrayElementType = TypeBuilder.Process(arrayType.Type);
-
-        // TODO: don't use alloca
         var arrayAddress = Builder.BuildAlloca(llvmArrayType, "array.address");
 
-        InitializeArrayElements(expression, llvmArrayElementType, arrayAddress);
-        var firstElementAddress = IndexPointer(llvmArrayElementType, arrayAddress, Constant.Zero, false);
+        InitializeArrayElements(expression, llvmArrayType, arrayAddress);
+        var firstElementAddress = IndexArray(llvmArrayType, arrayAddress, Constant.Zero, false);
 
         return Value(firstElementAddress, llvmArrayType);
     }
 
 
-    private void InitializeArrayElements(BoundArrayExpression expression, LLVMTypeRef llvmArrayElementType, LLVMValueRef arrayAddress)
+    private void InitializeArrayElements(BoundArrayExpression expression, LLVMTypeRef llvmArrayType, LLVMValueRef arrayAddress)
     {
         var initializationList = expression.Elements is not null ? ProcessAll(expression.Elements.ToArray()).Select(EnsureValue).ToArray() : [];
         var llvmValueInitializationList = initializationList.Select(item => item.Value).ToArray();
 
-        InitializeArrayFromInitializationList(llvmArrayElementType, arrayAddress, llvmValueInitializationList);
+        InitializeArrayFromInitializationList(llvmArrayType, arrayAddress, llvmValueInitializationList);
 
         if ((ulong)llvmValueInitializationList.Length < expression.Syntax.Length)
-            InitializeRemainingArrayElements((expression.ArrayType as ArrayType)!, llvmArrayElementType, arrayAddress, (ulong)llvmValueInitializationList.Length);
+            InitializeRemainingArrayElements((expression.ArrayType as ArrayType)!, llvmArrayType, arrayAddress, (ulong)llvmValueInitializationList.Length);
     }
 
 
-    private void InitializeArrayFromInitializationList(LLVMTypeRef llvmArrayElementType, LLVMValueRef arrayAddress, LLVMValueRef[] llvmElements)
+    private void InitializeArrayFromInitializationList(LLVMTypeRef llvmArrayType, LLVMValueRef arrayAddress, LLVMValueRef[] llvmElements)
     {
         for (var i = 0; i < llvmElements.Length; i++)
         {
-            var elementAddress = IndexPointer(llvmArrayElementType, arrayAddress, Constant.Integer((ulong)i), false);
+            var elementAddress = IndexArray(llvmArrayType, arrayAddress, Constant.Integer((ulong)i), false);
             Builder.BuildStore(llvmElements[i], elementAddress);
         }
     }
 
 
-    private void InitializeRemainingArrayElements(ArrayType arrayType, LLVMTypeRef llvmArrayElementType, LLVMValueRef arrayAddress, ulong initializationListLength)
+    private void InitializeRemainingArrayElements(ArrayType arrayType, LLVMTypeRef llvmArrayType, LLVMValueRef arrayAddress, ulong initializationListLength)
     {
         var elementTypeSize = (ulong)TypeBuilder.SizeOfTypeInMemory(arrayType.Type);
-        var startAddress = IndexPointer(llvmArrayElementType, arrayAddress, Constant.Integer(initializationListLength), false);
+        var startAddress = IndexArray(llvmArrayType, arrayAddress, Constant.Integer(initializationListLength), false);
 
         var remainingSizeInBytes = GetRemainingEmptyBytesOfArray(arrayType.Length, initializationListLength, elementTypeSize);
         var remainingSizeInBytesValue = Constant.Integer(remainingSizeInBytes, LLVMTypeRef.Int64);
@@ -877,19 +874,15 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
     public ExpressionResult ProcessIndexing(BoundIndexingExpression expression)
-        => ProcessIndexingExpression(expression);
-
-
-    private ExpressionResult ProcessIndexingExpression(BoundIndexingExpression expression, bool getValue = true)
     {
         var pointerType = (expression.Pointer.Type as PointerType)!;
         var llvmPointerElementType = TypeBuilder.Process(pointerType.Type);
 
-        var pointer = EnsureAddress(Process(expression.Pointer)).Value;
+        var pointer = EnsureValue(Process(expression.Pointer)).Value;
         var index = EnsureValue(Process(expression.Index)).Value;
 
-        var element = IndexPointer(llvmPointerElementType, pointer, index, getValue);
-        return Value(element, llvmPointerElementType);
+        var element = IndexPointer(llvmPointerElementType, pointer, index, false);
+        return Address(element, llvmPointerElementType);
     }
 
 
@@ -915,10 +908,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
     public ExpressionResult ProcessMemberAccess(BoundMemberAccessExpression expression)
-        => ProcessMemberAccessExpression(expression);
-
-
-    private ExpressionResult ProcessMemberAccessExpression(BoundMemberAccessExpression expression, bool getValue = true)
     {
         var structType = (expression.Compound.Type as StructType)!;
         var @struct = EnsureAddress(Process(expression.Compound)).Value;
@@ -926,7 +915,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var memberName = expression.Member.Name;
         var memberType = structType.GetField(memberName)!.Value.member.Type;
         var llvmMemberType = TypeBuilder.Process(memberType);
-        return Address(IndexStruct(@struct, structType, memberName, getValue), llvmMemberType);
+        return Address(IndexStruct(@struct, structType, memberName, false), llvmMemberType);
     }
 
     #endregion
@@ -1012,6 +1001,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private LLVMValueRef IndexPointer(LLVMTypeRef addressElementType, LLVMValueRef address, LLVMValueRef index, bool getValue = true)
         => Index(addressElementType, address, index, getValue: getValue);
+
+
+    private LLVMValueRef IndexArray(LLVMTypeRef addressElementType, LLVMValueRef address, LLVMValueRef index, bool getValue = true)
+        => Index(addressElementType, address, index, false, getValue);
 
 
     private LLVMValueRef Index(LLVMTypeRef addressElementType, LLVMValueRef address, LLVMValueRef index, bool scalar = true, bool getValue = true)
