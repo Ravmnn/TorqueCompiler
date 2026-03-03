@@ -1,6 +1,3 @@
-using LLVMSharp.Interop;
-
-
 namespace Torque.Compiler.Types;
 
 
@@ -8,9 +5,9 @@ namespace Torque.Compiler.Types;
 
 public class PointerType(Type type) : Type
 {
-    public override BasePrimitiveType BasePrimitive => Type.BasePrimitive;
+    public override BasePrimitiveType BasePrimitive => InnerType.BasePrimitive;
 
-    public Type Type { get; } = type;
+    public override Type InnerType { get; } = type;
 
 
 
@@ -26,11 +23,11 @@ public class PointerType(Type type) : Type
         if (other is not PointerType otherType)
             return false;
 
-        return Type == otherType.Type;
+        return InnerType == otherType.InnerType;
     }
 
 
 
 
-    public override string ToString() => $"{Type}*";
+    public override string ToString() => $"{InnerType}*";
 }

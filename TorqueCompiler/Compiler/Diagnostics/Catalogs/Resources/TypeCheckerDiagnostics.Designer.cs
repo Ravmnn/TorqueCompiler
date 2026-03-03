@@ -110,5 +110,11 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 return ResourceManager.GetString("UndeclaredStructMember", resourceCulture);
             }
         }
+        
+        internal static string CannotCastBetweenStructs {
+            get {
+                return ResourceManager.GetString("CannotCastBetweenStructs", resourceCulture);
+            }
+        }
     }
 }

@@ -121,6 +121,7 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
     public void Process(BoundExpression expression)
     {
         ReportIfVoidExpression(expression.Type!, expression.Location);
+        expression.Process(this);
     }
 
 
@@ -216,7 +217,8 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public void ProcessCast(BoundCastExpression expression)
     {
-
+        if (expression.Value.Type!.IsStruct || expression.Type!.IsStruct)
+            Report(TypeCheckerCatalog.CannotCastBetweenStructs, location: expression.Location);
     }
 
 

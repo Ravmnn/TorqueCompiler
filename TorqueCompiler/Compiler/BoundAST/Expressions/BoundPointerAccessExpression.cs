@@ -13,7 +13,7 @@ public class BoundPointerAccessExpression(PointerAccessExpression syntax, BoundE
 
     public BoundExpression Pointer { get; set; } = pointer;
 
-    public override Type? Type => (Pointer.Type as PointerType)?.Type;
+    public override Type? Type => Pointer.Type?.InnerType;
 
 
 

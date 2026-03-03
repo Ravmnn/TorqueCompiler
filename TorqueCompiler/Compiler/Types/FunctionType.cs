@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-using LLVMSharp.Interop;
-
 
 namespace Torque.Compiler.Types;
 
@@ -14,7 +12,7 @@ public class FunctionType(Type returnType, IReadOnlyList<Type> parametersType) :
 {
     public override BasePrimitiveType BasePrimitive => ReturnType.BasePrimitive;
 
-    public Type ReturnType => Type;
+    public Type ReturnType => InnerType;
     public IReadOnlyList<Type> ParametersType { get; } = parametersType;
 
 

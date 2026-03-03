@@ -24,7 +24,7 @@ public enum PrimitiveType
     Float32,
     Float64,
 
-    Struct,
+    Struct
 }
 
 
@@ -38,6 +38,7 @@ public abstract class Type
 
 
     public abstract BasePrimitiveType BasePrimitive { get; }
+    public virtual Type InnerType => this;
 
 
     public bool IsVoid => IsBase && BasePrimitive.Type == PrimitiveType.Void;
@@ -50,11 +51,11 @@ public abstract class Type
     public bool IsChar => IsBase && BasePrimitive.Type == PrimitiveType.Char;
     public bool IsBool => IsBase && BasePrimitive.Type == PrimitiveType.Bool;
 
-    public bool IsString => this is PointerType { Type.IsChar: true };
+    public bool IsString => this is PointerType { InnerType.IsChar: true };
 
-    public bool IsBase => this is BasePrimitiveType;
+    public bool IsBase => this is BasePrimitiveType && !IsStruct;
     public bool IsPointer => this is PointerType;
-    public bool IsRawPointer => this is PointerType pointerType && pointerType.Type == PrimitiveType.UInt8;
+    public bool IsRawPointer => this is PointerType pointerType && pointerType.InnerType == PrimitiveType.UInt8;
     public bool IsFunction => this is FunctionType;
     public bool IsStruct => this is BasePrimitiveType { Type: PrimitiveType.Struct };
 

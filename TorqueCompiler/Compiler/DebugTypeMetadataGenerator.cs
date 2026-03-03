@@ -67,7 +67,7 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
         => type switch
         {
             FunctionType functionType => CreatePointerToFunctionTypeMetadata(functionType),
-            PointerType pointerType => CreatePointerTypeMetadata(TypeToMetadata(pointerType.Type), name, sizeInBits),
+            PointerType pointerType => CreatePointerTypeMetadata(TypeToMetadata(pointerType.InnerType), name, sizeInBits),
             StructType structType => CreateStructTypeMetadata(structType),
 
             BasePrimitiveType => CreateBasicTypeMetadata(name, sizeInBits, encoding),

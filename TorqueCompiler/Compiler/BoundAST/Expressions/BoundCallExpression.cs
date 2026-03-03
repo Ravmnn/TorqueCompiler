@@ -18,7 +18,7 @@ public class BoundCallExpression(CallExpression syntax, BoundExpression callee, 
     public BoundExpression Callee { get; set; } = callee;
     public IList<BoundExpression> Arguments { get; } = arguments.ToList();
 
-    public override Type? Type => (Callee.Type as FunctionType)?.ReturnType;
+    public override Type? Type => Callee.Type?.InnerType;
 
 
 

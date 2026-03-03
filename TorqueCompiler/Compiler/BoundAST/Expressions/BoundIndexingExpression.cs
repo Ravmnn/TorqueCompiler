@@ -14,7 +14,7 @@ public class BoundIndexingExpression(IndexingExpression syntax, BoundExpression 
     public BoundExpression Pointer { get; set; } = pointer;
     public BoundExpression Index { get; set; } = index;
 
-    public override Type? Type => (Pointer.Type as PointerType)?.Type;
+    public override Type? Type => Pointer.Type?.InnerType;
 
 
 

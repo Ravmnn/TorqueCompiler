@@ -851,7 +851,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private void InitializeRemainingArrayElements(ArrayType arrayType, LLVMTypeRef llvmArrayType, LLVMValueRef arrayAddress, ulong initializationListLength)
     {
-        var elementTypeSize = (ulong)TypeBuilder.SizeOfTypeInMemory(arrayType.Type);
+        var elementTypeSize = (ulong)TypeBuilder.SizeOfTypeInMemory(arrayType.InnerType);
         var startAddress = IndexArray(llvmArrayType, arrayAddress, Constant.Integer(initializationListLength), false);
 
         var remainingSizeInBytes = GetRemainingEmptyBytesOfArray(arrayType.Length, initializationListLength, elementTypeSize);
@@ -876,7 +876,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public ExpressionResult ProcessIndexing(BoundIndexingExpression expression)
     {
         var pointerType = (expression.Pointer.Type as PointerType)!;
-        var llvmPointerElementType = TypeBuilder.Process(pointerType.Type);
+        var llvmPointerElementType = TypeBuilder.Process(pointerType.InnerType);
 
         var pointer = EnsureValue(Process(expression.Pointer)).Value;
         var index = EnsureValue(Process(expression.Index)).Value;

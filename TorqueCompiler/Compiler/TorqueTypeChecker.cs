@@ -361,13 +361,11 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
         return expression.Type;
     }
 
-    // TODO: improve the way you're reporting type errors, since some of them are throwing exceptions
-
 
 
 
     public Type ProcessSymbol(BoundSymbolExpression expression)
-        => expression.Type;
+        => expression.Type!;
 
 
 

@@ -16,4 +16,5 @@ public enum TypeCheckerCatalog
     [Item(DiagnosticScope.TypeChecker)] ExpectedAReturnValue,
     [Item(DiagnosticScope.TypeChecker)] StructExpected,
     [Item(DiagnosticScope.TypeChecker)] UndeclaredStructMember,
+    [Item(DiagnosticScope.TypeChecker)] CannotCastBetweenStructs,
 }

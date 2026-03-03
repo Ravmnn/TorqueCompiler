@@ -41,7 +41,6 @@ public class TorqueTypeCheckerTypeSyntaxConverter(TorqueTypeChecker typeChecker)
     };
 
 
-    // TODO: "variable as Person*" throws an exception
     // TODO: add "->" operator for pointers
     public StructType StructTypeFromTypeSyntax(StructTypeSyntax structTypeSyntax)
     {

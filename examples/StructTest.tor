@@ -46,19 +46,39 @@ void println(char* content)
 
 
 
-struct Vector2
+
+
+
+struct Person
 {
-    float x;
-    float y;
+    char* name;
+    uint age;
+    uint id;
 }
 
 
 int main(int argc, char** argv)
 {
-    let scalar = 10;
-    let vector = new Vector2 { x: 12.0, y: 50.0 };
+    let people = Person array[] {
+        new Person { name: "John Wick", age: 24, id: 047155 },
+        new Person { name: "Peter Parker", age: 23, id: 895921 },
+        new Person { name: "Ariana Grande", age: 30, id: 991644 },
+        new Person { name: "Osmany Something", age: 21, id: 010465 },
+        new Person { name: "Marvin Marjan", age: 17, id: 123456 }
+    };
 
-    let foo = scalar as Vector2;
+    let johnPtr = &people[0];
+    let peterPtr = &people[1];
+    let arianaPtr = &people[2];
+    let osmanyPtr = &people[3];
+    let marvinPtr = &people[4];
+
+    people[2].name = "Ariana Small";
+
+    (*arianaPtr).id = 987654 as uint;
+
+    let ariana = people[2];
+    ariana.age = 9 as uint;
 
     return 0;
 }

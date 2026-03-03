@@ -55,4 +55,7 @@
     <data name="UndeclaredStructMember" xml:space="preserve">
         <value>Member "{0}" is not declared in struct "{1}"</value>
     </data>
+    <data name="CannotCastBetweenStructs" xml:space="preserve">
+        <value>Cannot cast between structs</value>
+    </data>
 </root>
