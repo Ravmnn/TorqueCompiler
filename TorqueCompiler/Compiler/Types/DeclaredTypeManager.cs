@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using Torque.Compiler.Types;
-
 
 namespace Torque.Compiler.Types;
 
@@ -24,6 +22,10 @@ public class DeclaredTypeManager
         => Types.FirstOrDefault(declaredType => declaredType.TypeSymbol.Name == symbol);
 
 
+
+
+    public bool IsTypeDeclarationSyntaxOfType<T>(string symbol) where T : TypeSyntax
+        => TryGetType(symbol)?.GetTypeSyntax() is T;
 
 
     public bool IsDeclared<T>(string symbol) where T : TypeDeclaration

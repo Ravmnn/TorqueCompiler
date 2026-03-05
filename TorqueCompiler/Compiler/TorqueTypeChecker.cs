@@ -150,7 +150,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
         var symbolType = statement.InferType ? valueType : Converter.TypeFromNonVoidTypeSyntax(typeSyntax);
 
         statement.VariableSymbol.Type = symbolType;
-        statement.Value = MatchTypeOrImplicitCast(symbolType, statement.Value, true);
+        statement.Value = MatchTypeOrImplicitCast(symbolType, statement.Value);
     }
 
 
@@ -511,7 +511,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
     public Type ProcessStruct(BoundStructExpression expression)
     {
-        var structType = DeclaredTypes.TryGetType<StructTypeDeclaration>(expression.Syntax.Symbol.Name)!;
+        var structType = (DeclaredTypes.TryGetType(expression.Syntax.Symbol.Name)!.GetTypeSyntax() as StructTypeSyntax)!;
 
         for (var index = 0; index < expression.InitializationList.Count; index++)
         {
@@ -521,9 +521,18 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
             ProcessStructMemberInitialization(initialization, declaration);
         }
 
-        expression.Type = Converter.TypeFromNonVoidTypeSyntax(structType.GetTypeSyntax());
+        expression.Type = Converter.TypeFromNonVoidTypeSyntax(structType);
 
         return expression.Type!;
+    }
+
+
+    private void ProcessStructMemberInitialization(BoundStructMemberInitialization initialization, GenericDeclaration declaration)
+    {
+        Process(initialization.Value);
+
+        var expectedType = Converter.TypeFromNonVoidTypeSyntax(declaration.Type);
+        initialization.Value = MatchTypeOrImplicitCast(expectedType, initialization.Value);
     }
 
 
@@ -540,17 +549,6 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
         return expression.Type!;
     }
 
-
-
-
-    private void ProcessStructMemberInitialization(BoundStructMemberInitialization initialization, GenericDeclaration declaration)
-    {
-        Process(initialization.Value);
-
-        var expectedType = Converter.TypeFromNonVoidTypeSyntax(declaration.Type);
-        initialization.Value = MatchTypeOrImplicitCast(expectedType, initialization.Value, true);
-    }
-
     #endregion
 
 
@@ -560,9 +558,9 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
 
 
-    private BoundExpression MatchTypeOrImplicitCast(Type expected, BoundExpression expression, bool forceIfLiteral = false)
+    private BoundExpression MatchTypeOrImplicitCast(Type expected, BoundExpression expression)
     {
-        if (TryMatchTypeOrImplicitCast(expected, expression, forceIfLiteral) is { } result)
+        if (TryMatchTypeOrImplicitCast(expected, expression) is { } result)
             return result;
 
         Reporter.ReportTypeDiffers(expected, expression.Type!, expression.Location);
@@ -570,7 +568,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
     }
 
 
-    private BoundExpression? TryMatchTypeOrImplicitCast(Type expected, BoundExpression expression, bool forceIfLiteral = false)
+    private BoundExpression? TryMatchTypeOrImplicitCast(Type expected, BoundExpression expression)
     {
         // here, "expression" should already have been processed (typed)
 
@@ -579,8 +577,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
         if (expected == got)
             return expression;
 
-        var forceForBaseTypes = expression is BoundLiteralExpression && forceIfLiteral;
-        var couldImplicitCast = TypeCaster.TryImplicitCast(got, expected, forceForBaseTypes) is not null;
+        var couldImplicitCast = TypeCaster.TryImplicitCast(got, expected) is not null;
 
         if (couldImplicitCast)
             return new BoundImplicitCastExpression(expression, expected);

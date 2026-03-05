@@ -35,10 +35,12 @@ public class TorqueBinder :
         private set => _scope = value;
     }
 
-    public DeclaredTypeManager DeclaredTypes { get; private set; } = new DeclaredTypeManager();
+    public NamedTypeSyntaxBinder NamedTypeSyntaxBinder { get; }
+    public DeclaredTypeManager DeclaredTypes { get; }
+
     public List<Statement> Statements { get; }
 
-    public TorqueBinderReporter Reporter { get; private set; }
+    public TorqueBinderReporter Reporter { get; }
 
 
 
@@ -48,6 +50,7 @@ public class TorqueBinder :
         Statements = statements.ToList();
 
         DeclaredTypes = new DeclaredTypeManager();
+        NamedTypeSyntaxBinder = new NamedTypeSyntaxBinder(DeclaredTypes);
         Scope = new Scope();
         Reporter = new TorqueBinderReporter(this);
     }
@@ -107,7 +110,18 @@ public class TorqueBinder :
 
     public void ProcessAliasDeclaration(AliasDeclarationStatement declaration)
     {
-        DeclaredTypes.Types.Add(declaration.GetTypeDeclaration());
+        var aliasDeclaration = BindNamedTypeSyntaxOfAlias(declaration);
+
+        DeclaredTypes.Types.Add(aliasDeclaration);
+    }
+
+
+    private AliasTypeDeclaration BindNamedTypeSyntaxOfAlias(AliasDeclarationStatement declaration)
+    {
+        var aliasDeclaration = declaration.GetTypeDeclaration();
+        aliasDeclaration.TypeSyntax = NamedTypeSyntaxBinder.Process(aliasDeclaration.TypeSyntax);
+
+        return aliasDeclaration;
     }
 
 
@@ -115,8 +129,7 @@ public class TorqueBinder :
 
     public void ProcessStructDeclaration(StructDeclarationStatement declaration)
     {
-        var structType = new StructTypeDeclaration(declaration.Symbol, declaration.Members);
-        DeclaredTypes.Types.Add(structType);
+        DeclaredTypes.Types.Add(declaration.GetTypeDeclaration());
     }
 
     #endregion

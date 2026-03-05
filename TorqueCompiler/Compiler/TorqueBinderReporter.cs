@@ -284,7 +284,10 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     public void ProcessStruct(StructExpression expression)
     {
-        ReportIfDeclaredTypeIsNotOfKind<StructTypeDeclaration>(expression.Symbol);
+        if (ReportIfUnknownType(new BaseTypeSyntax(expression.Symbol)))
+            return;
+
+        ReportIfDeclaredTypeSyntaxIsNotOfKind<StructTypeSyntax>(expression.Symbol);
     }
 
 
@@ -426,9 +429,9 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
 
 
-    private bool ReportIfDeclaredTypeIsNotOfKind<T>(SymbolSyntax typeSymbol) where T : TypeDeclaration
+    private bool ReportIfDeclaredTypeSyntaxIsNotOfKind<T>(SymbolSyntax typeSymbol) where T : TypeSyntax
     {
-        if (Binder.DeclaredTypes.IsDeclared<T>(typeSymbol.Name))
+        if (Binder.DeclaredTypes.IsTypeDeclarationSyntaxOfType<T>(typeSymbol.Name))
             return false;
 
         Report(BinderCatalog.InvalidTypeKind, location: typeSymbol.Location);

@@ -12,4 +12,10 @@ public class StructTypeSyntax(SymbolSyntax name, IReadOnlyList<GenericDeclaratio
 {
     public SymbolSyntax Name { get; } = name;
     public IReadOnlyList<GenericDeclaration> Members { get; } = members;
+
+
+
+
+    public override T Process<T>(ITypeSyntaxProcessor<T> processor)
+        => processor.ProcessStruct(this);
 }

@@ -14,6 +14,11 @@ public abstract class TypeSyntax
 
 
 
+    public abstract T Process<T>(ITypeSyntaxProcessor<T> processor);
+
+
+
+
     public override string ToString()
         => BaseType.TypeSymbol.Name;
 }

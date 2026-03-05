@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 
 namespace Torque.Compiler.Types;
@@ -9,7 +10,13 @@ namespace Torque.Compiler.Types;
 public class FunctionTypeSyntax(TypeSyntax returnType, IReadOnlyList<TypeSyntax> parametersType) : PointerTypeSyntax(returnType)
 {
     public TypeSyntax ReturnType => InnerType;
-    public IReadOnlyList<TypeSyntax> ParametersType { get; } = parametersType;
+    public IList<TypeSyntax> ParametersType { get; } = parametersType.ToList();
+
+
+
+
+    public override T Process<T>(ITypeSyntaxProcessor<T> processor)
+        => processor.ProcessFunction(this);
 
 
 

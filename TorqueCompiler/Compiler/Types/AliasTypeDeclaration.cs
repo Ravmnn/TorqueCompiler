@@ -8,7 +8,7 @@ namespace Torque.Compiler.Types;
 
 public class AliasTypeDeclaration(SymbolSyntax typeSymbol, TypeSyntax typeSyntax) : TypeDeclaration(typeSymbol)
 {
-    public TypeSyntax TypeSyntax { get; } = typeSyntax;
+    public TypeSyntax TypeSyntax { get; set; } = typeSyntax;
 
 
 

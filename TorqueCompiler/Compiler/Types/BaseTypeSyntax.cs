@@ -14,4 +14,10 @@ public class BaseTypeSyntax(SymbolSyntax typeSymbol) : TypeSyntax
 
     public SymbolSyntax TypeSymbol { get; } = typeSymbol;
     public bool IsPrimitiveType => Keywords.PrimitiveTypes.ContainsKey(TypeSymbol.Name);
+
+
+
+
+    public override T Process<T>(ITypeSyntaxProcessor<T> processor)
+        => processor.ProcessBase(this);
 }
