@@ -116,5 +116,11 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 return ResourceManager.GetString("CannotCastBetweenStructs", resourceCulture);
             }
         }
+        
+        internal static string InfiniteTypeRecursionChain {
+            get {
+                return ResourceManager.GetString("InfiniteTypeRecursionChain", resourceCulture);
+            }
+        }
     }
 }

@@ -58,4 +58,7 @@
     <data name="CannotCastBetweenStructs" xml:space="preserve">
         <value>Cannot cast between structs</value>
     </data>
+    <data name="InfiniteTypeRecursionChain" xml:space="preserve">
+        <value>Infinite type recursion chain detected</value>
+    </data>
 </root>

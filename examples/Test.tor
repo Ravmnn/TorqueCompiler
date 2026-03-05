@@ -48,6 +48,10 @@ void println(char* content)
 
 struct Inner
 {
+    Inner* inner;
+    Inner* otherInner;
+    Inner** error;
+
     uint id;
 }
 
@@ -59,12 +63,6 @@ int main(int argc, char** argv)
 {
     let scalar = 10;
     let vector = new InnerAlias { id: 10 as uint };
-
-    uint ux = 10 as void;
-    int ix = 15;
-
-    int a = ux as int;
-    uint b = ix as uint;
 
     return 0;
 }

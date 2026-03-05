@@ -14,6 +14,9 @@ namespace Torque.Compiler;
 
 public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRef debugBuilder, LLVMMetadataRef file, LLVMMetadataRef compileUnit)
 {
+    private readonly Dictionary<string, LLVMMetadataRef> _structCache = [];
+
+
     public TorqueCompiler Compiler { get; } = compiler;
 
     public Scope GlobalScope => Compiler.GlobalScope;
@@ -126,17 +129,32 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
 
     public unsafe LLVMMetadataRef CreateStructTypeMetadata(StructType type)
     {
+        if (_structCache.ContainsKey(type.Name.Name))
+            return _structCache.FirstOrDefault(pair => pair.Key == type.Name.Name).Value;
+
         var llvmType = Compiler.TypeBuilder.Process(type);
 
         var sizeInBits = llvmType.SizeOfThisInMemoryAsBits();
         var alignmentInBits = llvmType.AlignmentOfThisInMemoryAsBits();
 
         var name = type.Name.Name;
+        var line = type.Name.Location.Line;
+        var membersCount = (uint)type.Members.Count;
 
         // TODO: only use File as scope for functions
 
+        var tempMetadata = CreateTempStructTypeMetadata(line, name, sizeInBits, alignmentInBits, membersCount);
+        _structCache.Add(type.Name.Name, tempMetadata);
+
         fixed (LLVMOpaqueMetadata** members = CreateStructMembersMetadata(type))
-            return CreateStructTypeMetadata(type.Name.Location.Line, name, sizeInBits, alignmentInBits, members, (uint)type.Members.Count);
+        {
+            var metadata = CreateStructTypeMetadata(line, name, sizeInBits, alignmentInBits, members, membersCount);
+            _structCache[type.Name.Name] = metadata;
+
+            LLVM.MetadataReplaceAllUsesWith(tempMetadata, metadata);
+
+            return metadata;
+        }
     }
 
     private unsafe LLVMOpaqueMetadata*[] CreateStructMembersMetadata(StructType type)
@@ -180,10 +198,28 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
         );
 
 
+    private unsafe LLVMMetadataRef CreateTempStructTypeMetadata(int line, string name, int sizeInBits, int alignmentInBits, uint membersCount)
+        => LLVM.DIBuilderCreateReplaceableCompositeType(
+            DebugBuilder,
+            (uint)LLVMMetadataKind.LLVMDICompositeTypeMetadataKind,
+            name.StringToSBytePtr(),
+            (uint)name.Length,
+            File,
+            File,
+            (uint)line,
+            0,
+            (uint)sizeInBits,
+            (uint)alignmentInBits,
+            LLVMDIFlags.LLVMDIFlagZero,
+            name.StringToSBytePtr(),
+            (uint)name.Length
+        );
+
+
     private unsafe LLVMMetadataRef CreateStructTypeMetadata(int line, string name, int sizeInBits, int alignmentInBits, LLVMOpaqueMetadata** fields, uint membersCount)
         => LLVM.DIBuilderCreateStructType(
             DebugBuilder,
-            GlobalScope.DebugMetadata!.Value,
+            File,
             name.StringToSBytePtr(),
             (uint)name.Length,
             File,

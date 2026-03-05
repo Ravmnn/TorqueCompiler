@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
+using Torque.Compiler.Diagnostics.Catalogs;
 using Torque.Compiler.Types;
 
 
@@ -12,6 +13,10 @@ namespace Torque.Compiler;
 
 public class TorqueTypeCheckerTypeSyntaxConverter(TorqueTypeChecker typeChecker)
 {
+    private readonly List<StructType> _processedStructs = [];
+    private bool _insideAPointer;
+
+
     public TorqueTypeChecker TypeChecker { get; } = typeChecker;
 
 
@@ -26,49 +31,88 @@ public class TorqueTypeCheckerTypeSyntaxConverter(TorqueTypeChecker typeChecker)
     }
 
 
+    public Type TypeFromTypeSyntax(TypeSyntax typeSyntax)
+    {
+        _processedStructs.Clear();
+        return TypeFromTypeSyntaxInternal(typeSyntax);
+    }
 
 
-    public Type TypeFromTypeSyntax(TypeSyntax typeSyntax) => typeSyntax switch
+
+
+    private Type TypeFromTypeSyntaxInternal(TypeSyntax typeSyntax) => typeSyntax switch
     {
         StructTypeSyntax structTypeSyntax => StructTypeFromTypeSyntax(structTypeSyntax),
 
         FunctionTypeSyntax functionTypeName => FunctionTypeFromTypeSyntax(functionTypeName),
-        PointerTypeSyntax pointerTypeName => TypeFromPointerTypeSyntax(pointerTypeName),
+        PointerTypeSyntax pointerTypeName => PointerTypeFromTypeSyntax(pointerTypeName),
 
-        BaseTypeSyntax baseTypeName => TypeFromBaseTypeSyntax(baseTypeName),
+        BaseTypeSyntax baseTypeName => BaseTypeFromTypeSyntax(baseTypeName),
 
         _ => throw new UnreachableException()
     };
 
 
+
+
     // TODO: add "->" operator for pointers
-    public StructType StructTypeFromTypeSyntax(StructTypeSyntax structTypeSyntax)
+    private StructType StructTypeFromTypeSyntax(StructTypeSyntax structTypeSyntax)
     {
-        // TODO: allow struct type recursion (the same struct inside the struct)
+        var structType = new StructType(structTypeSyntax.Name, []);
+        var structCache = _processedStructs.FirstOrDefault(structs => structs.Name.Name == structTypeSyntax.Name.Name);
 
-        var boundMembers = new List<BoundGenericDeclaration>();
+        if (structCache is not null)
+        {
+            if (_insideAPointer)
+                return structCache;
 
-        foreach (var member in structTypeSyntax.Members)
-            boundMembers.Add(new BoundGenericDeclaration(TypeFromTypeSyntax(member.Type), member.Name));
+            TypeChecker.Reporter.Report(TypeCheckerCatalog.InfiniteTypeRecursionChain, location: structTypeSyntax.Name.Location);
+            return structType;
+        }
 
-        return new StructType(structTypeSyntax.SymbolSyntax, boundMembers);
+        _processedStructs.Add(structType);
+
+        structType.Members = BindStructGenericDeclarationMembers(structTypeSyntax);
+
+        return structType;
     }
 
 
-    public FunctionType FunctionTypeFromTypeSyntax(FunctionTypeSyntax typeSyntax)
+    private List<BoundGenericDeclaration> BindStructGenericDeclarationMembers(StructTypeSyntax structTypeSyntax)
     {
-        var parametersType = typeSyntax.ParametersType.Select(TypeFromTypeSyntax).ToArray();
-        var returnType = TypeFromTypeSyntax(typeSyntax.ReturnType);
+        var boundMembers = new List<BoundGenericDeclaration>();
+
+        foreach (var member in structTypeSyntax.Members)
+            boundMembers.Add(new BoundGenericDeclaration(TypeFromTypeSyntaxInternal(member.Type), member.Name));
+
+        return boundMembers;
+    }
+
+
+    private FunctionType FunctionTypeFromTypeSyntax(FunctionTypeSyntax typeSyntax)
+    {
+        _insideAPointer = true;
+        var parametersType = typeSyntax.ParametersType.Select(TypeFromTypeSyntaxInternal).ToArray();
+        var returnType = TypeFromTypeSyntaxInternal(typeSyntax.ReturnType);
+        _insideAPointer = false;
 
         return new FunctionType(returnType, parametersType);
     }
 
 
-    public PointerType TypeFromPointerTypeSyntax(PointerTypeSyntax pointerTypeSyntax)
-        => new PointerType(TypeFromTypeSyntax(pointerTypeSyntax.InnerType));
 
 
-    public Type TypeFromBaseTypeSyntax(BaseTypeSyntax typeSyntax)
+    private PointerType PointerTypeFromTypeSyntax(PointerTypeSyntax pointerTypeSyntax)
+    {
+        _insideAPointer = true;
+        var pointer = new PointerType(TypeFromTypeSyntaxInternal(pointerTypeSyntax.InnerType));
+        _insideAPointer = false;
+
+        return pointer;
+    }
+
+
+    private Type BaseTypeFromTypeSyntax(BaseTypeSyntax typeSyntax)
     {
         if (typeSyntax.IsPrimitiveType)
             return new BasePrimitiveType(typeSyntax.BaseType.TypeSymbol.SymbolToPrimitiveType());
@@ -77,10 +121,12 @@ public class TorqueTypeCheckerTypeSyntaxConverter(TorqueTypeChecker typeChecker)
     }
 
 
-    public Type TypeFromDeclaredTypes(BaseTypeSyntax typeSyntax)
+
+
+    private Type TypeFromDeclaredTypes(BaseTypeSyntax typeSyntax)
     {
         var typeDeclaration = TypeChecker.DeclaredTypes.TryGetType(typeSyntax.TypeSymbol.Name)!;
         var declarationTypeSyntax = typeDeclaration.GetTypeSyntax();
-        return TypeFromTypeSyntax(declarationTypeSyntax);
+        return TypeFromTypeSyntaxInternal(declarationTypeSyntax);
     }
 }

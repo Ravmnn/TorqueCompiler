@@ -13,7 +13,7 @@ namespace Torque.Compiler;
 
 public class TypeBuilder : ITypeProcessor<LLVMTypeRef>
 {
-    public Dictionary<string, LLVMTypeRef> StructCache { get; } = [];
+    private readonly Dictionary<string, LLVMTypeRef> _structCache = [];
 
 
 
@@ -72,7 +72,7 @@ public class TypeBuilder : ITypeProcessor<LLVMTypeRef>
 
     public LLVMTypeRef ProcessStruct(StructType type)
     {
-        if (StructCache.TryGetValue(type.Name.Name, out var cachedType))
+        if (_structCache.TryGetValue(type.Name.Name, out var cachedType))
             return cachedType;
 
         return CreateAndCacheLLVMStruct(type);
@@ -81,12 +81,13 @@ public class TypeBuilder : ITypeProcessor<LLVMTypeRef>
 
     private unsafe LLVMTypeRef CreateAndCacheLLVMStruct(StructType type)
     {
-        var llvmType = LLVM.StructCreateNamed(LLVM.GetGlobalContext(), type.Name.Name.StringToSBytePtr());
+        var name = type.Name.Name;
+        var llvmType = LLVM.StructCreateNamed(LLVM.GetGlobalContext(), name.StringToSBytePtr());
+
+        _structCache.TryAdd(name, llvmType);
 
         fixed (LLVMOpaqueType** fieldsOpaqueTypes = GetStructFieldsOpaqueTypes(type))
             LLVM.StructSetBody(llvmType, fieldsOpaqueTypes, (uint)type.Members.Count, 0);
-
-        StructCache.Add(type.Name.Name, llvmType);
 
         return llvmType;
     }
