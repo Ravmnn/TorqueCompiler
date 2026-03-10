@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -19,6 +20,11 @@ namespace Torque.Compiler;
 
 public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProcessor<Type>, IBoundDeclarationProcessor
 {
+    internal class DiagnosticReportedException : Exception;
+
+
+
+
     public const PrimitiveType DefaultLiteralIntegerType = PrimitiveType.Int32;
     public const PrimitiveType DefaultLiteralFloatType = PrimitiveType.Float32;
 
@@ -125,8 +131,13 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
     public void Process(BoundStatement statement)
     {
-        statement.Process(this);
-        Reporter.Process(statement);
+        try
+        {
+            statement.Process(this);
+            Reporter.Process(statement);
+        }
+        catch (DiagnosticReportedException)
+        {}
     }
 
 
@@ -245,7 +256,14 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
     public Type Process(BoundExpression expression)
     {
         var type = expression.Process(this);
+
+        var lastDiagnosticsCount = Reporter.Diagnostics.Count;
         Reporter.Process(expression);
+
+        var reported = Reporter.Diagnostics.Count > lastDiagnosticsCount;
+
+        if (reported)
+            throw new DiagnosticReportedException();
 
         return type;
     }
@@ -329,8 +347,6 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
     public Type ProcessComparison(BoundComparisonExpression expression)
     {
-        // TODO: when compound types are supported, check that the expression here is a primitive (compounds cannot be compared, same for equality)
-
         var leftType = Process(expression.Left);
         Process(expression.Right);
 
@@ -543,8 +559,6 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
         if (Process(expression.Compound) is StructType structType)
             if (structType.GetField(expression.Member.Name) is var (field, _))
                 expression.Type = field.Type;
-
-        // TODO: solve crashes when the member doesn't exist
 
         return expression.Type!;
     }

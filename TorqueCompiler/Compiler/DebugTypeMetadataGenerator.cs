@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 
 using LLVMSharp.Interop;
+
 using Torque.Compiler.Target;
 using Torque.Compiler.Types;
 
@@ -40,18 +41,6 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
             metadataArray[i] = TypeToMetadata(types[i]);
 
         return metadataArray;
-    }
-
-
-    public unsafe LLVMOpaqueMetadata*[] TypesToMetadataArrayPointer(IReadOnlyList<Type> types)
-    {
-        var llvmTypes = TypesToMetadataArray(types).ToArray();
-        var llvmPointerTypes = new LLVMOpaqueMetadata*[llvmTypes.Length];
-
-        for (var i = 0; i < llvmTypes.Length; i++)
-            llvmPointerTypes[i] = llvmTypes[i];
-
-        return llvmPointerTypes;
     }
 
 
@@ -141,8 +130,6 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
         var line = type.Name.Location.Line;
         var membersCount = (uint)type.Members.Count;
 
-        // TODO: only use File as scope for functions
-
         var tempMetadata = CreateTempStructTypeMetadata(line, name, sizeInBits, alignmentInBits, membersCount);
         _structCache.Add(type.Name.Name, tempMetadata);
 
@@ -204,7 +191,7 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
             (uint)LLVMMetadataKind.LLVMDICompositeTypeMetadataKind,
             name.StringToSBytePtr(),
             (uint)name.Length,
-            File,
+            CompileUnit,
             File,
             (uint)line,
             0,
@@ -219,7 +206,7 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
     private unsafe LLVMMetadataRef CreateStructTypeMetadata(int line, string name, int sizeInBits, int alignmentInBits, LLVMOpaqueMetadata** fields, uint membersCount)
         => LLVM.DIBuilderCreateStructType(
             DebugBuilder,
-            File,
+            CompileUnit,
             name.StringToSBytePtr(),
             (uint)name.Length,
             File,

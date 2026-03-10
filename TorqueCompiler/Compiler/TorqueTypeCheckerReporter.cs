@@ -134,13 +134,18 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
 
     public void ProcessBinary(BoundBinaryExpression expression)
-    { }
+    {
+        ReportStructIncompatibleIfExpressionIsStruct(expression.Left);
+        ReportStructIncompatibleIfExpressionIsStruct(expression.Right);
+    }
 
 
 
 
     public void ProcessUnary(BoundUnaryExpression expression)
-    { }
+    {
+        ReportStructIncompatibleIfExpressionIsStruct(expression.Expression);
+    }
 
 
 
@@ -152,19 +157,28 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
 
     public void ProcessComparison(BoundComparisonExpression expression)
-    { }
+    {
+        ReportStructIncompatibleIfExpressionIsStruct(expression.Left);
+        ReportStructIncompatibleIfExpressionIsStruct(expression.Right);
+    }
 
 
 
 
     public void ProcessEquality(BoundEqualityExpression expression)
-    { }
+    {
+        ReportStructIncompatibleIfExpressionIsStruct(expression.Left);
+        ReportStructIncompatibleIfExpressionIsStruct(expression.Right);
+    }
 
 
 
 
     public void ProcessLogic(BoundLogicExpression expression)
-    { }
+    {
+        ReportStructIncompatibleIfExpressionIsStruct(expression.Left);
+        ReportStructIncompatibleIfExpressionIsStruct(expression.Right);
+    }
 
 
 
@@ -263,7 +277,7 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public void ProcessMemberAccess(BoundMemberAccessExpression expression)
     {
-        var structType = (expression.Type as StructType)!;
+        var structType = (expression.Compound.Type as StructType)!;
 
         if (!expression.Compound.Type!.IsStruct)
         {
@@ -339,6 +353,16 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
             return false;
 
         Report(TypeCheckerCatalog.ExpectedAReturnValue, location: location);
+        return true;
+    }
+
+
+    public bool ReportStructIncompatibleIfExpressionIsStruct(BoundExpression expression)
+    {
+        if (!expression.Type!.IsStruct)
+            return false;
+
+        Report(TypeCheckerCatalog.ExpressionIncompatibleWithStructs, location: expression.Location);
         return true;
     }
 

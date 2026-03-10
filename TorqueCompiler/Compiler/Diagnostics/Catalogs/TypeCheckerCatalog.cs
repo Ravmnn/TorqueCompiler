@@ -18,4 +18,5 @@ public enum TypeCheckerCatalog
     [Item(DiagnosticScope.TypeChecker)] UndeclaredStructMember,
     [Item(DiagnosticScope.TypeChecker)] CannotCastBetweenStructs,
     [Item(DiagnosticScope.TypeChecker)] InfiniteTypeRecursionChain,
+    [Item(DiagnosticScope.TypeChecker)] ExpressionIncompatibleWithStructs,
 }

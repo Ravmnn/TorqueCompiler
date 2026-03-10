@@ -61,8 +61,10 @@ alias InnerAlias = Inner;
 
 int main(int argc, char** argv)
 {
-    let scalar = 10;
-    let vector = new InnerAlias { id: 10 as uint };
+    let inner = new Inner { id: 10 as uint };
+    inner.inner = nullptr;
+
+    let value = inner > 10;
 
     return 0;
 }

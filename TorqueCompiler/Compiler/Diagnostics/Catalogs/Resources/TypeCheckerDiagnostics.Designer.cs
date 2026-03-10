@@ -122,5 +122,11 @@ namespace Torque.Compiler.Diagnostics.Catalogs.Resources {
                 return ResourceManager.GetString("InfiniteTypeRecursionChain", resourceCulture);
             }
         }
+        
+        internal static string ExpressionIncompatibleWithStructs {
+            get {
+                return ResourceManager.GetString("ExpressionIncompatibleWithStructs", resourceCulture);
+            }
+        }
     }
 }

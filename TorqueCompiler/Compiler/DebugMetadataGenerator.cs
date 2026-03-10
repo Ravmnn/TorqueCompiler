@@ -142,7 +142,7 @@ public class DebugMetadataGenerator
 
     private LLVMMetadataRef CreateFunction(string name, int lineNumber, LLVMMetadataRef debugFunctionType, bool isDefinition = true)
         => DebugBuilder.CreateFunction(
-            Scope.DebugMetadata!.Value,
+            CompileUnit,
             name,
             name,
             File,
