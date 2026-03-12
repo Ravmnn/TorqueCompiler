@@ -46,6 +46,9 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
     private LLVMValueRef? _currentFunction;
+    private LLVMBasicBlockRef? _currentFunctionEntry;
+    private LLVMBasicBlockRef? _currentFunctionBody;
+
     private readonly Stack<LLVMBasicBlockRef> _loopConditionBlockStack = new Stack<LLVMBasicBlockRef>();
     private readonly Stack<LLVMBasicBlockRef> _loopJoinBlockStack = new Stack<LLVMBasicBlockRef>();
     private readonly Stack<LLVMBasicBlockRef> _loopPostLoopBlockStack = new Stack<LLVMBasicBlockRef>();
@@ -194,12 +197,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public void ProcessVariable(BoundVariableDeclarationStatement statement)
     {
+        var symbol = statement.VariableSymbol;
+        var reference = CreateVariableAlloca(symbol, $"var.${symbol.Name}");
+        symbol.LLVMDebugMetadata = DebugGenerateLocalVariable(symbol);
+
         DebugForSetLocationDo(statement.Location, () =>
         {
-            var symbol = statement.VariableSymbol;
-            var reference = CreateVariableAlloca(symbol, $"var.${symbol.Name}");
-            symbol.LLVMDebugMetadata = DebugGenerateLocalVariable(symbol);
-
             var value = EnsureValue(Process(statement.Value)).Value;
             Builder.BuildStore(value, reference);
         });
@@ -216,11 +219,19 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var functionSymbol = statement.FunctionSymbol;
         var reference = functionSymbol.LLVMReference!.Value;
         var entry = reference.AppendBasicBlock("entry");
+        var body = reference.AppendBasicBlock("body");
+
         Builder.PositionAtEnd(entry);
+        Builder.BuildBr(body);
+        Builder.PositionAtEnd(body);
 
         _currentFunction = reference;
+        _currentFunctionEntry = entry;
+        _currentFunctionBody = body;
         ProcessFunctionBlock(statement.Body, functionSymbol);
         _currentFunction = null;
+        _currentFunctionEntry = null;
+        _currentFunctionBody = null;
     }
 
 
@@ -819,7 +830,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var arrayType = (expression.ArrayType as ArrayType)!;
 
         var llvmArrayType = TypeBuilder.Process(arrayType);
-        var arrayAddress = Builder.BuildAlloca(llvmArrayType, "array.address");
+        var arrayAddress = CreateAlloca(llvmArrayType, "array.address");
 
         InitializeArrayElements(expression, llvmArrayType, arrayAddress);
         var firstElementAddress = IndexArray(llvmArrayType, arrayAddress, Constant.Zero, false);
@@ -934,10 +945,31 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         var llvmType = TypeBuilder.Process(symbol.Type!);
 
-        var reference = Builder.BuildAlloca(llvmType, allocaName);
+        var reference = CreateAlloca(llvmType, allocaName);
         symbol.SetLLVMProperties(reference, llvmType, null);
 
         return reference;
+    }
+
+
+    private LLVMValueRef CreateAlloca(LLVMTypeRef type, string name)
+    {
+        var lastBlock = Builder.InsertBlock;
+
+        PositionBuilderAtEndOfAllocaSection();
+
+        var alloca = Builder.BuildAlloca(type, name);
+        Builder.PositionAtEnd(lastBlock);
+
+        return alloca;
+    }
+
+
+    private unsafe void PositionBuilderAtEndOfAllocaSection()
+    {
+        var last = LLVM.GetLastInstruction(_currentFunctionEntry!.Value);
+
+        Builder.PositionBefore(last);
     }
 
 
@@ -1197,12 +1229,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private ExpressionResult EnsureAddress(ExpressionResult expression)
     {
-        // TODO: all allocas should be in the function entry (check GPT)
-
         if (expression.IsAddress)
             return expression;
 
-        var temporaryAddress = Builder.BuildAlloca(expression.Type, "tmp.address");
+        var temporaryAddress = CreateAlloca(expression.Type, "tmp.address");
         Builder.BuildStore(expression.Value, temporaryAddress);
 
         return Address(temporaryAddress, expression.Type);

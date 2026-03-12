@@ -224,7 +224,7 @@ public class DebugMetadataGenerator
             variable,
             EmptyExpression(),
             location,
-            Builder.InsertBlock
+            LLVM.GetInstructionParent(alloca)
         );
 
 

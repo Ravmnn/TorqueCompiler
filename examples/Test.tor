@@ -64,7 +64,23 @@ int main(int argc, char** argv)
     let inner = new Inner { id: 10 as uint };
     inner.inner = nullptr;
 
-    let value = inner > 10;
+    let x = 1234;
+    let y = 38;
+    let z = x * y;
+    char* result;
+
+    if (z < 999999)
+    {
+        result = "true!";
+    }
+    else
+    {
+        result = "false";
+    }
+
+    let number1 = 1823;
+    let number2 = 784;
+    let random = true;
 
     return 0;
 }
