@@ -1,0 +1,19 @@
+struct Token
+{
+    int type;
+    char* lexeme;
+    int value;
+}
+
+
+Token newToken(int type, char* lexeme, int value)
+{
+    return new Token { type: type, lexeme: lexeme, value: value };
+}
+
+
+int TOKEN_NUMBER() { return 1; }
+int TOKEN_PLUS() { return 2; }
+int TOKEN_MINUS() { return 3; }
+int TOKEN_MULTIPLY() { return 4; }
+# int TOKEN_DIVIDE() { return 5; }

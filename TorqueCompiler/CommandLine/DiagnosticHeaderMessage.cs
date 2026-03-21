@@ -15,7 +15,7 @@ public readonly struct DiagnosticHeaderMessage(Diagnostic diagnostic)
 
     public string Severity => Diagnostic.Severity.ToString().ToLower();
     public string Scope => new string(Diagnostic.Scope.ToString().Where(char.IsUpper).ToArray());
-    public string FileName => SourceCode.FilePath is not null ? new FileInfo(SourceCode.FilePath).Name : "interactive";
+    public string FileName => new FileInfo(Diagnostic.File).Name;
     public string Location => Diagnostic.Location is { } location ? $", {FileName}::{location}" : "unknown";
 
 

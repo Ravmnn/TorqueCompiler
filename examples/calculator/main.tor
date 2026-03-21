@@ -1,0 +1,28 @@
+import std.io;
+import lexer;
+
+
+external int strcmp(char* str1, char* str2);
+
+
+int main(int argc, char** argv)
+{
+    # TODO: must use the heap to store the tokens, otherwise they will be lost when the function returns
+
+    loop
+    {
+        let input = readln(nullptr);
+
+        if (strcmp(input, "exit") == 0)
+            break;
+    
+        let lexer = newLexer(input);
+        tokenize(&lexer);
+    
+        let tokens = lexer.tokens;
+    }
+
+    println("bye bye!");
+
+    return 0;
+}

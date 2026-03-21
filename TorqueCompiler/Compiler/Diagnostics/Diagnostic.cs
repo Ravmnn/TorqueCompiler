@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
+using Torque.CommandLine;
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Diagnostics.Catalogs;
 using Torque.Compiler.Diagnostics.Catalogs.Resources;
@@ -35,6 +36,8 @@ public enum DiagnosticScope
 
 public readonly struct Diagnostic()
 {
+    public string File { get; } = SourceCode.FilePath!;
+
     public required int Code { get; init; }
     public required DiagnosticScope Scope { get; init; }
     public required DiagnosticSeverity Severity { get; init; }

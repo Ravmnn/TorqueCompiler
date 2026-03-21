@@ -69,6 +69,7 @@ public class TorqueBinder :
 
     public Module Bind()
     {
+        ImportModules();
         DeclareAllDeclarations();
 
         var boundStatements = new List<BoundStatement>();
@@ -78,6 +79,19 @@ public class TorqueBinder :
                 boundStatements.Add(boundStatement);
 
         return new Module(ModulePath, boundStatements, Statements, Scope, DeclaredTypes, ImportedModules);
+    }
+
+
+    private void ImportModules()
+    {
+        foreach (var statement in Statements.ToArray())
+        {
+            if (statement is not ImportStatement import)
+                continue;
+
+            Process(import);
+            Statements.Remove(statement);
+        }
     }
 
 
@@ -231,9 +245,11 @@ public class TorqueBinder :
 
 
     public BoundStatement ProcessReturn(ReturnStatement statement)
-        => new BoundReturnStatement(statement, statement.Expression?.Process(this));
+    {
+        var value = statement.Expression is not null ? Process(statement.Expression) : null;
 
-
+        return new BoundReturnStatement(statement, value);
+    }
 
 
     public BoundStatement ProcessBlock(BlockStatement statement)

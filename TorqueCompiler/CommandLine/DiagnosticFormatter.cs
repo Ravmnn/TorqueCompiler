@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text;
 
 using Torque.Compiler.Tokens;
@@ -23,16 +24,17 @@ public static class DiagnosticFormatter
     private static string GenerateCodePeekOrEmpty(Diagnostic diagnostic)
     {
         var shouldGenerateCodePeek = diagnostic.Location is not null;
-        var codePeek = shouldGenerateCodePeek ? GenerateCodePeek(diagnostic.Location!.Value) : null;
+        var codePeek = shouldGenerateCodePeek ? GenerateCodePeek(diagnostic.File, diagnostic.Location!.Value) : null;
         codePeek = $"{(shouldGenerateCodePeek ? "\n" : "")}{codePeek}";
 
         return codePeek;
     }
 
 
-    public static string GenerateCodePeek(Span location)
+    public static string GenerateCodePeek(string file, Span location)
     {
-        var codeLine = SourceCode.GetLine(location.Line);
+        var contentAsLines = File.ReadAllLines(file);
+        var codeLine = contentAsLines[location.Line - 1];
         var indicator = GenerateCodePeekIndicator(location);
 
         return $"{location.Line} |  {codeLine}\n{indicator}";

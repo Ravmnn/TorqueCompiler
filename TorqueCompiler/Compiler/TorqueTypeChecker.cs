@@ -20,7 +20,7 @@ namespace Torque.Compiler;
 
 public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProcessor<Type>, IBoundDeclarationProcessor
 {
-    internal class DiagnosticReportedException : Exception;
+    internal class TypeCheckerDiagnosticReportedException : Exception;
 
 
 
@@ -131,13 +131,8 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
     public void Process(BoundStatement statement)
     {
-        try
-        {
-            statement.Process(this);
-            Reporter.Process(statement);
-        }
-        catch (DiagnosticReportedException)
-        {}
+        statement.Process(this);
+        Reporter.Process(statement);
     }
 
 
@@ -263,7 +258,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
         var reported = Reporter.Diagnostics.Count > lastDiagnosticsCount;
 
         if (reported)
-            throw new DiagnosticReportedException();
+            throw new TypeCheckerDiagnosticReportedException();
 
         return type;
     }
@@ -532,7 +527,10 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
         for (var index = 0; index < expression.InitializationList.Count; index++)
         {
             var initialization = expression.InitializationList[index];
-            var declaration = structType.Members.First(member => member.Name.Name == initialization.Member.Name);
+            var declaration = structType.Members.FirstOrDefault(member => member.Name.Name == initialization.Member.Name);
+
+            if (declaration == default)
+                break;
 
             ProcessStructMemberInitialization(initialization, declaration);
         }

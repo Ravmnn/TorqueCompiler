@@ -209,7 +209,7 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public void ProcessPointerAccess(BoundPointerAccessExpression expression)
     {
-        ReportIfNotAPointer(expression.Type!, expression.Pointer.Location);
+        ReportIfNotAPointer(expression.Pointer.Type!, expression.Pointer.Location);
     }
 
 

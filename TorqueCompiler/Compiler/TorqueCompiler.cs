@@ -90,10 +90,15 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add enums
         // TODO: default values for parameters and struct fields
         // TODO: add number suffixes, for binary, hexadecimal, uints, floats...
+        // TODO: for should accept "let" at the initializer
+        // TODO: add expr += ... (and others)
+        // TODO: add expr++ and expr**
 
         // TODO: check for already defined symbols when importing
         // TODO: check if the module being imported exists
         // TODO: add options that control the importing system to the command line
+        // TODO: report if a struct doesn't have such member
+        // TODO: CFA is not working properly
 
 
         File = file;
@@ -824,9 +829,14 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var llvmFunctionType = TypeBuilder.ProcessRawFunction(functionType);
 
         var llvmReturnType = TypeBuilder.Process(functionType.ReturnType);
-        var returnValue = Call(function, llvmFunctionType, llvmValueArguments);
+        LLVMValueRef? returnValue = null;
 
-        return Value(returnValue, llvmReturnType);
+        DebugForSetLocationDo(expression.Location, () =>
+        {
+            returnValue = Call(function, llvmFunctionType, llvmValueArguments);
+        });
+
+        return Value(returnValue!.Value, llvmReturnType);
     }
 
 
@@ -950,7 +960,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         var structType = (expression.Type as StructType)!;
         var llvmStructType = TypeBuilder.Process(structType);
-        var structValue = CreateConstStruct(structType, expression.InitializationList);
+        var structValue = CreateStruct(structType, expression.InitializationList);
 
         return Value(structValue, llvmStructType);
     }
@@ -1136,17 +1146,29 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
     private LLVMValueRef GetDefaultValueForStruct(StructType type)
-        => CreateConstStruct(type);
+        => CreateStruct(type);
 
 
-    public LLVMValueRef CreateConstStruct(StructType type, IReadOnlyList<BoundStructMemberInitialization>? initializationList = null)
+    public LLVMValueRef CreateStruct(StructType type, IReadOnlyList<BoundStructMemberInitialization>? initializationList = null)
     {
-        var defaultValues = GetDefaultValuesFromStruct(type);
+        var values = GetDefaultValuesFromStruct(type);
 
         if (initializationList is not null)
-            InsertInitializationList(type, initializationList, defaultValues);
+            InsertInitializationList(type, initializationList, values);
 
-        return LLVMValueRef.CreateConstStruct(defaultValues.ToArray(), false);
+        return CreateStruct(type, values);
+    }
+
+
+    private unsafe LLVMValueRef CreateStruct(StructType type, List<LLVMValueRef> values)
+    {
+        var llvmType = TypeBuilder.Process(type);
+        var @struct = LLVM.GetUndef(llvmType);
+
+        for (var i = 0; i < values.Count; i++)
+            @struct = Builder.BuildInsertValue(@struct, values[i], (uint)i, $"field{i}");
+
+        return @struct;
     }
 
 

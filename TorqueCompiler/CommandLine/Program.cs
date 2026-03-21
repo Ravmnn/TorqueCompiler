@@ -10,7 +10,7 @@ class Program
 {
     private static int Main(string[] args)
     {
-        // const string TestFile = "module_system/main.tor";
+        // const string TestFile = "calculator/main.tor";
         // const string TestOptions = "--debug";
         // args = $"compile /home/ravmn/Documentos/programming/csharp/TorqueCompiler/examples/{TestFile} {TestOptions}".Split(' ');
 

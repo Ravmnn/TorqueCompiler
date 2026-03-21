@@ -96,7 +96,7 @@ public partial class TorqueParser
 
     private Expression Call()
     {
-        var expression = MemberAccess();
+        var expression = Indexing();
 
         while (Match(TokenType.LeftParen))
         {
@@ -122,27 +122,9 @@ public partial class TorqueParser
 
 
 
-    private Expression MemberAccess()
-    {
-        var expression = Indexing();
-
-        while (Match(TokenType.Dot))
-        {
-            var member = Reporter.ExpectSymbol();
-            var location = new Span(expression.Location, member.Location);
-
-            expression = new MemberAccessExpression(expression, member, location);
-        }
-
-        return expression;
-    }
-
-
-
-
     private Expression Indexing()
     {
-        var expression = Primary();
+        var expression = MemberAccess();
 
         while (Match(TokenType.LeftSquareBracket))
         {
@@ -151,6 +133,24 @@ public partial class TorqueParser
             var location = new Span(expression.Location, rightSquareBracket);
 
             expression = new IndexingExpression(expression, index, location);
+        }
+
+        return expression;
+    }
+
+
+
+
+    private Expression MemberAccess()
+    {
+        var expression = Primary();
+
+        while (Match(TokenType.Dot))
+        {
+            var member = Reporter.ExpectSymbol();
+            var location = new Span(expression.Location, member.Location);
+
+            expression = new MemberAccessExpression(expression, member, location);
         }
 
         return expression;

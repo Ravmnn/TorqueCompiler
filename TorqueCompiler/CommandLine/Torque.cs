@@ -129,9 +129,16 @@ public static class Torque
 
     public static Module GetModule(string file)
     {
+        var oldFile = SourceCode.FilePath;
+
+        InitializeGlobalSourceCodeReference(file);
+
         var source = File.ReadAllText(file);
         var statements = BuildFinalAST(source);
         var module = SemanticAnalysis(statements, file);
+
+        if (oldFile is not null)
+            InitializeGlobalSourceCodeReference(oldFile);
 
         return module;
     }

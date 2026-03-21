@@ -289,7 +289,7 @@ public class TorqueLexer : IIterator<char>
 
     private void AdvanceIdentifier()
     {
-        while (Iterator.Peek() is var @char && char.IsAsciiLetterOrDigit(@char))
+        while (Iterator.Peek() is var @char && (char.IsAsciiLetterOrDigit(@char) || @char == '_'))
             Iterator.Advance();
     }
 

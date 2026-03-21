@@ -38,9 +38,15 @@ public static class CompilerSteps
     public static void TypeCheck(Module module)
     {
         var typeChecker = new TorqueTypeChecker(module.Statements, module.DeclaredTypes);
-        typeChecker.Check();
 
-        Torque.Logger.LogDiagnosticsAndInterruptIfAny(typeChecker.Reporter.Diagnostics);
+        try
+        {
+            typeChecker.Check();
+        }
+        finally
+        {
+            Torque.Logger.LogDiagnosticsAndInterruptIfAny(typeChecker.Reporter.Diagnostics);
+        }
     }
 
 
