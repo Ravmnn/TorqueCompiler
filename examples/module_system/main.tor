@@ -80,5 +80,7 @@ int main(int argc, char** argv)
     let z = multiply(x, y);
     let w = divide(z, 2);
 
+    let value = get();
+
     return 0;
 }

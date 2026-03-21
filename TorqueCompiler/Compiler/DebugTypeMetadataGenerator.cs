@@ -33,10 +33,10 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
 
 
 
-    public DebugTypeMetadataGenerator(DebugTypeMetadataGenerator generator, TorqueCompiler compiler)
-        : this(compiler, generator.DebugBuilder, generator.File, generator.CompileUnit)
+    public DebugTypeMetadataGenerator(DebugMetadataGenerator generator, DebugTypeMetadataGenerator typeGenerator, TorqueCompiler compiler)
+        : this(compiler, typeGenerator.DebugBuilder, generator.File, generator.CompileUnit)
     {
-        _structCache = generator._structCache;
+        _structCache = typeGenerator._structCache;
     }
 
 

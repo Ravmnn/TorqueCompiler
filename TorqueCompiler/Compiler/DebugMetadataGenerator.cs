@@ -74,10 +74,13 @@ public class DebugMetadataGenerator
         File = generator.File;
         CompileUnit = generator.CompileUnit;
 
+        var fileInfo = new FileInfo(compiler.Module.Path);
+        InitializeFileAndCompileUnit(fileInfo);
+
         Compiler = compiler;
         Compiler.GlobalScope.DebugMetadata = File;
 
-        TypeGenerator = new DebugTypeMetadataGenerator(generator.TypeGenerator, compiler);
+        TypeGenerator = new DebugTypeMetadataGenerator(this, generator.TypeGenerator, compiler);
     }
 
 
@@ -101,10 +104,16 @@ public class DebugMetadataGenerator
 
     private unsafe void InitializeLLVMDebugProperties(FileInfo fileInfo)
     {
+        DebugBuilder = LLVM.CreateDIBuilder(Module);
+        InitializeFileAndCompileUnit(fileInfo);
+    }
+
+
+    private void InitializeFileAndCompileUnit(FileInfo fileInfo)
+    {
         var file = fileInfo.Name;
         var directoryPath = fileInfo.Directory!.FullName;
 
-        DebugBuilder = LLVM.CreateDIBuilder(Module);
         File = DebugBuilder.CreateFile(file, directoryPath);
         CompileUnit = CreateDefaultCompileUnit();
     }

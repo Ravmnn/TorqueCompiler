@@ -44,12 +44,13 @@ public class TorqueBinder :
     public TorqueBinderReporter Reporter { get; }
 
     public string ImportReference { get; }
+    public string ModulePath { get; }
     public IList<Module> ImportedModules { get; }
 
 
 
 
-    public TorqueBinder(IReadOnlyList<Statement> statements, string importReference)
+    public TorqueBinder(IReadOnlyList<Statement> statements, string importReference, string modulePath)
     {
         Statements = statements.ToList();
 
@@ -59,6 +60,7 @@ public class TorqueBinder :
         Reporter = new TorqueBinderReporter(this);
 
         ImportReference = importReference;
+        ModulePath = modulePath;
         ImportedModules = [];
     }
 
@@ -75,7 +77,7 @@ public class TorqueBinder :
             if (Process(statement) is {} boundStatement)
                 boundStatements.Add(boundStatement);
 
-        return new Module(boundStatements, Statements, Scope, DeclaredTypes, ImportedModules);
+        return new Module(ModulePath, boundStatements, Statements, Scope, DeclaredTypes, ImportedModules);
     }
 
 

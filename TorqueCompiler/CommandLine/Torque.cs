@@ -131,7 +131,7 @@ public static class Torque
     {
         var source = File.ReadAllText(file);
         var statements = BuildFinalAST(source);
-        var module = SemanticAnalysis(statements);
+        var module = SemanticAnalysis(statements, file);
 
         return module;
     }
@@ -139,9 +139,9 @@ public static class Torque
 
 
 
-    private static Module SemanticAnalysis(IReadOnlyList<Statement> statements)
+    private static Module SemanticAnalysis(IReadOnlyList<Statement> statements, string modulePath)
     {
-        var moduleContext = CompilerSteps.Bind(statements, s_compileSettings.ImportReference!);
+        var moduleContext = CompilerSteps.Bind(statements, s_compileSettings.ImportReference!, modulePath);
 
         CompilerSteps.TypeCheck(moduleContext);
         CompilerSteps.AnalyzeControlFlow(moduleContext.Statements);

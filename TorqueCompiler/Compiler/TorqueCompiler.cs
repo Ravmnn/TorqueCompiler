@@ -90,7 +90,10 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add enums
         // TODO: default values for parameters and struct fields
         // TODO: add number suffixes, for binary, hexadecimal, uints, floats...
-        // TODO: debug info for files should be module-individual
+
+        // TODO: check for already defined symbols when importing
+        // TODO: check if the module being imported exists
+        // TODO: add options that control the importing system to the command line
 
 
         File = file;

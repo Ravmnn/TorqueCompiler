@@ -11,12 +11,14 @@ namespace Torque.Compiler;
 
 
 public readonly struct Module(
+    string path,
     IReadOnlyList<BoundStatement> statements,
     IReadOnlyList<Statement> syntaxStatements,
     Scope scope,
     DeclaredTypeManager declaredTypes,
     IList<Module>? importedModules = null)
 {
+    public string Path { get; } = path;
     public IReadOnlyList<BoundStatement> Statements { get; init; } = statements;
     public IReadOnlyList<Statement> SyntaxStatements { get; init; } = syntaxStatements;
     public Scope Scope { get; init; } = scope;
@@ -26,13 +28,16 @@ public readonly struct Module(
 
 
 
-    public void Deconstruct(out IReadOnlyList<BoundStatement> statements,
+    public void Deconstruct(
+        out string path,
+        out IReadOnlyList<BoundStatement> statements,
         out IReadOnlyList<Statement> syntaxStatements,
         out Scope scope,
         out DeclaredTypeManager declaredTypes,
         out IList<Module> importedModules
     )
     {
+        path = Path;
         statements = Statements;
         syntaxStatements = SyntaxStatements;
         scope = Scope;

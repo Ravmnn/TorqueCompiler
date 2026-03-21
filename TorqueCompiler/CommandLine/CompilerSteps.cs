@@ -44,9 +44,9 @@ public static class CompilerSteps
     }
 
 
-    public static Module Bind(IReadOnlyList<Statement> statements, string importReference)
+    public static Module Bind(IReadOnlyList<Statement> statements, string importReference, string modulePath)
     {
-        var binder = new TorqueBinder(statements, importReference);
+        var binder = new TorqueBinder(statements, importReference, modulePath);
         var module = binder.Bind();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(binder.Reporter.Diagnostics);
