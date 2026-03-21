@@ -56,6 +56,7 @@ public static class Keywords
         { "default", TokenType.KwDefault },
         { "nullptr", TokenType.KwNullptr },
         { "new", TokenType.KwNew },
+        { "import", TokenType.KwImport },
     };
 
 

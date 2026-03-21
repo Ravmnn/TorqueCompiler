@@ -18,8 +18,8 @@ public abstract class GlobalTypeDeclarationStatement(SymbolSyntax symbol, Span l
     public abstract ModifierTarget ThisTargetIdentity { get; }
     public SymbolSyntax Symbol { get; } = symbol;
 
-    public bool CanBeInFileScope => true;
-    public bool CanBeInFunctionScope => false;
+    public override bool CanBeInFileScope => true;
+    public override bool CanBeInFunctionScope => false;
 
 
 

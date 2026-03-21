@@ -230,11 +230,16 @@ public class ASTPrinter
 
 
     public string ProcessBreak(BreakStatement statement)
-        => "break";
-
+        => $"{BeginStatement()}break{EndStatement()}";
 
     public string ProcessContinue(ContinueStatement statement)
-        => "continue";
+        => $"{BeginStatement()}continue{EndStatement()}";
+
+
+
+
+    public string ProcessImport(ImportStatement statement)
+        => $"{BeginStatement()}import {string.Join('.', statement.Path)}{EndStatement()}";
 
 
 

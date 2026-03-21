@@ -47,20 +47,28 @@ public partial class TorqueParser : IIterator<Token>
 
 
     private void DoWhileComma(Action action)
-    {
-        do
-            action();
-        while (Match(TokenType.Comma));
-    }
+        => DoWhileToken(TokenType.Comma, action);
 
 
     private IReadOnlyList<T> DoWhileComma<T>(Func<T> func)
+        => DoWhileToken(TokenType.Comma, func);
+
+
+    private void DoWhileToken(TokenType token, Action action)
+    {
+        do
+            action();
+        while (Match(token));
+    }
+
+
+    private IReadOnlyList<T> DoWhileToken<T>(TokenType token, Func<T> func)
     {
         var list = new List<T>();
 
         do
             list.Add(func());
-        while (Match(TokenType.Comma));
+        while (Match(token));
 
         return list.ToArray();
     }

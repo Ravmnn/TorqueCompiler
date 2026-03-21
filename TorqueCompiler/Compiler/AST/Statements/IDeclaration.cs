@@ -21,10 +21,6 @@ namespace Torque.Compiler.AST.Statements;
 public interface IDeclaration : IModificable
 {
     SymbolSyntax Symbol { get; }
-    bool CanBeInFileScope { get; }
-    bool CanBeInFunctionScope { get; }
-
-
 
 
     void ProcessDeclaration(IDeclarationProcessor processor);

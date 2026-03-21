@@ -1,0 +1,84 @@
+#>
+core/
+    memory/
+        allocator.tor
+        heap.tor
+        pool.tor
+        stack.tor
+        hash.tor
+        arena.tor
+        zone.tor
+        worker.tor
+    text/
+        string.tor
+        format.tor
+        unicode.tor
+        regex.tor
+    time/
+        clock.tor
+        timer.tor
+        datetime.tor
+        timezone.tor
+    
+    version.tor
+    utils.tor
+
+randomstuff.tor
+foo.tor
+bar.tor
+<#
+
+#>
+import core.version;
+import core.utils;
+import core.memory.allocator;
+import core.memory.heap;
+import core.memory.pool;
+import core.memory.stack;
+import core.memory.arena;
+import core.memory.zone;
+import core.memory.hash;
+import core.memory.worker;
+import core.text.unicode;
+import core.text.string;
+import core.text.format;
+import core.text.regex;
+import core.time.clock;
+import core.time.timer;
+import core.time.datetime;
+import core.time.timezone;
+
+import randomstuff;
+import foo;
+import bar;
+<#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import math;
+
+
+
+
+int main(int argc, char** argv)
+{
+    let x = sum(5, 10);
+    let y = subtract(20, 8);
+    let z = multiply(x, y);
+    let w = divide(z, 2);
+
+    return 0;
+}

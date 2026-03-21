@@ -62,10 +62,7 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     public void Process(Statement statement)
     {
-        ReportIfNonDeclarationAtFileScope(statement);
-
-        if (statement is IDeclaration declaration)
-            ReportIfWrongDeclarationPlacement(declaration);
+        ValidateStatementPlacement(statement);
 
         statement.Process(this);
     }
@@ -146,11 +143,17 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
     }
 
 
-
-
     public void ProcessBreak(BreakStatement statement)
     {
         ReportIfNotInsideALoop(statement);
+    }
+
+
+
+
+    public void ProcessImport(ImportStatement statement)
+    {
+        // TODO: check for errors
     }
 
 
@@ -311,13 +314,21 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
 
 
-    private bool ReportIfNonDeclarationAtFileScope(Statement statement)
+    private bool ValidateStatementPlacement(Statement statement)
     {
-        if (Binder.IsInFunctionScope || statement is IDeclaration)
-            return false;
+        if (Binder.IsInFunctionScope && !statement.CanBeInFunctionScope)
+        {
+            Report(BinderCatalog.ThisStatementMustBePlacedAtFileScope, location: statement.Location);
+            return true;
+        }
 
-        Report(BinderCatalog.OnlyDeclarationsCanExistInFileScope, location: statement.Location);
-        return true;
+        if (Binder.IsInFileScope && !statement.CanBeInFileScope)
+        {
+            Report(BinderCatalog.ThisStatementMustBePlacedAtFunctionScope, location: statement.Location);
+            return true;
+        }
+
+        return false;
     }
 
 
@@ -363,15 +374,6 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
         Report(BinderCatalog.LoopControlInstructionMustBeInLoop, location: statement.Location);
         return true;
-    }
-
-
-
-
-    private void ReportIfWrongDeclarationPlacement(IDeclaration declaration)
-    {
-        if ((Binder.IsInFileScope && !declaration.CanBeInFileScope) || (Binder.IsInFunctionScope && !declaration.CanBeInFunctionScope))
-            Report(BinderCatalog.WrongDeclarationPlacement, location: declaration.Symbol.Location);
     }
 
 

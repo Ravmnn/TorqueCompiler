@@ -14,9 +14,9 @@ namespace Torque.CommandLine;
 
 public static class CompilerSteps
 {
-    public static string Compile(ModuleContext module, CompileCommandSettings settings)
+    public static string Compile(Module module, CompileCommandSettings settings)
     {
-        var compiler = new TorqueCompiler(module.Statements, module.Scope, settings.File, settings.Debug);
+        var compiler = new TorqueCompiler(module, settings.File, settings.Debug);
         var bitCode = compiler.Compile();
 
         return bitCode;
@@ -35,23 +35,23 @@ public static class CompilerSteps
     }
 
 
-    public static void TypeCheck(ModuleContext moduleContext)
+    public static void TypeCheck(Module module)
     {
-        var typeChecker = new TorqueTypeChecker(moduleContext.Statements, moduleContext.DeclaredTypes);
+        var typeChecker = new TorqueTypeChecker(module.Statements, module.DeclaredTypes);
         typeChecker.Check();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(typeChecker.Reporter.Diagnostics);
     }
 
 
-    public static ModuleContext Bind(IReadOnlyList<Statement> statements)
+    public static Module Bind(IReadOnlyList<Statement> statements, string importReference)
     {
-        var binder = new TorqueBinder(statements);
-        var boundStatements = binder.Bind();
+        var binder = new TorqueBinder(statements, importReference);
+        var module = binder.Bind();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(binder.Reporter.Diagnostics);
 
-        return new ModuleContext(boundStatements, binder.Scope, binder.DeclaredTypes);
+        return module;
     }
 
 

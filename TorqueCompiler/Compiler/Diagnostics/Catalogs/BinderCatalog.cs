@@ -9,8 +9,6 @@ public enum BinderCatalog
     [Item(DiagnosticScope.Binder)] UndeclaredSymbol,
     [Item(DiagnosticScope.Binder)] SymbolIsNotAValue,
     [Item(DiagnosticScope.Binder)] MustBeAssignmentReference,
-    [Item(DiagnosticScope.Binder)] OnlyDeclarationsCanExistInFileScope,
-    [Item(DiagnosticScope.Binder)] FunctionsMustBeAtFileScope,
     [Item(DiagnosticScope.Binder)] ValueMustBeAddressable,
     [Item(DiagnosticScope.Binder)] MultipleSameModifiers,
     [Item(DiagnosticScope.Binder)] InvalidModifierTarget,
@@ -19,5 +17,6 @@ public enum BinderCatalog
     [Item(DiagnosticScope.Binder)] LoopControlInstructionMustBeInLoop,
     [Item(DiagnosticScope.Binder)] UnknownType,
     [Item(DiagnosticScope.Binder)] InvalidTypeKind,
-    [Item(DiagnosticScope.Binder)] WrongDeclarationPlacement,
+    [Item(DiagnosticScope.Binder)] ThisStatementMustBePlacedAtFileScope,
+    [Item(DiagnosticScope.Binder)] ThisStatementMustBePlacedAtFunctionScope,
 }

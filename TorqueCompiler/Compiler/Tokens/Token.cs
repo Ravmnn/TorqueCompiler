@@ -22,7 +22,7 @@ public enum TokenType
     Identifier,
     IntegerValue, FloatValue, BoolValue, CharValue, StringValue,
 
-    KwExternal,
+    KwExternal, KwImport,
     KwAlias, KwStruct,
     KwReturn,
     KwIf, KwElse, KwWhile, KwLoop, KwFor, KwBreak, KwContinue,

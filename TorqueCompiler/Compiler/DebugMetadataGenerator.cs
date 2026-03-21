@@ -64,8 +64,20 @@ public class DebugMetadataGenerator
 
         Compiler.GlobalScope.DebugMetadata = File;
 
-
         TypeGenerator = new DebugTypeMetadataGenerator(Compiler, DebugBuilder, File, CompileUnit);
+    }
+
+
+    public DebugMetadataGenerator(DebugMetadataGenerator generator, TorqueCompiler compiler)
+    {
+        DebugBuilder = generator.DebugBuilder;
+        File = generator.File;
+        CompileUnit = generator.CompileUnit;
+
+        Compiler = compiler;
+        Compiler.GlobalScope.DebugMetadata = File;
+
+        TypeGenerator = new DebugTypeMetadataGenerator(generator.TypeGenerator, compiler);
     }
 
 

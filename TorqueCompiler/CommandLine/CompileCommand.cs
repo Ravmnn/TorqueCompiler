@@ -26,9 +26,16 @@ public class CompileCommandSettings : CommandSettings
 
 
 
+    [CommandOption("-I|--import-reference")]
+    [Description("The directory the import system will use as reference")]
+    public string? ImportReference { get; set; }
+
+
+
+
     [CommandOption("-o|--output")]
     [Description("The output file to store the compiling result")]
-    public string? Output { get; init; }
+    public string? Output { get; set; }
 
 
     [CommandOption("-O|--output-type")]
@@ -111,6 +118,7 @@ public class CompileCommand : Command<CompileCommandSettings>
 {
     protected override int Execute(CommandContext context, CompileCommandSettings settings, CancellationToken cancellationToken)
     {
+        Torque.Initialize(settings);
         Torque.Compile(settings);
         return 0;
     }

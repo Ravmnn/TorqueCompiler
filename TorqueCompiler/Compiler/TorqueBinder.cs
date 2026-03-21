@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 using Torque.Compiler.Symbols;
@@ -42,10 +43,13 @@ public class TorqueBinder :
 
     public TorqueBinderReporter Reporter { get; }
 
+    public string ImportReference { get; }
+    public IList<Module> ImportedModules { get; }
 
 
 
-    public TorqueBinder(IReadOnlyList<Statement> statements)
+
+    public TorqueBinder(IReadOnlyList<Statement> statements, string importReference)
     {
         Statements = statements.ToList();
 
@@ -53,15 +57,25 @@ public class TorqueBinder :
         NamedTypeSyntaxBinder = new NamedTypeSyntaxBinder(DeclaredTypes);
         Scope = new Scope();
         Reporter = new TorqueBinderReporter(this);
+
+        ImportReference = importReference;
+        ImportedModules = [];
     }
 
 
 
 
-    public IReadOnlyList<BoundStatement> Bind()
+    public Module Bind()
     {
         DeclareAllDeclarations();
-        return Statements.Select(Process).ToArray();
+
+        var boundStatements = new List<BoundStatement>();
+
+        foreach (var statement in Statements)
+            if (Process(statement) is {} boundStatement)
+                boundStatements.Add(boundStatement);
+
+        return new Module(boundStatements, Statements, Scope, DeclaredTypes, ImportedModules);
     }
 
 
@@ -158,8 +172,8 @@ public class TorqueBinder :
 
     private bool IsFileScopeDeclarationAndHasNotBeenDeclared(Statement statement)
     {
-        return statement is IDeclaration { CanBeInFunctionScope: false, CanBeInFileScope: true } declaration
-               && !Scope.SymbolExists(declaration.Symbol.Name);
+        return statement is IDeclaration declaration && statement is { CanBeInFunctionScope: false, CanBeInFileScope: true }
+                                                     && !Scope.SymbolExists(declaration.Symbol.Name);
     }
 
 
@@ -287,6 +301,23 @@ public class TorqueBinder :
     public BoundStatement ProcessContinue(ContinueStatement statement)
     {
         return new BoundContinueStatement(statement);
+    }
+
+
+
+
+    public BoundStatement ProcessImport(ImportStatement statement)
+    {
+        var stringPath = string.Join('/', statement.Path);
+        var fullPath = Path.Combine(ImportReference, stringPath) + CommandLine.Torque.FileExtension;
+
+        var module = CommandLine.Torque.GetModule(fullPath);
+        ImportedModules.Add(module);
+
+        Scope.Symbols.AddRange(module.Scope.Symbols);
+        DeclaredTypes.Types.AddRange(module.DeclaredTypes.Types);
+
+        return null!;
     }
 
     #endregion

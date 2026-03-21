@@ -23,8 +23,8 @@ public class FunctionDeclarationStatement(TypeSyntax returnType, SymbolSyntax na
     public ModifierTarget ThisTargetIdentity => ModifierTarget.Function;
     public SymbolSyntax Symbol => Name;
 
-    public bool CanBeInFileScope => true;
-    public bool CanBeInFunctionScope => false;
+    public override bool CanBeInFileScope => true;
+    public override bool CanBeInFunctionScope => false;
 
     public bool IsExternal => Modifiers.Any(modifier => modifier.Type == TokenType.KwExternal);
 

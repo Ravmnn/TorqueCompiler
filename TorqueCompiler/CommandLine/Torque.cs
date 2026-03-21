@@ -27,19 +27,30 @@ public static class Torque
     public static DiagnosticLogger Logger { get; set; } = new DiagnosticLogger();
 
 
+    public const string FileExtension = ".tor";
+
+
+
+
+    public static void Initialize(CompileCommandSettings settings)
+    {
+        s_compileSettings = settings;
+        InitializeGlobals(settings);
+        InitializeNullableCompileSettings(settings);
+    }
 
 
     private static void InitializeGlobals(CompileCommandSettings settings)
     {
-        InitializeGlobalSourceCodeReference(settings.File);
+        InitializeGlobalSourceCodeReference(settings.File.FullName);
         InitializeGlobalTargetMachine(settings);
     }
 
 
-    private static void InitializeGlobalSourceCodeReference(FileInfo file)
+    private static void InitializeGlobalSourceCodeReference(string file)
     {
-        SourceCode.Source = File.ReadAllText(file.FullName);
-        SourceCode.FileName = file.Name;
+        SourceCode.Source = File.ReadAllText(file);
+        SourceCode.FilePath = file;
     }
 
 
@@ -50,14 +61,34 @@ public static class Torque
     }
 
 
+    private static void InitializeNullableCompileSettings(CompileCommandSettings settings)
+    {
+        settings.ImportReference ??= GetImportReference();
+        settings.Output ??= GetOutputFileName();
+    }
+
+
+    private static string GetImportReference()
+        => s_compileSettings.ImportReference ?? s_compileSettings.File.Directory!.FullName;
+
+
+    private static string GetOutputFileName()
+    {
+        var fileName = Path.GetFileNameWithoutExtension(s_compileSettings.File.Name);
+
+        var outputExtension = s_compileSettings.OutputType.OutputTypeToFileExtension();
+        var outputName = s_compileSettings.Output ?? $"{fileName}.{outputExtension}";
+
+        return outputName;
+    }
+
+
 
 
     public static void Compile(CompileCommandSettings settings)
     {
         try
         {
-            s_compileSettings = settings;
-            InitializeGlobals(settings);
             CompileSourceCodeToFile(settings);
         }
         catch (InterruptCompileException)
@@ -75,18 +106,7 @@ public static class Torque
             return;
 
         var options = CompilerProgramOptions.FromCompileCommandSettings(settings);
-        ProgramToolchain.Compile(bitCode, GetOutputFileName(), options);
-    }
-
-
-    private static string GetOutputFileName()
-    {
-        var fileName = Path.GetFileNameWithoutExtension(s_compileSettings.File.Name);
-
-        var outputExtension = s_compileSettings.OutputType.OutputTypeToFileExtension();
-        var outputName = s_compileSettings.Output ?? $"{fileName}.{outputExtension}";
-
-        return outputName;
+        ProgramToolchain.Compile(bitCode, settings.Output!, options);
     }
 
 
@@ -94,12 +114,10 @@ public static class Torque
 
     private static string CompileSourceCodeToBitCode()
     {
-        var statements = BuildFinalAST(SourceCode.Source!);
-        PrintASTIfRequested(statements);
-
-        var moduleContext = SemanticAnalysis(statements);
+        var moduleContext = GetModule(SourceCode.FilePath!);
         var bitCode = CompilerSteps.Compile(moduleContext, s_compileSettings);
 
+        PrintASTIfRequested(moduleContext.SyntaxStatements);
         PrintLLVMIfRequested(bitCode);
         PrintASMIfRequested(bitCode);
 
@@ -109,9 +127,21 @@ public static class Torque
 
 
 
-    private static ModuleContext SemanticAnalysis(IReadOnlyList<Statement> statements)
+    public static Module GetModule(string file)
     {
-        var moduleContext = CompilerSteps.Bind(statements);
+        var source = File.ReadAllText(file);
+        var statements = BuildFinalAST(source);
+        var module = SemanticAnalysis(statements);
+
+        return module;
+    }
+
+
+
+
+    private static Module SemanticAnalysis(IReadOnlyList<Statement> statements)
+    {
+        var moduleContext = CompilerSteps.Bind(statements, s_compileSettings.ImportReference!);
 
         CompilerSteps.TypeCheck(moduleContext);
         CompilerSteps.AnalyzeControlFlow(moduleContext.Statements);

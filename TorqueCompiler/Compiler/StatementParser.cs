@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
-
+using System.Linq;
+using System.Threading;
 using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.Diagnostics.Catalogs;
+using Torque.Compiler.Symbols;
 using Torque.Compiler.Tokens;
 
 
@@ -26,6 +28,7 @@ public partial class TorqueParser
         case TokenType.KwFor: return For();
         case TokenType.KwBreak: return Break();
         case TokenType.KwContinue: return Continue();
+        case TokenType.KwImport: return Import();
 
         // some tokens only makes sense when together with another,
         // but parser exceptions may break that "together", leaving those
@@ -186,5 +189,19 @@ public partial class TorqueParser
         Reporter.ExpectEndOfStatement();
 
         return new ContinueStatement(keyword);
+    }
+
+
+
+
+    public Statement Import()
+    {
+        var keyword = Iterator.Advance();
+        var path = DoWhileToken(TokenType.Dot, () => Reporter.ExpectIdentifier());
+        var identifierPath = path.Select(token => new SymbolSyntax(token)).ToArray();
+        Reporter.ExpectEndOfStatement();
+
+        var location = new Span(keyword.Location, path.Last().Location);
+        return new ImportStatement(identifierPath, location);
     }
 }

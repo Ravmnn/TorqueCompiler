@@ -34,12 +34,6 @@
     <data name="MustBeAssignmentReference" xml:space="preserve">
         <value>Expected symbol or pointer access expression</value>
     </data>
-    <data name="OnlyDeclarationsCanExistInFileScope" xml:space="preserve">
-        <value>Only declarations can exist in file scope</value>
-    </data>
-    <data name="FunctionsMustBeAtFileScope" xml:space="preserve">
-        <value>Functions can only be declared at file scope</value>
-    </data>
     <data name="ValueMustBeAddressable" xml:space="preserve">
         <value>Value must be an addressable value</value>
     </data>
@@ -64,7 +58,10 @@
     <data name="InvalidTypeKind" xml:space="preserve">
         <value>Cannot have this kind of type here</value>
     </data>
-    <data name="WrongDeclarationPlacement" xml:space="preserve">
-        <value>This kind of declaration cannot be here</value>
+    <data name="ThisStatementMustBePlacedAtFileScope" xml:space="preserve">
+        <value>This statement must be placed at file scope</value>
+    </data>
+    <data name="ThisStatementMustBePlacedAtFunctionScope" xml:space="preserve">
+        <value>This statement must be placed at function scope</value>
     </data>
 </root>

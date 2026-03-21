@@ -33,6 +33,15 @@ public class DebugTypeMetadataGenerator(TorqueCompiler compiler, LLVMDIBuilderRe
 
 
 
+    public DebugTypeMetadataGenerator(DebugTypeMetadataGenerator generator, TorqueCompiler compiler)
+        : this(compiler, generator.DebugBuilder, generator.File, generator.CompileUnit)
+    {
+        _structCache = generator._structCache;
+    }
+
+
+
+
     public IReadOnlyList<LLVMMetadataRef> TypesToMetadataArray(IReadOnlyList<Type> types)
     {
         var metadataArray = new LLVMMetadataRef[types.Count];

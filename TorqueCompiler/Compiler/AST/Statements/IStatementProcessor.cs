@@ -16,6 +16,7 @@ public interface IStatementProcessor
     void ProcessWhile(WhileStatement statement);
     void ProcessContinue(ContinueStatement statement);
     void ProcessBreak(BreakStatement statement);
+    void ProcessImport(ImportStatement statement);
 }
 
 
@@ -32,4 +33,5 @@ public interface IStatementProcessor<out T>
     T ProcessWhile(WhileStatement statement);
     T ProcessContinue(ContinueStatement statement);
     T ProcessBreak(BreakStatement statement);
+    T ProcessImport(ImportStatement statement);
 }

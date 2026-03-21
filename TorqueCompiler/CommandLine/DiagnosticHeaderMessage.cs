@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 
 using Torque.Compiler.Diagnostics;
@@ -14,7 +15,7 @@ public readonly struct DiagnosticHeaderMessage(Diagnostic diagnostic)
 
     public string Severity => Diagnostic.Severity.ToString().ToLower();
     public string Scope => new string(Diagnostic.Scope.ToString().Where(char.IsUpper).ToArray());
-    public string FileName => SourceCode.FileName ?? "interactive";
+    public string FileName => SourceCode.FilePath is not null ? new FileInfo(SourceCode.FilePath).Name : "interactive";
     public string Location => Diagnostic.Location is { } location ? $", {FileName}::{location}" : "unknown";
 
 

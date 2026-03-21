@@ -34,7 +34,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public FileInfo? File { get; }
 
 
-    private readonly LLVMModuleRef _llvmModule = LLVMModuleRef.CreateWithName("MainModule");
+    private LLVMModuleRef _llvmModule = LLVMModuleRef.CreateWithName("MainModule");
     public LLVMModuleRef LLVMModule => _llvmModule;
 
     public LLVMBuilderRef Builder { get; } = LLVMBuilderRef.Create(LLVMContextRef.Global);
@@ -56,9 +56,11 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private readonly IntrinsicCaller _intrinsics;
 
 
-    public IReadOnlyList<BoundStatement> Statements { get; }
+    public Module Module { get; }
 
-    public Scope GlobalScope { get; }
+    public IReadOnlyList<BoundStatement> Statements => Module.Statements;
+
+    public Scope GlobalScope => Module.Scope;
 
     private Scope _scope = null!;
     public Scope Scope
@@ -72,7 +74,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
 
-    public TorqueCompiler(IReadOnlyList<BoundStatement> statements, Scope scope, FileInfo? file = null, bool generateDebugMetadata = false)
+    public TorqueCompiler(Module module, FileInfo? file = null, bool generateDebugMetadata = false)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add support to generic code
@@ -88,7 +90,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add enums
         // TODO: default values for parameters and struct fields
         // TODO: add number suffixes, for binary, hexadecimal, uints, floats...
-        // TODO: add structs
+        // TODO: debug info for files should be module-individual
 
 
         File = file;
@@ -99,15 +101,32 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         _intrinsics = new IntrinsicCaller(LLVMModule, Builder);
 
-        Statements = statements;
-
-        GlobalScope = scope;
+        Module = module;
         Scope = GlobalScope;
 
         TypeBuilder = new TypeBuilder();
 
         if (generateDebugMetadata)
             Debug = new DebugMetadataGenerator(this);
+    }
+
+
+    public TorqueCompiler(TorqueCompiler compiler, Module module)
+    {
+        File = compiler.File;
+
+        _llvmModule = compiler._llvmModule;
+        _intrinsics = compiler._intrinsics;
+        Builder = compiler.Builder;
+        Debug = compiler.Debug;
+        TypeBuilder = compiler.TypeBuilder;
+        TargetMachine = compiler.TargetMachine;
+
+        Module = module;
+        Scope = GlobalScope;
+
+        if (compiler.Debug is not null)
+            Debug = new DebugMetadataGenerator(compiler.Debug, this);
     }
 
 
@@ -122,6 +141,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // due to null access or bad type conversion, or it is a bug, or the caller of the compiler API
         // didn't set up (binding, type checking...) the statements correctly.
 
+        CompileImportedModules();
 
         DeclareAllDeclarations();
 
@@ -131,6 +151,20 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         Debug?.FinalizeGenerator();
 
         return LLVMModule.PrintToString();
+    }
+
+
+    private void CompileImportedModules()
+    {
+        foreach (var module in Module.ImportedModules)
+            CompileImportedModule(module);
+    }
+
+
+    private void CompileImportedModule(Module module)
+    {
+        var compiler = new TorqueCompiler(this, module);
+        compiler.Compile();
     }
 
 

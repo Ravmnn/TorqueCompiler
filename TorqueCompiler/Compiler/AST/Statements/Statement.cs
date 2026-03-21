@@ -10,6 +10,9 @@ public abstract class Statement(Span location)
 {
     public Span Location { get; } = location;
 
+    public virtual bool CanBeInFileScope => false;
+    public virtual bool CanBeInFunctionScope => true;
+
 
 
 
