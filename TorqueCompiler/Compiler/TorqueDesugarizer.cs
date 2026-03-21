@@ -305,7 +305,7 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
 
     public Expression ProcessMemberAccess(MemberAccessExpression expression)
     {
-        expression.Compound = Process(expression.Compound);
+        expression.Compound = SugarProcess(expression.Compound);
 
         return expression;
     }
@@ -340,5 +340,16 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
     {
         var byteLexeme = Keywords.PrimitiveTypes.First(pair => pair.Value == PrimitiveType.UInt8).Key;
         return new PointerTypeSyntax(new BaseTypeSyntax(new SymbolSyntax(byteLexeme, location)));
+    }
+
+
+
+
+    public Expression ProcessArrow(SugarArrowExpression expression)
+    {
+        var pointer = SugarProcess(expression.Pointer);
+        var value = new PointerAccessExpression(pointer, pointer.Location);
+
+        return new MemberAccessExpression(value, expression.Member, expression.Location);
     }
 }

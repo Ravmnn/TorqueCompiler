@@ -145,12 +145,14 @@ public partial class TorqueParser
     {
         var expression = Primary();
 
-        while (Match(TokenType.Dot))
+        while (Match(TokenType.Dot, TokenType.Arrow))
         {
+            var isArrow = Iterator.Previous().Type == TokenType.Arrow;
             var member = Reporter.ExpectSymbol();
             var location = new Span(expression.Location, member.Location);
 
-            expression = new MemberAccessExpression(expression, member, location);
+            expression = isArrow ? new SugarArrowExpression(expression, member, location)
+                                    : new MemberAccessExpression(expression, member, location);
         }
 
         return expression;

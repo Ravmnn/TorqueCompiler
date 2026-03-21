@@ -1,0 +1,17 @@
+struct Vector
+{
+    float x;
+    float y;
+}
+
+
+int main(int argc, char** argv)
+{
+    let vector = new Vector { x: 1.0, y: 2.0 };
+    let vectorptr = &vector;
+
+    vectorptr->x = 3.0;
+    (nullptr as Vector*)->y = 4.0;
+
+    return 0;
+}
