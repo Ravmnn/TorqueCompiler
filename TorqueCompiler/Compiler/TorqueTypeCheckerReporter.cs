@@ -272,7 +272,10 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public void ProcessStruct(BoundStructExpression expression)
     {
+        var structType = (expression.Type as StructType)!;
 
+        foreach (var initialization in expression.InitializationList)
+            ReportIfStructHasNotField(structType, initialization.Member.Name, initialization.Member.Location);
     }
 
     public void ProcessMemberAccess(BoundMemberAccessExpression expression)
@@ -285,15 +288,15 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
             return;
         }
 
-        if (structType.GetField(expression.Member.Name) is null)
-            Report(TypeCheckerCatalog.UndeclaredStructMember, [expression.Member.Name, structType.Name.Name], expression.Location);
+        ReportIfStructHasNotField(structType, expression.Member.Name, expression.Location);
     }
 
 
-
-
-
-
+    public void ReportIfStructHasNotField(StructType structType, string field, Span location)
+    {
+        if (structType.GetField(field) is null)
+            Report(TypeCheckerCatalog.UndeclaredStructMember, [field, structType.Name.Name], location);
+    }
 
 
     public bool ReportIfNotAPointer(Type type, Span location)

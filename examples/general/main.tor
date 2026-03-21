@@ -1,3 +1,9 @@
+import foo;
+import bar;
+
+
+
+
 struct Vector
 {
     float x;
@@ -11,7 +17,7 @@ int main(int argc, char** argv)
     let vectorptr = &vector;
 
     vectorptr->x = 3.0;
-    (nullptr as Vector*)->y = 4.0;
+    vectorptr->y = 4.0;
 
     return 0;
 }

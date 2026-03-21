@@ -55,7 +55,6 @@ public class TorqueTypeCheckerTypeSyntaxConverter(TorqueTypeChecker typeChecker)
 
 
 
-    // TODO: add "->" operator for pointers
     private StructType StructTypeFromTypeSyntax(StructTypeSyntax structTypeSyntax)
     {
         var structType = new StructType(structTypeSyntax.Name, []);

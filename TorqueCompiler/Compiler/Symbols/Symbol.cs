@@ -14,6 +14,8 @@ public abstract class Symbol(string name, Span location, Scope declarationScope)
     public Span Location { get; } = location;
     public Scope DeclarationScope { get; } = declarationScope;
 
+    public SymbolSyntax Syntax => new SymbolSyntax(Name, Location);
+
 
     public LLVMValueRef? LLVMReference { get; set; }
     public LLVMTypeRef? LLVMType { get; set; }

@@ -23,4 +23,15 @@ public class ImportStatement(IReadOnlyList<SymbolSyntax> path, Span location) : 
 
     public override T Process<T>(IStatementProcessor<T> processor)
         => processor.ProcessImport(this);
+
+
+
+
+    public string GetModulePath(string importReference)
+    {
+        var stringPath = string.Join('/', Path);
+        var fullPath = System.IO.Path.Combine(importReference, stringPath) + CommandLine.Torque.FileExtension;
+
+        return fullPath;
+    }
 }

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
+using Torque.CommandLine;
 using Torque.Compiler.Symbols;
 using Torque.Compiler.Types;
 using Torque.Compiler.AST.Expressions;
@@ -326,10 +326,11 @@ public class TorqueBinder :
 
     public BoundStatement ProcessImport(ImportStatement statement)
     {
-        var stringPath = string.Join('/', statement.Path);
-        var fullPath = Path.Combine(ImportReference, stringPath) + CommandLine.Torque.FileExtension;
+        var modulePath = statement.GetModulePath(ImportReference);
 
-        var module = CommandLine.Torque.GetModule(fullPath);
+        if (CommandLine.Torque.GetModule(modulePath) is not { } module)
+            return null!;
+
         ImportedModules.Add(module);
 
         Scope.Symbols.AddRange(module.Scope.Symbols);

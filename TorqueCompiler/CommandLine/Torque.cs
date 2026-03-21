@@ -114,7 +114,7 @@ public static class Torque
 
     private static string CompileSourceCodeToBitCode()
     {
-        var moduleContext = GetModule(SourceCode.FilePath!);
+        var moduleContext = GetModule(SourceCode.FilePath!)!.Value;
         var bitCode = CompilerSteps.Compile(moduleContext, s_compileSettings);
 
         PrintASTIfRequested(moduleContext.SyntaxStatements);
@@ -127,8 +127,11 @@ public static class Torque
 
 
 
-    public static Module GetModule(string file)
+    public static Module? GetModule(string file)
     {
+        if (!File.Exists(file))
+            return null;
+
         var oldFile = SourceCode.FilePath;
 
         InitializeGlobalSourceCodeReference(file);

@@ -1,0 +1,4 @@
+alias Number = int;
+
+
+void something() {}

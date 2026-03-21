@@ -90,14 +90,15 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add enums
         // TODO: default values for parameters and struct fields
         // TODO: add number suffixes, for binary, hexadecimal, uints, floats...
-        // TODO: for should accept "let" at the initializer
+        // TODO: "for" should accept "let" at the initializer
         // TODO: add expr += ... (and others)
         // TODO: add expr++ and expr**
 
+        // TODO: check for circular imports (infinite)
+
         // TODO: check for already defined symbols when importing
-        // TODO: check if the module being imported exists
+
         // TODO: add options that control the importing system to the command line
-        // TODO: report if a struct doesn't have such member
         // TODO: CFA is not working properly
 
 

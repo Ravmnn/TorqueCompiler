@@ -34,4 +34,10 @@ public class DeclaredTypeManager
 
     public bool IsDeclared(string symbol)
         => TryGetType(symbol) is not null;
+
+
+
+
+    public bool TypeIsMultiDeclared(string symbol)
+        => Types.Count(type => type.TypeSymbol.Name == symbol) > 1;
 }

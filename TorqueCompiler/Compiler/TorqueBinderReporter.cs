@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
-
+using Torque.CommandLine;
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Symbols;
 using Torque.Compiler.Types;
@@ -153,7 +155,32 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     public void ProcessImport(ImportStatement statement)
     {
-        // TODO: check for errors
+        var modulePath = statement.GetModulePath(Binder.ImportReference);
+
+        if (!File.Exists(modulePath))
+            Report(BinderCatalog.UnknownModule, location: statement.Location);
+
+        CheckForMultipleDeclarations();
+    }
+
+
+    private void CheckForMultipleDeclarations()
+    {
+        // TODO: fix: multiple reports for the same symbol
+
+        var symbols = new List<Symbol>();
+        var types = new List<TypeDeclaration>();
+
+        symbols.AddRange(Binder.Scope.Symbols);
+        types.AddRange(Binder.DeclaredTypes.Types);
+
+        foreach (var symbol in symbols.ToArray())
+            if (ReportIfMultipleDeclaration(symbol.Syntax))
+                symbols.RemoveAll(s => s.Name == symbol.Name);
+
+        foreach (var type in types.ToArray())
+            if (ReportIfMultipleDeclaration(type.TypeSymbol))
+                types.RemoveAll(t => t.TypeSymbol.Name == type.TypeSymbol.Name);
     }
 
 
@@ -304,11 +331,19 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     private bool ReportIfMultipleDeclaration(SymbolSyntax symbol)
     {
-        if (!Binder.Scope.SymbolIsMultiDeclared(symbol.Name))
-            return false;
+        if (Binder.Scope.SymbolIsMultiDeclared(symbol.Name) || Binder.DeclaredTypes.TypeIsMultiDeclared(symbol.Name))
+        {
+            ReportSymbol(BinderCatalog.MultipleSymbolDeclaration, symbol);
+            return true;
+        }
 
-        ReportSymbol(BinderCatalog.MultipleSymbolDeclaration, symbol);
-        return true;
+        if (Binder.Scope.SymbolExists(symbol.Name) && Binder.DeclaredTypes.IsDeclared(symbol.Name))
+        {
+            ReportSymbol(BinderCatalog.SymbolAlreadyDeclaredAsType, symbol);
+            return true;
+        }
+
+        return false;
     }
 
 
@@ -336,14 +371,14 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     private void ValidateDeclarationModifiers(IDeclaration declaration)
     {
-        ReportIfHasDuplicateModifers(declaration, declaration.Symbol.Location);
+        ReportIfHasDuplicateModifiers(declaration, declaration.Symbol.Location);
 
         foreach (var modifier in declaration.Modifiers)
             ReportIfInvalidModifierTarget(declaration, modifier);
     }
 
 
-    private bool ReportIfHasDuplicateModifers(IModificable modificable, Span location)
+    private bool ReportIfHasDuplicateModifiers(IModificable modificable, Span location)
     {
         if (modificable.Modifiers.DistinctBy(modifier => modifier.Type).Count() == modificable.Modifiers.Count)
             return false;
