@@ -160,27 +160,22 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
         if (!File.Exists(modulePath))
             Report(BinderCatalog.UnknownModule, location: statement.Location);
 
-        CheckForMultipleDeclarations();
+        CheckForMultipleDeclarationsAfterImport(statement.Location);
     }
 
 
-    private void CheckForMultipleDeclarations()
+    private void CheckForMultipleDeclarationsAfterImport(Span importLocation)
     {
-        // TODO: fix: multiple reports for the same symbol
+        var reportedSymbols = new List<string>();
+        var reportedTypes = new List<string>();
 
-        var symbols = new List<Symbol>();
-        var types = new List<TypeDeclaration>();
+        foreach (var symbol in Binder.Scope.Symbols)
+            if (!reportedSymbols.Contains(symbol.Name) && ReportIfImportedSymbolHasMultipleDeclarations(symbol.Syntax, importLocation))
+                reportedSymbols.Add(symbol.Name);
 
-        symbols.AddRange(Binder.Scope.Symbols);
-        types.AddRange(Binder.DeclaredTypes.Types);
-
-        foreach (var symbol in symbols.ToArray())
-            if (ReportIfMultipleDeclaration(symbol.Syntax))
-                symbols.RemoveAll(s => s.Name == symbol.Name);
-
-        foreach (var type in types.ToArray())
-            if (ReportIfMultipleDeclaration(type.TypeSymbol))
-                types.RemoveAll(t => t.TypeSymbol.Name == type.TypeSymbol.Name);
+        foreach (var type in Binder.DeclaredTypes.Types)
+            if (!reportedTypes.Contains(type.TypeSymbol.Name) && ReportIfImportedSymbolHasMultipleDeclarations(type.TypeSymbol, importLocation))
+                reportedTypes.Add(type.TypeSymbol.Name);
     }
 
 
@@ -331,19 +326,47 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     private bool ReportIfMultipleDeclaration(SymbolSyntax symbol)
     {
-        if (Binder.Scope.SymbolIsMultiDeclared(symbol.Name) || Binder.DeclaredTypes.TypeIsMultiDeclared(symbol.Name))
+        var (hasMultipleDeclarations, firstDeclaredAsType) = SymbolIsMultiDeclared(symbol);
+
+        if (hasMultipleDeclarations && !firstDeclaredAsType)
         {
             ReportSymbol(BinderCatalog.MultipleSymbolDeclaration, symbol);
             return true;
         }
 
-        if (Binder.Scope.SymbolExists(symbol.Name) && Binder.DeclaredTypes.IsDeclared(symbol.Name))
+        if (firstDeclaredAsType)
         {
             ReportSymbol(BinderCatalog.SymbolAlreadyDeclaredAsType, symbol);
             return true;
         }
 
         return false;
+    }
+
+
+    private bool ReportIfImportedSymbolHasMultipleDeclarations(SymbolSyntax symbol, Span location)
+    {
+        var (hasMultipleDeclarations, _) = SymbolIsMultiDeclared(symbol);
+
+        if (hasMultipleDeclarations)
+        {
+            Report(BinderCatalog.ImportedSymbolHasMultipleDeclarations, [symbol.Name], location);
+            return true;
+        }
+
+        return false;
+    }
+
+
+    private (bool hasMultipleDeclarations, bool firstDeclaredAsType) SymbolIsMultiDeclared(SymbolSyntax symbol)
+    {
+        if (Binder.Scope.SymbolIsMultiDeclared(symbol.Name) || Binder.DeclaredTypes.TypeIsMultiDeclared(symbol.Name))
+            return (true, false);
+
+        if (Binder.Scope.SymbolExists(symbol.Name) && Binder.DeclaredTypes.IsDeclared(symbol.Name))
+            return (true, true);
+
+        return (false, false);
     }
 
 

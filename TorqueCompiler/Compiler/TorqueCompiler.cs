@@ -96,8 +96,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         // TODO: check for circular imports (infinite)
 
-        // TODO: check for already defined symbols when importing
-
         // TODO: add options that control the importing system to the command line
         // TODO: CFA is not working properly
 

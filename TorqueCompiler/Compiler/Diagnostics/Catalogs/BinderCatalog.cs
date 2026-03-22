@@ -21,4 +21,5 @@ public enum BinderCatalog
     [Item(DiagnosticScope.Binder)] ThisStatementMustBePlacedAtFunctionScope,
     [Item(DiagnosticScope.Binder)] UnknownModule,
     [Item(DiagnosticScope.Binder)] SymbolAlreadyDeclaredAsType,
+    [Item(DiagnosticScope.Binder)] ImportedSymbolHasMultipleDeclarations,
 }
