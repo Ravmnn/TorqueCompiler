@@ -99,6 +99,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add options that control the importing system to the command line
         // TODO: CFA is not working properly
 
+        // TODO: importing should import only the content of that module, ignoring the content imported by the same module
+
 
         File = file;
 

@@ -5,10 +5,41 @@ import lexer;
 external int strcmp(char* str1, char* str2);
 
 
+int interpret(Token* tokens, int tokenCount)
+{
+    if (tokenCount == 0)
+        return 0;
+
+    let value = tokens[0].value;
+    let operation = 0;
+
+    for (int i = 1; i < tokenCount; i = i + 1)
+    {
+        let token = tokens[i];
+
+        if (operation == TOKEN_PLUS())
+            value = value + token.value;
+
+        else if (operation == TOKEN_MINUS())
+            value = value - token.value;
+
+        else if (operation == TOKEN_MULTIPLY())
+            value = value * token.value;
+
+        operation = token.type;
+
+        if (operation != TOKEN_NUMBER())
+            continue;
+        
+        operation = 0;
+    }
+
+    return value;
+}
+
+
 int main(int argc, char** argv)
 {
-    # TODO: must use the heap to store the tokens, otherwise they will be lost when the function returns
-
     loop
     {
         let input = readln(nullptr);
@@ -19,7 +50,11 @@ int main(int argc, char** argv)
         let lexer = newLexer(input);
         tokenize(&lexer);
     
-        let tokens = lexer.tokens;
+        let value = interpret(lexer.tokens, lexer.tokenCount);
+        let buffer = char array[16];
+        int2str(buffer, value);
+
+        println(buffer);
     }
 
     println("bye bye!");

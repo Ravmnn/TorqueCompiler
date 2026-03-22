@@ -1,3 +1,4 @@
+import std.memory;
 import token;
 
 
@@ -13,7 +14,8 @@ struct Lexer
 
 Lexer newLexer(char* source)
 {
-    return new Lexer { source: source, index: 0, tokens: Token array[128], tokenCount: 0 };
+    let tokensMemory = malloc((16 * 64) as usize) as Token*;
+    return new Lexer { source: source, index: 0, tokens: tokensMemory, tokenCount: 0 };
 }
 
 
@@ -32,7 +34,7 @@ void tokenize(Lexer* lexer)
 
         if (ch == ' ')
         {
-            (*lexer).index = (*lexer).index + 1;
+            lexer->index = lexer->index + 1;
             continue;
         }
 
@@ -48,16 +50,16 @@ void tokenize(Lexer* lexer)
 
 void tokenizeNumber(Lexer* lexer)
 {
-    let start = (*lexer).index;
+    let start = lexer->index;
 
     while (isDigit(current(lexer)))
-        (*lexer).index = (*lexer).index + 1;
+        lexer->index = lexer->index + 1;
 
-    let index = (*lexer).index;
-    let lexeme = char array[32];
+    let index = lexer->index;
+    let lexeme = malloc(16 as usize) as char*;
 
     for (int i = 0; i < index - start; i = i + 1)
-        lexeme[i] = (*lexer).source[start + i];
+        lexeme[i] = lexer->source[start + i];
     
     lexeme[index - start] = '\0';
 
@@ -68,14 +70,14 @@ void tokenizeNumber(Lexer* lexer)
 void tokenizeOperator(Lexer* lexer)
 {
     let ch = current(lexer);
-    let lexeme = char array[2];
+    let lexeme = malloc(2 as usize) as char*;
     lexeme[0] = ch;
     lexeme[1] = '\0';
 
     let type = getOperatorType(ch);
 
     addToken(lexer, type, lexeme, 0);
-    (*lexer).index = (*lexer).index + 1;
+    lexer->index = lexer->index + 1;
 }
 
 
@@ -83,8 +85,8 @@ void tokenizeOperator(Lexer* lexer)
 
 void addToken(Lexer* lexer, int type, char* lexeme, int value)
 {
-    (*lexer).tokens[(*lexer).tokenCount] = newToken(type, lexeme, value);
-    (*lexer).tokenCount = (*lexer).tokenCount + 1;
+    lexer->tokens[lexer->tokenCount] = newToken(type, lexeme, value);
+    lexer->tokenCount = lexer->tokenCount + 1;
 }
 
 
@@ -108,7 +110,7 @@ int getOperatorType(char ch)
 
 char current(Lexer* lexer)
 {
-    return (*lexer).source[(*lexer).index];
+    return lexer->source[lexer->index];
 }
 
 

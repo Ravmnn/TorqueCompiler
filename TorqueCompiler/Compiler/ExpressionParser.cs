@@ -89,25 +89,41 @@ public partial class TorqueParser
 
 
     private Expression Address()
-        => ParseRightAssociativeUnaryLayoutExpression<AddressExpression>(Call, TokenType.Ampersand);
+        => ParseRightAssociativeUnaryLayoutExpression<AddressExpression>(PostFix, TokenType.Ampersand);
 
 
 
 
-    private Expression Call()
+    private Expression PostFix()
     {
-        var expression = Indexing();
+        var expression = Primary();
 
-        while (Match(TokenType.LeftParen))
+        while (true)
         {
-            var arguments = Arguments();
-            var parenRight = Reporter.ExpectRightParen();
-            var location = new Span(expression.Location, parenRight);
+            if (Match(TokenType.LeftParen))
+                expression = PostFixCall(expression);
 
-            expression = new CallExpression(expression, arguments, location);
+            else if (Match(TokenType.LeftSquareBracket))
+                expression = PostFixIndexing(expression);
+
+            else if (Match(TokenType.Dot, TokenType.Arrow))
+                expression = PostFixMemberAccess(expression);
+
+            else
+                break;
         }
 
         return expression;
+    }
+
+
+    private Expression PostFixCall(Expression expression)
+    {
+        var arguments = Arguments();
+        var parenRight = Reporter.ExpectRightParen();
+        var location = new Span(expression.Location, parenRight);
+
+        return new CallExpression(expression, arguments, location);
     }
 
 
@@ -120,42 +136,24 @@ public partial class TorqueParser
     }
 
 
-
-
-    private Expression Indexing()
+    private Expression PostFixIndexing(Expression expression)
     {
-        var expression = MemberAccess();
+        var index = Expression();
+        var rightSquareBracket = Reporter.ExpectRightSquareBracket();
+        var location = new Span(expression.Location, rightSquareBracket);
 
-        while (Match(TokenType.LeftSquareBracket))
-        {
-            var index = Expression();
-            var rightSquareBracket = Reporter.ExpectRightSquareBracket();
-            var location = new Span(expression.Location, rightSquareBracket);
-
-            expression = new IndexingExpression(expression, index, location);
-        }
-
-        return expression;
+        return new IndexingExpression(expression, index, location);
     }
 
 
-
-
-    private Expression MemberAccess()
+    private Expression PostFixMemberAccess(Expression expression)
     {
-        var expression = Primary();
+        var isArrow = Iterator.Previous().Type == TokenType.Arrow;
+        var member = Reporter.ExpectSymbol();
+        var location = new Span(expression.Location, member.Location);
 
-        while (Match(TokenType.Dot, TokenType.Arrow))
-        {
-            var isArrow = Iterator.Previous().Type == TokenType.Arrow;
-            var member = Reporter.ExpectSymbol();
-            var location = new Span(expression.Location, member.Location);
-
-            expression = isArrow ? new SugarArrowExpression(expression, member, location)
-                                    : new MemberAccessExpression(expression, member, location);
-        }
-
-        return expression;
+        return isArrow ? new SugarArrowExpression(expression, member, location)
+                                : new MemberAccessExpression(expression, member, location);
     }
 
 

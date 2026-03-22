@@ -1,0 +1,2 @@
+external byte* malloc(usize size);
+external void free(byte* ptr);
