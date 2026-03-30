@@ -10,10 +10,10 @@ class Program
 {
     private static int Main(string[] args)
     {
-        // const string TestFile = "calculator/main.tor";
-        // const string TestOptions = "--debug";
-        // args = $"compile /home/ravmn/Documentos/programming/csharp/TorqueCompiler/examples/{TestFile} {TestOptions}".Split(' ');
-
+        /* const string TestFile = "general/main.tor";
+        const string TestOptions = "--debug";
+        args = $"compile /home/ravmn/Documentos/programming/csharp/TorqueCompiler/examples/{TestFile} {TestOptions}".Split(' ');
+ */
         var root = new CommandApp();
         root.Configure(config =>
         {

@@ -10,9 +10,5 @@ public static class SourceCode
 
     public static string? FilePath { get; set; }
 
-
-
-
-    public static string GetLine(int line)
-        => SourceLines![line - 1];
+    public static string? FirstFilePath { get; set; }
 }

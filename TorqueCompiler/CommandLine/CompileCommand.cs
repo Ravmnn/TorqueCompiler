@@ -2,13 +2,12 @@
 
 
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
 
 using Spectre.Console;
 using Spectre.Console.Cli;
-
+using Torque.Compiler;
 using Torque.Compiler.Target;
 
 
@@ -17,7 +16,6 @@ namespace Torque.CommandLine;
 
 
 
-[SuppressMessage("ReSharper", "UnassignedGetOnlyAutoProperty")]
 public class CompileCommandSettings : CommandSettings
 {
     [CommandArgument(0, "<file>")]
@@ -29,19 +27,6 @@ public class CompileCommandSettings : CommandSettings
     [CommandOption("-I|--import-reference")]
     [Description("The directory the import system will use as reference")]
     public string? ImportReference { get; set; }
-
-
-
-
-    [CommandOption("-o|--output")]
-    [Description("The output file to store the compiling result")]
-    public string? Output { get; set; }
-
-
-    [CommandOption("-O|--output-type")]
-    [Description("The kind of output the compiler should generate")]
-    [DefaultValue(OutputType.Object)]
-    public OutputType OutputType { get; init; }
 
 
 
@@ -85,23 +70,6 @@ public class CompileCommandSettings : CommandSettings
 
 
 
-    [CommandOption("--print-ast")]
-    [Description("Print Abstract Syntactic Tree and quit")]
-    public bool PrintAST { get; init; }
-
-
-    [CommandOption("--print-llvm")]
-    [Description("Print LLVM bit code and quit")]
-    public bool PrintLLVM { get; init; }
-
-
-    [CommandOption("--print-asm")]
-    [Description("Print Assembly and quit")]
-    public bool PrintASM { get; init; }
-
-
-
-
     public override ValidationResult Validate()
     {
         if (!File.Exists)
@@ -122,4 +90,18 @@ public class CompileCommand : Command<CompileCommandSettings>
         Torque.Compile(settings);
         return 0;
     }
+}
+
+
+
+
+public static class CompileCommandSettingsExtensions
+{
+    public static CompilerOptions ToLowLevelOptions(this CompileCommandSettings settings)
+        => new CompilerOptions
+        {
+            Debug = settings.Debug,
+            PIC = settings.PIC,
+            ImportReference = settings.ImportReference ?? settings.File.Directory!.FullName
+        };
 }

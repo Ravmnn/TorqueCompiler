@@ -1,13 +1,13 @@
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using Torque.CommandLine;
+
 using Torque.Compiler.Symbols;
 using Torque.Compiler.Types;
 using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Expressions;
 using Torque.Compiler.BoundAST.Statements;
+using System.IO;
 
 
 namespace Torque.Compiler;
@@ -43,14 +43,13 @@ public class TorqueBinder :
 
     public TorqueBinderReporter Reporter { get; }
 
-    public string ImportReference { get; }
     public string ModulePath { get; }
-    public IList<Module> ImportedModules { get; }
+    public List<Module> ImportedModules { get; }
 
 
 
 
-    public TorqueBinder(IReadOnlyList<Statement> statements, string importReference, string modulePath)
+    public TorqueBinder(IReadOnlyList<Statement> statements, string modulePath)
     {
         Statements = statements.ToList();
 
@@ -59,7 +58,6 @@ public class TorqueBinder :
         Scope = new Scope();
         Reporter = new TorqueBinderReporter(this);
 
-        ImportReference = importReference;
         ModulePath = modulePath;
         ImportedModules = [];
     }
@@ -326,15 +324,11 @@ public class TorqueBinder :
 
     public BoundStatement ProcessImport(ImportStatement statement)
     {
-        var modulePath = statement.GetModulePath(ImportReference);
-
-        if (CommandLine.Torque.GetModule(modulePath) is not { } module)
-            return null!;
+        var modulePath = Path.Combine(CommandLine.Torque.GetCurrentImportReference(), statement.GetModuleRelativePath());
+        var module = CommandLine.Torque.GetModule(modulePath);
 
         ImportedModules.Add(module);
-
-        Scope.Symbols.AddRange(module.Scope.Symbols);
-        DeclaredTypes.Types.AddRange(module.DeclaredTypes.Types);
+        Scope.ImportedScopes.Add(module.Scope);
 
         return null!;
     }

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Collections.Generic;
 
 using Torque.Compiler.AST.Statements;
@@ -16,14 +17,15 @@ public readonly struct Module(
     IReadOnlyList<Statement> syntaxStatements,
     Scope scope,
     DeclaredTypeManager declaredTypes,
-    IList<Module>? importedModules = null)
+    List<Module>? importedModules = null)
 {
     public string Path { get; } = path;
+    public FileInfo FileInfo { get; } = new FileInfo(path);
     public IReadOnlyList<BoundStatement> Statements { get; init; } = statements;
     public IReadOnlyList<Statement> SyntaxStatements { get; init; } = syntaxStatements;
     public Scope Scope { get; init; } = scope;
     public DeclaredTypeManager DeclaredTypes { get; init; } = declaredTypes;
-    public IList<Module> ImportedModules { get; init; } = importedModules ?? [];
+    public List<Module> ImportedModules { get; init; } = importedModules ?? [];
 
 
 
@@ -34,7 +36,7 @@ public readonly struct Module(
         out IReadOnlyList<Statement> syntaxStatements,
         out Scope scope,
         out DeclaredTypeManager declaredTypes,
-        out IList<Module> importedModules
+        out List<Module> importedModules
     )
     {
         path = Path;

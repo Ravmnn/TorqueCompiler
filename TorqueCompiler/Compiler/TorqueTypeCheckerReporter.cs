@@ -96,20 +96,12 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
     { }
 
 
-
-
     public void ProcessContinue(BoundContinueStatement statement)
-    {
-
-    }
-
-
+    { }
 
 
     public void ProcessBreak(BoundBreakStatement statement)
-    {
-
-    }
+    { }
 
 
 

@@ -26,14 +26,9 @@ namespace Torque.Compiler;
 
 
 
-public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcessor<ExpressionResult>, IBoundDeclarationProcessor
+public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcessor<ExpressionResult>, IBoundDeclarationProcessor,
+    IImportableProcessor
 {
-
-    // if debug metadata generation is desired, this property must be set, since
-    // debug metadata uses some file information
-    public FileInfo? File { get; }
-
-
     private LLVMModuleRef _llvmModule = LLVMModuleRef.CreateWithName("MainModule");
     public LLVMModuleRef LLVMModule => _llvmModule;
 
@@ -43,6 +38,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public LLVMTargetDataRef DataLayout => TargetMachine.DataLayout;
 
     public DebugMetadataGenerator? Debug { get; }
+    public TypeBuilder TypeBuilder { get; }
 
 
     private LLVMValueRef? _currentFunction;
@@ -58,6 +54,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public Module Module { get; }
 
+    public FileInfo File => Module.FileInfo;
     public IReadOnlyList<BoundStatement> Statements => Module.Statements;
 
     public Scope GlobalScope => Module.Scope;
@@ -69,12 +66,13 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         private init => _scope = value;
     }
 
-    public TypeBuilder TypeBuilder { get; }
+
+    public CompilerOptions Options { get; }
 
 
 
 
-    public TorqueCompiler(Module module, FileInfo? file = null, bool generateDebugMetadata = false)
+    public TorqueCompiler(Module module, CompilerOptions options)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add support to generic code
@@ -92,17 +90,14 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add number suffixes, for binary, hexadecimal, uints, floats...
         // TODO: "for" should accept "let" at the initializer
         // TODO: add expr += ... (and others)
-        // TODO: add expr++ and expr**
-
-        // TODO: check for circular imports (infinite)
+        // TODO: add expr++ and expr--
 
         // TODO: add options that control the importing system to the command line
         // TODO: CFA is not working properly
 
-        // TODO: importing should import only the content of that module, ignoring the content imported by the same module
+        // TODO: check for circular imports (infinite)
+        // TODO: add import support for types
 
-
-        File = file;
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
         _llvmModule.Target = TargetMachine.Triple;
@@ -115,15 +110,15 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         TypeBuilder = new TypeBuilder();
 
-        if (generateDebugMetadata)
+        Options = options;
+
+        if (Options.Debug)
             Debug = new DebugMetadataGenerator(this);
     }
 
 
-    public TorqueCompiler(TorqueCompiler compiler, Module module)
+/*     public TorqueCompiler(TorqueCompiler compiler, Module module)
     {
-        File = compiler.File;
-
         _llvmModule = compiler._llvmModule;
         _intrinsics = compiler._intrinsics;
         Builder = compiler.Builder;
@@ -136,7 +131,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         if (compiler.Debug is not null)
             Debug = new DebugMetadataGenerator(compiler.Debug, this);
-    }
+    } */
 
 
 
@@ -150,8 +145,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // due to null access or bad type conversion, or it is a bug, or the caller of the compiler API
         // didn't set up (binding, type checking...) the statements correctly.
 
-        CompileImportedModules();
-
+        CompileAllImports();
         DeclareAllDeclarations();
 
         foreach (var statement in Statements)
@@ -163,17 +157,22 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
 
-    private void CompileImportedModules()
-    {
-        foreach (var module in Module.ImportedModules)
-            CompileImportedModule(module);
-    }
+    private void CompileAllImports()
+        => CompileImportedModulesRecursively(Module);
 
 
-    private void CompileImportedModule(Module module)
+    private void CompileImportedModulesRecursively(Module module)
     {
-        var compiler = new TorqueCompiler(this, module);
-        compiler.Compile();
+        foreach (var importedModule in module.ImportedModules)
+        {
+            CompileImportedModulesRecursively(importedModule);
+
+            CommandLine.Torque.CompileModuleToObject(importedModule, Options);
+
+            foreach (var symbol in importedModule.Scope.Symbols)
+                if (symbol is IImportable importable)
+                    ProcessImportable(importable);
+        }
     }
 
 
@@ -203,12 +202,42 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         var functionSymbol = declaration.FunctionSymbol;
 
-        var llvmFunctionType = TypeBuilder.ProcessRawFunction(functionSymbol.Type!);
-        var llvmReference = LLVMModule.AddFunction(functionSymbol.Name, llvmFunctionType);
-        llvmReference.Linkage = LLVMLinkage.LLVMExternalLinkage;
+        var (type, reference) = DeclareFunctionFromSymbol(functionSymbol);
+        reference.Linkage = LLVMLinkage.LLVMExternalLinkage;
 
-        functionSymbol.SetLLVMProperties(llvmReference, llvmFunctionType, null);
+        functionSymbol.SetLLVMProperties(reference, type, null);
         functionSymbol.LLVMDebugMetadata = DebugGenerateFunction(functionSymbol);
+    }
+
+
+    public (LLVMTypeRef type, LLVMValueRef reference) DeclareFunctionFromSymbol(FunctionSymbol symbol)
+    {
+        var llvmFunctionType = TypeBuilder.ProcessRawFunction(symbol.Type!);
+        var llvmReference = LLVMModule.AddFunction(symbol.Name, llvmFunctionType);
+
+        return (llvmFunctionType, llvmReference);
+    }
+
+    #endregion
+
+
+
+
+
+
+
+
+    #region Imports
+
+    public void ProcessImportable(IImportable importable)
+        => importable.Process(this);
+
+
+
+
+    public void ProcessFunctionImport(FunctionSymbol symbol)
+    {
+        DeclareFunctionFromSymbol(symbol);
     }
 
     #endregion

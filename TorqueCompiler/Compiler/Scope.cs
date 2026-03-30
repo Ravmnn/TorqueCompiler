@@ -21,6 +21,7 @@ public class Scope(Scope? parent = null)
 
 
     public List<Symbol> Symbols { get; } = [];
+    public List<Scope> ImportedScopes { get; } = [];
 
 
 
@@ -70,7 +71,17 @@ public class Scope(Scope? parent = null)
         if (Symbols.Find(item => item.Name == name) is { } symbol)
             return symbol;
 
-        return Parent?.TryGetSymbol(name);
+        return Parent?.TryGetSymbol(name) ?? TryGetSymbolInImports(name);
+    }
+
+
+    private Symbol? TryGetSymbolInImports(string name)
+    {
+        foreach (var importedScope in ImportedScopes)
+            if (importedScope.TryGetSymbol(name) is { } symbolInImport)
+                return symbolInImport;
+
+        return null;
     }
 
 

@@ -51,6 +51,7 @@ public static class Torque
     {
         SourceCode.Source = File.ReadAllText(file);
         SourceCode.FilePath = file;
+        SourceCode.FirstFilePath ??= file;
     }
 
 
@@ -64,23 +65,11 @@ public static class Torque
     private static void InitializeNullableCompileSettings(CompileCommandSettings settings)
     {
         settings.ImportReference ??= GetImportReference();
-        settings.Output ??= GetOutputFileName();
     }
 
 
     private static string GetImportReference()
         => s_compileSettings.ImportReference ?? s_compileSettings.File.Directory!.FullName;
-
-
-    private static string GetOutputFileName()
-    {
-        var fileName = Path.GetFileNameWithoutExtension(s_compileSettings.File.Name);
-
-        var outputExtension = s_compileSettings.OutputType.OutputTypeToFileExtension();
-        var outputName = s_compileSettings.Output ?? $"{fileName}.{outputExtension}";
-
-        return outputName;
-    }
 
 
 
@@ -89,7 +78,7 @@ public static class Torque
     {
         try
         {
-            CompileSourceCodeToFile(settings);
+            CompileFileToObject(settings);
         }
         catch (InterruptCompileException)
         { }
@@ -100,38 +89,50 @@ public static class Torque
     }
 
 
-    private static void CompileSourceCodeToFile(CompileCommandSettings settings)
+    public static void CompileFileToObject(string file, CompilerOptions options)
     {
-        if (CompileSourceCodeToBitCode() is not { } bitCode)
-            return;
+        // TODO: add command line options to modify the output folder
 
-        var options = CompilerProgramOptions.FromCompileCommandSettings(settings);
-        ProgramToolchain.Compile(bitCode, settings.Output!, options);
+        var (_, bitCode) = CompileModule(file, options);
+
+        ProgramToolchain.Compile(bitCode, file + ".o", options);
     }
 
 
+    public static void CompileFileToObject(CompileCommandSettings settings)
+        => CompileFileToObject(settings.File.FullName, settings.ToLowLevelOptions());
 
 
-    private static string CompileSourceCodeToBitCode()
+    public static void CompileModuleToObject(Module module, CompilerOptions options)
     {
-        var moduleContext = GetModule(SourceCode.FilePath!)!.Value;
-        var bitCode = CompilerSteps.Compile(moduleContext, s_compileSettings);
+        var bitCode = CompilerSteps.Compile(module, options);
+        ProgramToolchain.Compile(bitCode, module.FileInfo.FullName + ".o", options);
+    }
 
-        PrintASTIfRequested(moduleContext.SyntaxStatements);
+
+/*     private static void PrintRequestedModuleFormats(IReadOnlyList<Statement> statements, string bitCode)
+    {
+        PrintASTIfRequested(statements);
         PrintLLVMIfRequested(bitCode);
         PrintASMIfRequested(bitCode);
+    } */
 
-        return bitCode;
+
+
+
+    public static (Module module, string bitCode) CompileModule(string file, CompilerOptions options)
+    {
+        var module = GetModule(file);
+        var bitCode = CompilerSteps.Compile(module, options);
+
+        return (module, bitCode);
     }
 
 
 
 
-    public static Module? GetModule(string file)
+    public static Module GetModule(string file)
     {
-        if (!File.Exists(file))
-            return null;
-
         var oldFile = SourceCode.FilePath;
 
         InitializeGlobalSourceCodeReference(file);
@@ -174,7 +175,7 @@ public static class Torque
 
 
 
-    private static void PrintASTIfRequested(IReadOnlyList<Statement> statements)
+/*     private static void PrintASTIfRequested(IReadOnlyList<Statement> statements)
     {
         if (!s_compileSettings.PrintAST)
             return;
@@ -212,7 +213,7 @@ public static class Torque
 
         ProgramToolchain.Compile(bitCode, file, options);
         return File.ReadAllText(file);
-    });
+    }); */
 
 
 
@@ -230,6 +231,6 @@ public static class Torque
 
 
 
-    private static void Interrupt()
-        => throw new InterruptCompileException();
+    public static string GetCurrentImportReference()
+        => new FileInfo(SourceCode.FirstFilePath!).DirectoryName!;
 }

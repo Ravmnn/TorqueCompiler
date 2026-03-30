@@ -1,23 +1,14 @@
-import foo;
-import bar;
-
-
-
-
-struct Vector
-{
-    float x;
-    float y;
-}
+import math;
 
 
 int main(int argc, char** argv)
 {
-    let vector = new Vector { x: 1.0, y: 2.0 };
-    let vectorptr = &vector;
+    let x = 50;
+    let y = 84;
 
-    vectorptr->x = 3.0;
-    vectorptr->y = 4.0;
+    let z = sum(x, y);
+    let m = multiply(x, y);
+    let s = subtraction(x, y);
 
     return 0;
 }

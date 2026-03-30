@@ -1,8 +1,7 @@
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Torque.CommandLine;
+
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Symbols;
 using Torque.Compiler.Types;
@@ -10,6 +9,7 @@ using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.Diagnostics;
 using Torque.Compiler.Diagnostics.Catalogs;
+using Torque.CommandLine;
 
 
 namespace Torque.Compiler;
@@ -155,27 +155,10 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     public void ProcessImport(ImportStatement statement)
     {
-        var modulePath = statement.GetModulePath(Binder.ImportReference);
+        var modulePath = Path.Combine(CommandLine.Torque.GetCurrentImportReference(), statement.GetModuleRelativePath());
 
         if (!File.Exists(modulePath))
             Report(BinderCatalog.UnknownModule, location: statement.Location);
-
-        CheckForMultipleDeclarationsAfterImport(statement.Location);
-    }
-
-
-    private void CheckForMultipleDeclarationsAfterImport(Span importLocation)
-    {
-        var reportedSymbols = new List<string>();
-        var reportedTypes = new List<string>();
-
-        foreach (var symbol in Binder.Scope.Symbols)
-            if (!reportedSymbols.Contains(symbol.Name) && ReportIfImportedSymbolHasMultipleDeclarations(symbol.Syntax, importLocation))
-                reportedSymbols.Add(symbol.Name);
-
-        foreach (var type in Binder.DeclaredTypes.Types)
-            if (!reportedTypes.Contains(type.TypeSymbol.Name) && ReportIfImportedSymbolHasMultipleDeclarations(type.TypeSymbol, importLocation))
-                reportedTypes.Add(type.TypeSymbol.Name);
     }
 
 

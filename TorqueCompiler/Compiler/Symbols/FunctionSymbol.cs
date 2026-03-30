@@ -10,7 +10,7 @@ namespace Torque.Compiler.Symbols;
 
 
 public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbol> parameters, Span location, Scope declarationScope)
-    : VariableSymbol(name, type, location, declarationScope)
+    : VariableSymbol(name, type, location, declarationScope), IImportable
 {
     public new FunctionType? Type
     {
@@ -23,11 +23,20 @@ public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbo
     public bool IsExternal { get; set; }
 
 
+    public bool CanBeCompiled => true;
+
+
 
 
     public FunctionSymbol(SymbolSyntax symbol, Scope declarationScope)
         : this(symbol.Name, null, [], symbol.Location, declarationScope)
     {}
+
+
+
+
+    public void Process(IImportableProcessor processor)
+        => processor.ProcessFunctionImport(this);
 
 
 

@@ -14,9 +14,9 @@ namespace Torque.CommandLine;
 
 public static class CompilerSteps
 {
-    public static string Compile(Module module, CompileCommandSettings settings)
+    public static string Compile(Module module, CompilerOptions options)
     {
-        var compiler = new TorqueCompiler(module, settings.File, settings.Debug);
+        var compiler = new TorqueCompiler(module, options);
         var bitCode = compiler.Compile();
 
         return bitCode;
@@ -52,7 +52,7 @@ public static class CompilerSteps
 
     public static Module Bind(IReadOnlyList<Statement> statements, string importReference, string modulePath)
     {
-        var binder = new TorqueBinder(statements, importReference, modulePath);
+        var binder = new TorqueBinder(statements, modulePath);
         var module = binder.Bind();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(binder.Reporter.Diagnostics);

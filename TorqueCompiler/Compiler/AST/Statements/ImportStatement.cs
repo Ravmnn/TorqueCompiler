@@ -27,10 +27,10 @@ public class ImportStatement(IReadOnlyList<SymbolSyntax> path, Span location) : 
 
 
 
-    public string GetModulePath(string importReference)
+    public string GetModuleRelativePath()
     {
         var stringPath = string.Join('/', Path);
-        var fullPath = System.IO.Path.Combine(importReference, stringPath) + CommandLine.Torque.FileExtension;
+        var fullPath = stringPath + CommandLine.Torque.FileExtension;
 
         return fullPath;
     }
