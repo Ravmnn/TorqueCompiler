@@ -159,6 +159,11 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
         if (!File.Exists(modulePath))
             Report(BinderCatalog.UnknownModule, location: statement.Location);
+
+        var (_, state) = CommandLine.Torque.GetModule(modulePath);
+
+        if (state == ModuleImportState.Importing)
+            Report(BinderCatalog.CircularImport, location: statement.Location);
     }
 
 
@@ -320,20 +325,6 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
         if (firstDeclaredAsType)
         {
             ReportSymbol(BinderCatalog.SymbolAlreadyDeclaredAsType, symbol);
-            return true;
-        }
-
-        return false;
-    }
-
-
-    private bool ReportIfImportedSymbolHasMultipleDeclarations(SymbolSyntax symbol, Span location)
-    {
-        var (hasMultipleDeclarations, _) = SymbolIsMultiDeclared(symbol);
-
-        if (hasMultipleDeclarations)
-        {
-            Report(BinderCatalog.ImportedSymbolHasMultipleDeclarations, [symbol.Name], location);
             return true;
         }
 

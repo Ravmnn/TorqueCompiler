@@ -82,6 +82,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: structs should have methods
         // TODO: variadic functions?
 
+        // TODO: try to make the compiler independent from the CommandLine namespace
         // TODO: add sizeof(T)
         // TODO: add pre-processing support
         // TODO: add importing system
@@ -94,8 +95,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         // TODO: add options that control the importing system to the command line
         // TODO: CFA is not working properly
-
-        // TODO: check for circular imports (infinite)
 
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");

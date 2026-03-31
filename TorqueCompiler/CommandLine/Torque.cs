@@ -19,10 +19,21 @@ namespace Torque.CommandLine;
 
 
 
+public enum ModuleImportState
+{
+    Importing,
+    Imported
+}
+
+
 public static class Torque
 {
     private static CompileCommandSettings s_compileSettings = null!;
     private static LinkCommandSettings s_linkSettings = null!;
+
+
+    public static Dictionary<string, (Module? module, ModuleImportState state)> ImportedModules { get; } = [];
+
 
     public static DiagnosticLogger Logger { get; set; } = new DiagnosticLogger();
 
@@ -122,16 +133,31 @@ public static class Torque
 
     public static (Module module, string bitCode) CompileModule(string file, CompilerOptions options)
     {
-        var module = GetModule(file);
-        var bitCode = CompilerSteps.Compile(module, options);
+        var (module, _) = GetModule(file);
+        var bitCode = CompilerSteps.Compile(module!.Value, options);
 
-        return (module, bitCode);
+        return (module.Value, bitCode);
     }
 
 
 
 
-    public static Module GetModule(string file)
+    public static (Module? module, ModuleImportState state) GetModule(string file)
+    {
+        file = Path.GetFullPath(file);
+
+        if (ImportedModules.TryGetValue(file, out var moduleInfo))
+            return moduleInfo;
+
+        ImportedModules.Add(file, (null, ModuleImportState.Importing));
+        var module = GetModuleFromFile(file);
+        ImportedModules[file] = (module, ModuleImportState.Imported);
+
+        return ImportedModules[file];
+    }
+
+
+    private static Module GetModuleFromFile(string file)
     {
         var oldFile = SourceCode.FilePath;
 
@@ -146,7 +172,6 @@ public static class Torque
 
         return module;
     }
-
 
 
 
