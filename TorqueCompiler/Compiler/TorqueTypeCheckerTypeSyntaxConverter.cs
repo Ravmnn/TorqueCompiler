@@ -125,7 +125,7 @@ public class TorqueTypeCheckerTypeSyntaxConverter(TorqueTypeChecker typeChecker)
     private Type TypeFromDeclaredTypes(BaseTypeSyntax typeSyntax)
     {
         var typeDeclaration = TypeChecker.DeclaredTypes.TryGetType(typeSyntax.TypeSymbol.Name)!;
-        var declarationTypeSyntax = typeDeclaration.GetTypeSyntax();
+        var declarationTypeSyntax = typeDeclaration.TypeSyntax;
         return TypeFromTypeSyntaxInternal(declarationTypeSyntax);
     }
 }

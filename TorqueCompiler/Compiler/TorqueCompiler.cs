@@ -96,7 +96,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: CFA is not working properly
 
         // TODO: check for circular imports (infinite)
-        // TODO: add import support for types
 
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
@@ -169,10 +168,16 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
             CommandLine.Torque.CompileModuleToObject(importedModule, Options);
 
-            foreach (var symbol in importedModule.Scope.Symbols)
-                if (symbol is IImportable importable)
-                    ProcessImportable(importable);
+            ProcessAllImportablesIn(importedModule.Scope.Symbols);
+            ProcessAllImportablesIn(importedModule.DeclaredTypes.Types);
         }
+    }
+
+    private void ProcessAllImportablesIn<T>(IReadOnlyList<T> collection)
+    {
+        foreach (var symbol in collection)
+            if (symbol is ICompiledImportable importable)
+                ProcessImportable(importable);
     }
 
 
@@ -229,7 +234,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     #region Imports
 
-    public void ProcessImportable(IImportable importable)
+    public void ProcessImportable(ICompiledImportable importable)
         => importable.Process(this);
 
 
@@ -238,6 +243,14 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public void ProcessFunctionImport(FunctionSymbol symbol)
     {
         DeclareFunctionFromSymbol(symbol);
+    }
+
+
+
+
+    public void ProcessStructImport(StructTypeDeclaration declaration)
+    {
+        TypeBuilder.Process(declaration.Type!);
     }
 
     #endregion

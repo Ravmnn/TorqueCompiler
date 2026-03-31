@@ -3,10 +3,7 @@ namespace Torque.Compiler.Symbols;
 
 
 
-public interface IImportable
+public interface ICompiledImportable
 {
-    bool CanBeCompiled { get; }
-
-
     void Process(IImportableProcessor processor);
 }

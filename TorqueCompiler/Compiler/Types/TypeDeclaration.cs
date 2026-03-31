@@ -10,8 +10,6 @@ public abstract class TypeDeclaration(SymbolSyntax typeSymbol)
 {
     public SymbolSyntax TypeSymbol { get; } = typeSymbol;
 
-
-
-
-    public abstract TypeSyntax GetTypeSyntax();
+    public abstract TypeSyntax TypeSyntax { get; set; }
+    public abstract Type? Type { get; set; }
 }

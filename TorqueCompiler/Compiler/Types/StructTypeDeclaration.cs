@@ -9,13 +9,16 @@ namespace Torque.Compiler.Types;
 
 
 public class StructTypeDeclaration(SymbolSyntax typeSymbol, IReadOnlyList<GenericDeclaration> members)
-    : TypeDeclaration(typeSymbol)
+    : TypeDeclaration(typeSymbol), ICompiledImportable
 {
-    public IReadOnlyList<GenericDeclaration> Members { get; } = members;
+    public override TypeSyntax TypeSyntax { get; set; } = new StructTypeSyntax(typeSymbol, members);
+    public override Type? Type { get; set; }
 
 
 
 
-    public override TypeSyntax GetTypeSyntax()
-        => new StructTypeSyntax(TypeSymbol, Members);
+    public bool CanBeCompiled => true;
+
+    public void Process(IImportableProcessor processor)
+        => processor.ProcessStructImport(this);
 }

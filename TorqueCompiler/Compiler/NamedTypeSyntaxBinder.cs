@@ -24,7 +24,7 @@ public class NamedTypeSyntaxBinder(DeclaredTypeManager declaredTypes) : ITypeSyn
 
         // in case of unknown type, the binder will report
         var structTypeDeclaration = DeclaredTypes.TryGetType<StructTypeDeclaration>(type.TypeSymbol.Name);
-        return structTypeDeclaration?.GetTypeSyntax() ?? type;
+        return structTypeDeclaration?.TypeSyntax ?? type;
     }
 
 

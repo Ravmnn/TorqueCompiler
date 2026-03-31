@@ -327,10 +327,16 @@ public class TorqueBinder :
         var modulePath = Path.Combine(CommandLine.Torque.GetCurrentImportReference(), statement.GetModuleRelativePath());
         var module = CommandLine.Torque.GetModule(modulePath);
 
-        ImportedModules.Add(module);
-        Scope.ImportedScopes.Add(module.Scope);
+        ImportModule(module);
 
         return null!;
+    }
+
+    private void ImportModule(Module module)
+    {
+        ImportedModules.Add(module);
+        Scope.ImportedScopes.Add(module.Scope);
+        DeclaredTypes.ImportedTypeManagers.Add(module.DeclaredTypes);
     }
 
     #endregion

@@ -1,4 +1,8 @@
+import std.io;
 import math;
+
+
+int sum(int a, int b) { return 0; }
 
 
 int main(int argc, char** argv)
@@ -9,6 +13,26 @@ int main(int argc, char** argv)
     let z = sum(x, y);
     let m = multiply(x, y);
     let s = subtraction(x, y);
+
+    let position = new Vector { x: 10.0, y: 20.0 };
+    let px = position.x;
+    let py = position.y;
+    let ptr = &position;
+    let ppx = ptr->x;
+    let ppy = ptr->y;
+
+    let transform = new Vector { x: 2.0, y: 3.0 };
+    let newPosition = multiplyVectors(position, transform);
+
+    let newPx = newPosition.x;
+    let newPy = newPosition.y;
+
+    BigNumber bigNum = 1234567890123456789;
+    Number num = 42;
+
+    let anotherNum = bigNum;
+
+    println("hello, world");
 
     return 0;
 }

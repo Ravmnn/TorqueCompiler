@@ -52,7 +52,7 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
     public void ProcessStructDeclaration(StructDeclarationStatement declaration)
     {
         var structType = new StructTypeDeclaration(declaration.Symbol, declaration.Members);
-        ReportIfUnknownType(structType.GetTypeSyntax());
+        ReportIfUnknownType(structType.TypeSyntax);
     }
 
 

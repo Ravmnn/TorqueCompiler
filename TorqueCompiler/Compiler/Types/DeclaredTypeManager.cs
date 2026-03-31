@@ -10,6 +10,7 @@ namespace Torque.Compiler.Types;
 public class DeclaredTypeManager
 {
     public List<TypeDeclaration> Types { get; set; } = [];
+    public List<DeclaredTypeManager> ImportedTypeManagers { get; set; } = [];
 
 
 
@@ -18,14 +19,31 @@ public class DeclaredTypeManager
         => TryGetType(symbol) as T;
 
 
+    // TODO: both the scope and the type manager have similiarities, maybe you could add abstractions?
     public TypeDeclaration? TryGetType(string symbol)
-        => Types.FirstOrDefault(declaredType => declaredType.TypeSymbol.Name == symbol);
+    {
+        var inThisManager = Types.FirstOrDefault(declaredType => declaredType.TypeSymbol.Name == symbol);
+
+        if (inThisManager is not null)
+            return inThisManager;
+
+        return TryGetTypeFromImportedManagers(symbol);
+    }
+
+    private TypeDeclaration? TryGetTypeFromImportedManagers(string symbol)
+    {
+        foreach (var importedManager in ImportedTypeManagers)
+            if (importedManager.TryGetType(symbol) is { } type)
+                return type;
+
+        return null;
+    }
 
 
 
 
     public bool IsTypeDeclarationSyntaxOfType<T>(string symbol) where T : TypeSyntax
-        => TryGetType(symbol)?.GetTypeSyntax() is T;
+        => TryGetType(symbol)?.TypeSyntax is T;
 
 
     public bool IsDeclared<T>(string symbol) where T : TypeDeclaration
