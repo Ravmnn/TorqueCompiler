@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics;
 
 
@@ -10,8 +9,7 @@ namespace Torque.CommandLine;
 public enum OutputType
 {
     Object,
-    Assembly,
-    BitCode
+    Assembly
 }
 
 
@@ -23,7 +21,6 @@ public static class OutputTypeExtensions
     {
         OutputType.Object => "o",
         OutputType.Assembly => "asm",
-        OutputType.BitCode => "bc",
 
         _ => throw new UnreachableException()
     };

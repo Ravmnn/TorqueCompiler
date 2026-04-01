@@ -1,5 +1,6 @@
 using System.IO;
 using System.Collections.Generic;
+
 using Torque.Compiler;
 
 
@@ -12,6 +13,13 @@ public static class ProgramToolchain
 {
     public static void Compile(string bitCode, string outputFile, CompilerOptions options)
     {
+        var programOptions = CompilerProgramOptions.FromCompilerOptions(options);
+        Compile(bitCode, outputFile, programOptions);
+    }
+
+
+    public static void Compile(string bitCode, string outputFile, CompilerProgramOptions options)
+    {
         TempFiles.ForTempFileDo(file =>
         {
             File.WriteAllText(file, bitCode);
@@ -22,7 +30,7 @@ public static class ProgramToolchain
     }
 
 
-    private static CompilerProgram NewCompilerProgram(string inputFile, string outputFile, CompilerOptions options)
+    private static CompilerProgram NewCompilerProgram(string inputFile, string outputFile, CompilerProgramOptions options)
         => new CompilerProgram
         {
             InputFile = inputFile,

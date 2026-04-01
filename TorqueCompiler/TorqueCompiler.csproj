@@ -65,4 +65,8 @@
       </Compile>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="CommandLine/Commands/" />
+    </ItemGroup>
+
 </Project>

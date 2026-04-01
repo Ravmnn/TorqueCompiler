@@ -156,7 +156,12 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
 
     private void CompileAllImports()
-        => CompileImportedModulesRecursively(Module);
+    {
+        if (!Options.CompileImportedModules)
+            return;
+
+        CompileImportedModulesRecursively(Module);
+    }
 
 
     private void CompileImportedModulesRecursively(Module module)
@@ -362,7 +367,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         {
             DebugGenerateScope(Scope, statement.Location, function.LLVMDebugMetadata);
             DeclareFunctionParameters(function.LLVMReference!.Value, function.Parameters);
-            ProcessBlockWithControl(statement, true);
+            ProcessBlockWithControl(statement, function.Type!.ReturnType);
         });
 
 
@@ -383,7 +388,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     }
 
 
-    private void ProcessBlockWithControl(BoundBlockStatement statement, bool addVoidReturnAtEnd = false)
+    private void ProcessBlockWithControl(BoundBlockStatement statement, Type? returnType = null)
     {
         // If a return statement is reached, the subsequent code after the return that is inside the same scope
         // will never be reached, so everything after it can be safely ignored. Also, LLVM doesn't compile
@@ -394,8 +399,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             foreach (var subStatement in statement.Statements)
                 Process(subStatement);
 
-            if (addVoidReturnAtEnd)
-                Builder.BuildRetVoid();
+            if (returnType is not null)
+                Builder.BuildRet(GetDefaultValueForType(returnType));
         });
     }
 

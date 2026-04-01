@@ -1,7 +1,3 @@
-using System.Diagnostics;
-using Torque.Compiler;
-
-
 namespace Torque.CommandLine.Toolchain;
 
 
@@ -13,14 +9,14 @@ public class CompilerProgram : Program
 
     public required string InputFile { get; set; }
     public required string OutputFile { get; set; }
-    public CompilerOptions Options { get; set; }
+    public CompilerProgramOptions Options { get; set; }
 
 
 
 
     public override string GetCommandLineArguments()
     {
-        var fileType = "obj";
+        var fileType = Options.OutputType == OutputType.Object ? "obj" : "asm";
         var debug = Options.Debug ? "-O0" : string.Empty;
         var pic = $"-relocation-model={(Options.PIC ? "pic" : "static")}";
 

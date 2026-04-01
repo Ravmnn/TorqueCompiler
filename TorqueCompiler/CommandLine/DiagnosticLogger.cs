@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-using Torque.Compiler.Diagnostics;
 using Torque.CommandLine.Exceptions;
+using Torque.Compiler.Diagnostics;
 
 
 namespace Torque.CommandLine;

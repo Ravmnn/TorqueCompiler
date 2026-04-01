@@ -1,4 +1,5 @@
 using Torque.Compiler.Target;
+using Torque.CommandLine.Commands;
 
 
 namespace Torque.CommandLine;

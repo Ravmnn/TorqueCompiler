@@ -9,9 +9,9 @@ using System.Linq;
 
 using Torque.Compiler;
 using Torque.Compiler.Target;
-using Torque.Compiler.AST.Statements;
-using Torque.CommandLine.Exceptions;
 using Torque.CommandLine.Toolchain;
+using Torque.CommandLine.Commands;
+using Torque.CommandLine.Exceptions;
 
 
 namespace Torque.CommandLine;
@@ -47,7 +47,6 @@ public static class Torque
     {
         s_compileSettings = settings;
         InitializeGlobals(settings);
-        InitializeNullableCompileSettings(settings);
     }
 
 
@@ -73,16 +72,6 @@ public static class Torque
     }
 
 
-    private static void InitializeNullableCompileSettings(CompileCommandSettings settings)
-    {
-        settings.ImportReference ??= GetImportReference();
-    }
-
-
-    private static string GetImportReference()
-        => s_compileSettings.ImportReference ?? s_compileSettings.File.Directory!.FullName;
-
-
 
 
     public static void Compile(CompileCommandSettings settings)
@@ -91,8 +80,7 @@ public static class Torque
         {
             CompileFileToObject(settings);
         }
-        catch (InterruptCompileException)
-        { }
+        catch (InterruptCompileException) {}
         catch (Exception exception)
         {
             DiagnosticLogger.LogInternalError(exception);
@@ -100,18 +88,18 @@ public static class Torque
     }
 
 
+    // TODO: maybe split importing module logic from here
+    public static void CompileFileToObject(CompileCommandSettings settings)
+        => CompileFileToObject(settings.File.FullName, settings.ToLowLevelOptions());
+
+
     public static void CompileFileToObject(string file, CompilerOptions options)
     {
         // TODO: add command line options to modify the output folder
 
         var (_, bitCode) = CompileModule(file, options);
-
         ProgramToolchain.Compile(bitCode, file + ".o", options);
     }
-
-
-    public static void CompileFileToObject(CompileCommandSettings settings)
-        => CompileFileToObject(settings.File.FullName, settings.ToLowLevelOptions());
 
 
     public static void CompileModuleToObject(Module module, CompilerOptions options)
@@ -121,12 +109,7 @@ public static class Torque
     }
 
 
-/*     private static void PrintRequestedModuleFormats(IReadOnlyList<Statement> statements, string bitCode)
-    {
-        PrintASTIfRequested(statements);
-        PrintLLVMIfRequested(bitCode);
-        PrintASMIfRequested(bitCode);
-    } */
+
 
 
 
@@ -164,81 +147,14 @@ public static class Torque
         InitializeGlobalSourceCodeReference(file);
 
         var source = File.ReadAllText(file);
-        var statements = BuildFinalAST(source);
-        var module = SemanticAnalysis(statements, file);
+        var statements = CompilerSteps.BuildFinalAST(source);
+        var module = CompilerSteps.SemanticAnalysis(statements, file);
 
         if (oldFile is not null)
             InitializeGlobalSourceCodeReference(oldFile);
 
         return module;
     }
-
-
-
-    private static Module SemanticAnalysis(IReadOnlyList<Statement> statements, string modulePath)
-    {
-        var moduleContext = CompilerSteps.Bind(statements, s_compileSettings.ImportReference!, modulePath);
-
-        CompilerSteps.TypeCheck(moduleContext);
-        CompilerSteps.AnalyzeControlFlow(moduleContext.Statements);
-
-        return moduleContext;
-    }
-
-
-
-
-    private static IReadOnlyList<Statement> BuildFinalAST(string source)
-    {
-        var tokens = CompilerSteps.Tokenize(source);
-        var statements = CompilerSteps.Parse(tokens);
-        statements = CompilerSteps.Desugarize(statements);
-
-        return statements;
-    }
-
-
-
-
-/*     private static void PrintASTIfRequested(IReadOnlyList<Statement> statements)
-    {
-        if (!s_compileSettings.PrintAST)
-            return;
-
-        Console.WriteLine(new ASTPrinter().Print(statements));
-        Interrupt();
-    }
-
-
-    private static void PrintLLVMIfRequested(string bitCode)
-    {
-        if (!s_compileSettings.PrintLLVM)
-            return;
-
-        Console.WriteLine(bitCode);
-        Interrupt();
-    }
-
-
-    private static void PrintASMIfRequested(string bitCode)
-    {
-        if (!s_compileSettings.PrintASM)
-            return;
-
-        var assembly = CompileBitCodeToAssembly(bitCode);
-        Console.WriteLine(assembly);
-        Interrupt();
-    }
-
-
-    private static string CompileBitCodeToAssembly(string bitCode) => TempFiles.ForTempFileDo(file =>
-    {
-        var options = CompilerProgramOptions.FromCompileCommandSettings(s_compileSettings)
-            with { OutputType = OutputType.Assembly };
-
-        ProgramToolchain.Compile(bitCode, file, options);
-        return File.ReadAllText(file);
-    }); */
 
 
 

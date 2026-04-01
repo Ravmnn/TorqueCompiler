@@ -14,6 +14,29 @@ namespace Torque.CommandLine;
 
 public static class CompilerSteps
 {
+    public static Module SemanticAnalysis(IReadOnlyList<Statement> statements, string modulePath)
+    {
+        var moduleContext = Bind(statements, modulePath);
+
+        TypeCheck(moduleContext);
+        AnalyzeControlFlow(moduleContext.Statements);
+
+        return moduleContext;
+    }
+
+
+    public static IReadOnlyList<Statement> BuildFinalAST(string source)
+    {
+        var tokens = Tokenize(source);
+        var statements = Parse(tokens);
+        statements = Desugarize(statements);
+
+        return statements;
+    }
+
+
+
+
     public static string Compile(Module module, CompilerOptions options)
     {
         var compiler = new TorqueCompiler(module, options);
@@ -50,7 +73,7 @@ public static class CompilerSteps
     }
 
 
-    public static Module Bind(IReadOnlyList<Statement> statements, string importReference, string modulePath)
+    public static Module Bind(IReadOnlyList<Statement> statements, string modulePath)
     {
         var binder = new TorqueBinder(statements, modulePath);
         var module = binder.Bind();

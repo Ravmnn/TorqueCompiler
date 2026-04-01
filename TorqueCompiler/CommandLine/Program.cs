@@ -1,5 +1,7 @@
 ﻿using Spectre.Console.Cli;
 
+using Torque.CommandLine.Commands;
+
 
 namespace Torque.CommandLine;
 
