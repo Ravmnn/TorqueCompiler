@@ -1,3 +1,6 @@
+using System.IO;
+
+
 namespace Torque.CommandLine;
 
 
@@ -10,5 +13,16 @@ public static class SourceCode
 
     public static string? FilePath { get; set; }
 
+    // TODO: move to Torque
     public static string? FirstFilePath { get; set; }
+
+
+
+
+    public static void SetCurrentWorkingFileTo(string file)
+    {
+        Source = File.ReadAllText(file);
+        FilePath = file;
+        FirstFilePath ??= file;
+    }
 }

@@ -3,8 +3,6 @@
 
 
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
 using Torque.Compiler;
@@ -19,20 +17,10 @@ namespace Torque.CommandLine;
 
 
 
-public enum ModuleImportState
-{
-    Importing,
-    Imported
-}
-
-
 public static class Torque
 {
     private static CompileCommandSettings s_compileSettings = null!;
     private static LinkCommandSettings s_linkSettings = null!;
-
-
-    public static Dictionary<string, (Module? module, ModuleImportState state)> ImportedModules { get; } = [];
 
 
     public static DiagnosticLogger Logger { get; set; } = new DiagnosticLogger();
@@ -52,16 +40,8 @@ public static class Torque
 
     private static void InitializeGlobals(CompileCommandSettings settings)
     {
-        InitializeGlobalSourceCodeReference(settings.File.FullName);
+        SourceCode.SetCurrentWorkingFileTo(settings.File.FullName);
         InitializeGlobalTargetMachine(settings);
-    }
-
-
-    private static void InitializeGlobalSourceCodeReference(string file)
-    {
-        SourceCode.Source = File.ReadAllText(file);
-        SourceCode.FilePath = file;
-        SourceCode.FirstFilePath ??= file;
     }
 
 
@@ -88,7 +68,6 @@ public static class Torque
     }
 
 
-    // TODO: maybe split importing module logic from here
     public static void CompileFileToObject(CompileCommandSettings settings)
         => CompileFileToObject(settings.File.FullName, settings.ToLowLevelOptions());
 
@@ -111,12 +90,9 @@ public static class Torque
 
 
 
-
-
-
     public static (Module module, string bitCode) CompileModule(string file, CompilerOptions options)
     {
-        var (module, _) = GetModule(file);
+        var (module, _) = ModuleImporter.GetModule(file);
         var bitCode = CompilerSteps.Compile(module!.Value, options);
 
         return (module.Value, bitCode);
@@ -125,36 +101,6 @@ public static class Torque
 
 
 
-    public static (Module? module, ModuleImportState state) GetModule(string file)
-    {
-        file = Path.GetFullPath(file);
-
-        if (ImportedModules.TryGetValue(file, out var moduleInfo))
-            return moduleInfo;
-
-        ImportedModules.Add(file, (null, ModuleImportState.Importing));
-        var module = GetModuleFromFile(file);
-        ImportedModules[file] = (module, ModuleImportState.Imported);
-
-        return ImportedModules[file];
-    }
-
-
-    private static Module GetModuleFromFile(string file)
-    {
-        var oldFile = SourceCode.FilePath;
-
-        InitializeGlobalSourceCodeReference(file);
-
-        var source = File.ReadAllText(file);
-        var statements = CompilerSteps.BuildFinalAST(source);
-        var module = CompilerSteps.SemanticAnalysis(statements, file);
-
-        if (oldFile is not null)
-            InitializeGlobalSourceCodeReference(oldFile);
-
-        return module;
-    }
 
 
 
@@ -168,10 +114,4 @@ public static class Torque
 
         ProgramToolchain.Link(fileNames, settings.Output, options);
     }
-
-
-
-
-    public static string GetCurrentImportReference()
-        => new FileInfo(SourceCode.FirstFilePath!).DirectoryName!;
 }

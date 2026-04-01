@@ -155,12 +155,12 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     public void ProcessImport(ImportStatement statement)
     {
-        var modulePath = Path.Combine(CommandLine.Torque.GetCurrentImportReference(), statement.GetModuleRelativePath());
+        var modulePath = Path.Combine(ModuleImporter.GetCurrentImportReference(), statement.GetModuleRelativePath());
 
         if (!File.Exists(modulePath))
             Report(BinderCatalog.UnknownModule, location: statement.Location);
 
-        var (_, state) = CommandLine.Torque.GetModule(modulePath);
+        var (_, state) = ModuleImporter.GetModule(modulePath);
 
         if (state == ModuleImportState.Importing)
             Report(BinderCatalog.CircularImport, location: statement.Location);

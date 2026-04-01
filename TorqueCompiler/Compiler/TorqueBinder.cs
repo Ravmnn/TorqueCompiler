@@ -8,6 +8,7 @@ using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Expressions;
 using Torque.Compiler.BoundAST.Statements;
+using Torque.CommandLine;
 
 
 namespace Torque.Compiler;
@@ -324,8 +325,8 @@ public class TorqueBinder :
 
     public BoundStatement ProcessImport(ImportStatement statement)
     {
-        var modulePath = Path.Combine(CommandLine.Torque.GetCurrentImportReference(), statement.GetModuleRelativePath());
-        var (module, state) = CommandLine.Torque.GetModule(modulePath);
+        var modulePath = Path.Combine(ModuleImporter.GetCurrentImportReference(), statement.GetModuleRelativePath());
+        var (module, state) = ModuleImporter.GetModule(modulePath);
 
         if (module is not null)
             ImportModule(module.Value);
