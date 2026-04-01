@@ -8,7 +8,7 @@ namespace Torque.Compiler.Symbols;
 
 
 
-public abstract class Symbol(string name, Span location, Scope declarationScope)
+public abstract class Symbol(string name, Span location, Scope declarationScope) : IName
 {
     public string Name { get; } = name;
     public Span Location { get; } = location;

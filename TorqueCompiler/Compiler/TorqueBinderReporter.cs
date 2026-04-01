@@ -223,7 +223,7 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     public void ProcessSymbol(SymbolExpression expression)
     {
-        var symbol = Binder.Scope.TryGetSymbol(expression.Symbol.Name);
+        var symbol = Binder.Scope.TryGet(expression.Symbol.Name);
 
         if (symbol is null)
             ReportSymbol(BinderCatalog.UndeclaredSymbol, expression.Symbol);
@@ -334,10 +334,10 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
     private (bool hasMultipleDeclarations, bool firstDeclaredAsType) SymbolIsMultiDeclared(SymbolSyntax symbol)
     {
-        if (Binder.Scope.SymbolIsMultiDeclared(symbol.Name) || Binder.DeclaredTypes.TypeIsMultiDeclared(symbol.Name))
+        if (Binder.Scope.ExistsMultiple(symbol.Name) || Binder.DeclaredTypes.ExistsMultiple(symbol.Name))
             return (true, false);
 
-        if (Binder.Scope.SymbolExists(symbol.Name) && Binder.DeclaredTypes.IsDeclared(symbol.Name))
+        if (Binder.Scope.Exists(symbol.Name) && Binder.DeclaredTypes.Exists(symbol.Name))
             return (true, true);
 
         return (false, false);
@@ -453,7 +453,7 @@ public sealed class TorqueBinderReporter(TorqueBinder binder) : DiagnosticReport
 
         var symbol = type.TypeSymbol;
 
-        if (Binder.DeclaredTypes.IsDeclared(symbol.Name))
+        if (Binder.DeclaredTypes.Exists(symbol.Name))
             return false;
 
         Report(BinderCatalog.UnknownType, [symbol.Name], symbol.Location);

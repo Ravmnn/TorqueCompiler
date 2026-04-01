@@ -166,11 +166,17 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             CompileImportedModulesRecursively(importedModule);
 
             CommandLine.Torque.CompileModuleToObject(importedModule, Options);
-
-            ProcessAllImportablesIn(importedModule.Scope.Symbols);
-            ProcessAllImportablesIn(importedModule.DeclaredTypes.Types);
+            ProcessAllImportablesInModule(importedModule);
         }
     }
+
+
+    private void ProcessAllImportablesInModule(Module importedModule)
+    {
+        ProcessAllImportablesIn(importedModule.Scope.Items);
+        ProcessAllImportablesIn(importedModule.DeclaredTypes.Items);
+    }
+
 
     private void ProcessAllImportablesIn<T>(IReadOnlyList<T> collection)
     {
@@ -363,18 +369,18 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     private void DeclareFunctionParameters(LLVMValueRef function, IReadOnlyList<VariableSymbol> parameters)
     {
         for (var i = 0; i < parameters.Count; i++)
-        {
-            var parameter = parameters[i];
-
-            var llvmReference = CreateVariableAlloca(parameter, $"param.${parameter.Name}");
-            parameter.LLVMDebugMetadata = DebugGenerateParameter(parameter, i + 1);
-
-            var llvmValue = function.GetParam((uint)i);
-            Builder.BuildStore(llvmValue, llvmReference);
-        }
+            DeclareFunctionParameter(function, i, parameters[i]);
     }
 
 
+    private void DeclareFunctionParameter(LLVMValueRef function, int i, VariableSymbol parameter)
+    {
+        var llvmReference = CreateVariableAlloca(parameter, $"param.${parameter.Name}");
+        parameter.LLVMDebugMetadata = DebugGenerateParameter(parameter, i + 1);
+
+        var llvmValue = function.GetParam((uint)i);
+        Builder.BuildStore(llvmValue, llvmReference);
+    }
 
 
     private void ProcessBlockWithControl(BoundBlockStatement statement, bool addVoidReturnAtEnd = false)
@@ -402,8 +408,14 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var elseBlock = LLVM.CreateBasicBlockInContext(LLVMModule.Context, "else".StringToSBytePtr());
         var joinBlock = LLVM.CreateBasicBlockInContext(LLVMModule.Context, "join".StringToSBytePtr());
 
-        var hasElse = statement.ElseStatement is not null;
+        ProcessIf(statement, thenBlock, elseBlock, joinBlock);
+        AppendBlockAndPositionAtEnd(joinBlock);
+    }
 
+
+    private unsafe void ProcessIf(BoundIfStatement statement, LLVMOpaqueBasicBlock* thenBlock, LLVMOpaqueBasicBlock* elseBlock, LLVMOpaqueBasicBlock* joinBlock)
+    {
+        var hasElse = statement.ElseStatement is not null;
         var condition = EnsureValue(Process(statement.Condition)).Value;
 
         DebugForSetLocationDo(statement.Location, () =>
@@ -414,8 +426,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             if (hasElse)
                 ProcessBasicBlock(statement.ElseStatement!, elseBlock, joinBlock);
         });
-
-        AppendBlockAndPositionAtEnd(joinBlock);
     }
 
 

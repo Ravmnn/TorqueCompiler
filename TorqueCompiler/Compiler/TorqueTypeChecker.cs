@@ -68,7 +68,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
     private void CheckAllTypeDeclarations()
     {
-        foreach (var type in DeclaredTypes.Types)
+        foreach (var type in DeclaredTypes.Items)
             type.Type = Converter.TypeFromTypeSyntax(type.TypeSyntax);
     }
 
@@ -523,7 +523,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
     public Type ProcessStruct(BoundStructExpression expression)
     {
-        var structType = (DeclaredTypes.TryGetType(expression.Syntax.Symbol.Name)!.TypeSyntax as StructTypeSyntax)!;
+        var structType = (DeclaredTypes.TryGet(expression.Syntax.Symbol.Name)!.TypeSyntax as StructTypeSyntax)!;
 
         for (var index = 0; index < expression.InitializationList.Count; index++)
         {

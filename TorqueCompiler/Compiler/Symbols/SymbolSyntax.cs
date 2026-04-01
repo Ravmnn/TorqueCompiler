@@ -6,7 +6,7 @@ namespace Torque.Compiler.Symbols;
 
 
 
-public readonly struct SymbolSyntax(string name, Span location)
+public readonly struct SymbolSyntax(string name, Span location) : IName
 {
     public string Name { get; } = name;
     public Span Location { get; } = location;

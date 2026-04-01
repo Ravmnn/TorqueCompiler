@@ -130,7 +130,7 @@ public class TorqueBinder :
     public void ProcessFunctionDeclaration(FunctionDeclarationStatement declaration)
     {
         var functionSymbol = new FunctionSymbol(declaration.Name, Scope) { IsExternal = declaration.IsExternal };
-        Scope.Symbols.Add(functionSymbol);
+        Scope.Items.Add(functionSymbol);
     }
 
 
@@ -140,7 +140,7 @@ public class TorqueBinder :
     {
         var aliasDeclaration = BindNamedTypeSyntaxOfAlias(declaration);
 
-        DeclaredTypes.Types.Add(aliasDeclaration);
+        DeclaredTypes.Items.Add(aliasDeclaration);
     }
 
 
@@ -157,7 +157,7 @@ public class TorqueBinder :
 
     public void ProcessStructDeclaration(StructDeclarationStatement declaration)
     {
-        DeclaredTypes.Types.Add(declaration.GetTypeDeclaration());
+        DeclaredTypes.Items.Add(declaration.GetTypeDeclaration());
     }
 
     #endregion
@@ -187,7 +187,7 @@ public class TorqueBinder :
     private bool IsFileScopeDeclarationAndHasNotBeenDeclared(Statement statement)
     {
         return statement is IDeclaration declaration && statement is { CanBeInFunctionScope: false, CanBeInFileScope: true }
-                                                     && !Scope.SymbolExists(declaration.Symbol.Name);
+                                                     && !Scope.Exists(declaration.Symbol.Name);
     }
 
 
@@ -204,7 +204,7 @@ public class TorqueBinder :
         var identifier = new VariableSymbol(statement.Name, Scope);
         var value = Process(statement.Value);
 
-        Scope.Symbols.Add(identifier);
+        Scope.Items.Add(identifier);
 
         return new BoundVariableDeclarationStatement(statement, identifier, value);
     }
@@ -218,7 +218,7 @@ public class TorqueBinder :
 
         _currentFunction = statement;
 
-        var functionSymbol = (Scope.GetSymbol(statement.Name.Name) as FunctionSymbol)!;
+        var functionSymbol = (Scope.Get(statement.Name.Name) as FunctionSymbol)!;
         var body = ProcessFunctionBlockIfNotExternal(statement, functionSymbol);
 
         _currentFunction = null;
@@ -269,7 +269,7 @@ public class TorqueBinder :
     private void DeclareFunctionParameters(IReadOnlyList<GenericDeclaration> parameters)
     {
         foreach (var parameter in parameters)
-            Scope.Symbols.Add(new VariableSymbol(parameter.Name, Scope) { IsParameter = true });
+            Scope.Items.Add(new VariableSymbol(parameter.Name, Scope) { IsParameter = true });
     }
 
 
@@ -336,8 +336,8 @@ public class TorqueBinder :
     private void ImportModule(Module module)
     {
         ImportedModules.Add(module);
-        Scope.ImportedScopes.Add(module.Scope);
-        DeclaredTypes.ImportedTypeManagers.Add(module.DeclaredTypes);
+        Scope.ImportedStorages.Add(module.Scope);
+        DeclaredTypes.ImportedStorages.Add(module.DeclaredTypes);
     }
 
     #endregion
@@ -417,7 +417,7 @@ public class TorqueBinder :
 
     public BoundExpression ProcessSymbol(SymbolExpression expression)
     {
-        var symbol = Scope.TryGetSymbol(expression.Symbol.Name);
+        var symbol = Scope.TryGet(expression.Symbol.Name);
         var variableSymbol = (symbol as VariableSymbol)!;
 
         return new BoundSymbolExpression(expression, variableSymbol);

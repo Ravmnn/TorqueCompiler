@@ -23,7 +23,7 @@ public class NamedTypeSyntaxBinder(DeclaredTypeManager declaredTypes) : ITypeSyn
             return type;
 
         // in case of unknown type, the binder will report
-        var structTypeDeclaration = DeclaredTypes.TryGetType<StructTypeDeclaration>(type.TypeSymbol.Name);
+        var structTypeDeclaration = DeclaredTypes.TryGet<StructTypeDeclaration>(type.TypeSymbol.Name);
         return structTypeDeclaration?.TypeSyntax ?? type;
     }
 
