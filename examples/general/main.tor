@@ -1,54 +1,12 @@
 int main(int argc, char** argv)
 {
-    let a = 10 + "abc";                 # erro 1
+    let numbers = int array[] { 58, 42, 99, 17, 63 };
+    let first = numbers;
 
-    let b = a * 2;                      # deve NÃO gerar erro
-    let c = b - 5;                      # deve NÃO gerar erro
+    let firstAsNumber = first as psize;
+    firstAsNumber = firstAsNumber + 4;
 
-    let d = a * 2 + true;               # erro 2 (pode ser ignorado no seu sistema atual)
+    first = firstAsNumber as int*;
 
-    let e = (10 + 5) * (20 - "x");      # erro 3
-
-    let f = (a + 10) * (b + 20);        # não deve gerar erro (tudo derivado de erro)
-
-    let g = (10 * 2) + (true + false);  # erro 4
-
-    let h = (a * 2) + (3 * 4);          # não deve gerar erro
-
-    let i = (a * 2) + (3 * true);       # erro 5 (lado direito independente)
-
-    let j = ((a + 1) * (b + 2)) + ((c + 3) * (d + 4)); # não deve gerar erro novo
-
-    let k = ((10 + 2) * (3 + 4)) + ((5 + 6) * (7 + 8)); # válido
-
-    let l = ((10 + 2) * (3 + true)) + 5; # erro 6
-
-    let m = ((a + 2) * (3 + true)) + 5;  # erro 7 (pode ser ignorado no seu sistema atual)
-
-    let n = ((a + 2) * (b + 3)) + (true + 1); # erro 8
-
-    let o = ((a + 2) * (b + 3)) + (c + d); # não deve gerar erro novo
-
-    let p = (10 + 20) * ((30 + 40) * (50 + "z")); # erro 9
-
-    let q = (a + b) * (c + d);           # não deve gerar erro
-
-    let r = (true + false) * (10 + 20);  # erro 10
-
-    let s = (a * (b + (c * (d + (e * (f + true)))))); # erro 11 (profundamente aninhado)
-
-    let t = (a * (b + (c * (d + (e * (f + 10))))));   # não deve gerar erro novo
-
-    let u = ((10 + 2) * (3 + 4)) + ((5 + true) * (7 + 8)); # erro 12
-
-    let v = ((a + 2) * (3 + 4)) + ((5 + true) * (7 + 8)); # erro 13 (parcialmente independente)
-
-    let w = (10 + 2) * (3 + 4) + (5 + 6) * (7 + 8); # válido
-
-    let x = ((10 + "a") + (true + 5)) * ((3 + 4) + (5 + 6)); # erro 14 e 15
-
-    let y = ((a + "b") + (true + 5)) * ((3 + 4) + (5 + 6)); # erro 16 (parte pode ser suprimida)
-
-    let z = ((a + b) + (c + d)) * ((e + f) + (g + h)); # não deve gerar erro novo
     return 0;
 }

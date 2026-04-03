@@ -34,7 +34,7 @@ public static class Keywords
         { "half", PrimitiveType.Float16 },
         { "float", PrimitiveType.Float32 },
         { "double", PrimitiveType.Float64 },
-        { "usize", PrimitiveType.PtrSize }
+        { "psize", PrimitiveType.PtrSize } // TODO: rename to "psize"
     };
 
 

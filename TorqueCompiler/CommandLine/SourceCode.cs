@@ -13,7 +13,6 @@ public static class SourceCode
 
     public static string? FilePath { get; set; }
 
-    // TODO: move to Torque
     public static string? FirstFilePath { get; set; }
 
 

@@ -340,7 +340,6 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
 
 
-    // TODO: some pointer aritmetic operations should be allowed, but for now, just report an error if the operands are not numbers
     public Type ProcessComparison(BoundComparisonExpression expression)
     {
         var leftType = Process(expression.Left);
