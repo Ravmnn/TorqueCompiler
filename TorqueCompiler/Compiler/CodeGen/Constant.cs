@@ -1,0 +1,32 @@
+using LLVMSharp.Interop;
+
+
+namespace Torque.Compiler.CodeGen;
+
+
+
+
+public static class Constant
+{
+    public static LLVMTypeRef RawPointerType { get; }
+        = LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0);
+
+
+    public static LLVMValueRef Zero { get; } = Integer(0);
+    public static LLVMValueRef One { get; } = Integer(1);
+
+
+
+
+    public static LLVMValueRef Integer(ulong value, LLVMTypeRef? type = null)
+        => LLVMValueRef.CreateConstInt(type ?? LLVMTypeRef.Int32, value);
+
+    public static LLVMValueRef Real(double value, LLVMTypeRef? type = null)
+        => LLVMValueRef.CreateConstReal(type ?? LLVMTypeRef.Double, value);
+
+    public static LLVMValueRef Boolean(bool value)
+        => LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, value ? 1UL : 0UL);
+
+    public static LLVMValueRef NullPointer(LLVMTypeRef? pointerType = null)
+        => LLVMValueRef.CreateConstPointerNull(pointerType ?? RawPointerType);
+}

@@ -1,7 +1,7 @@
 using System.IO;
 using System.Collections.Generic;
 
-using Torque.Compiler;
+using Torque.Compiler.CodeGen;
 
 
 namespace Torque.CommandLine.Toolchain;
@@ -11,7 +11,7 @@ namespace Torque.CommandLine.Toolchain;
 
 public static class ProgramToolchain
 {
-    public static void Compile(string bitCode, string outputFile, CompilerOptions options)
+    public static void Compile(string bitCode, string outputFile, IRGenerationOptions options)
     {
         var programOptions = CompilerProgramOptions.FromCompilerOptions(options);
         Compile(bitCode, outputFile, programOptions);

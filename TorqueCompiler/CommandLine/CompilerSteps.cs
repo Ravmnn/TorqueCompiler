@@ -4,6 +4,9 @@ using System.Linq;
 using Torque.Compiler;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Statements;
+using Torque.Compiler.CodeGen;
+using Torque.Compiler.Parsing;
+using Torque.Compiler.Semantic;
 using Torque.Compiler.Tokens;
 
 
@@ -37,9 +40,9 @@ public static class CompilerSteps
 
 
 
-    public static string Compile(Module module, CompilerOptions options)
+    public static string Compile(Module module, IRGenerationOptions options)
     {
-        var compiler = new TorqueCompiler(module, options);
+        var compiler = new Compiler.CodeGen.IRGenerator(module, options);
         var bitCode = compiler.Compile();
 
         return bitCode;
@@ -60,7 +63,7 @@ public static class CompilerSteps
 
     public static void TypeCheck(Module module)
     {
-        var typeChecker = new TorqueTypeChecker(module.Statements, module.DeclaredTypes);
+        var typeChecker = new TypeChecker(module.Statements, module.DeclaredTypes);
 
         try
         {
@@ -75,7 +78,7 @@ public static class CompilerSteps
 
     public static Module Bind(IReadOnlyList<Statement> statements, string modulePath)
     {
-        var binder = new TorqueBinder(statements, modulePath);
+        var binder = new Binder(statements, modulePath);
         var module = binder.Bind();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(binder.Reporter.Diagnostics);
@@ -86,7 +89,7 @@ public static class CompilerSteps
 
     public static IReadOnlyList<Statement> Desugarize(IReadOnlyList<Statement> statements)
     {
-        var desugarizer = new TorqueDesugarizer(statements);
+        var desugarizer = new Desugarizer(statements);
         statements = desugarizer.Desugarize();
 
         // desugarizer cannot have report diagnostics
@@ -97,7 +100,7 @@ public static class CompilerSteps
 
     public static IReadOnlyList<Statement> Parse(IReadOnlyList<Token> tokens)
     {
-        var parser = new TorqueParser(tokens);
+        var parser = new Parser(tokens);
         var statements = parser.Parse();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(parser.Reporter.Diagnostics);
@@ -108,7 +111,7 @@ public static class CompilerSteps
 
     public static IReadOnlyList<Token> Tokenize(string source)
     {
-        var lexer = new TorqueLexer(source);
+        var lexer = new Lexer(source);
         var tokens = lexer.Tokenize();
 
         Torque.Logger.LogDiagnosticsAndInterruptIfAny(lexer.Reporter.Diagnostics);

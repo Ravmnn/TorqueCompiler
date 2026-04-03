@@ -6,6 +6,7 @@ using System.Linq;
 
 using Torque.Compiler;
 using Torque.Compiler.Target;
+using Torque.Compiler.CodeGen;
 using Torque.CommandLine.Toolchain;
 using Torque.CommandLine.Commands;
 
@@ -62,7 +63,7 @@ public static class Torque
         => CompileFileToObject(settings.File.FullName, settings.ToLowLevelOptions());
 
 
-    public static void CompileFileToObject(string file, CompilerOptions options)
+    public static void CompileFileToObject(string file, IRGenerationOptions options)
     {
         // TODO: add command line options to modify the output folder
 
@@ -71,7 +72,7 @@ public static class Torque
     }
 
 
-    public static void CompileModuleToObject(Module module, CompilerOptions options)
+    public static void CompileModuleToObject(Module module, IRGenerationOptions options)
     {
         var bitCode = CompilerSteps.Compile(module, options);
         ProgramToolchain.Compile(bitCode, module.FileInfo.FullName + ".o", options);
@@ -80,7 +81,7 @@ public static class Torque
 
 
 
-    public static (Module module, string bitCode) CompileModule(string file, CompilerOptions options)
+    public static (Module module, string bitCode) CompileModule(string file, IRGenerationOptions options)
     {
         var (module, _) = ModuleLoader.LoadModule(file);
         var bitCode = CompilerSteps.Compile(module!.Value, options);

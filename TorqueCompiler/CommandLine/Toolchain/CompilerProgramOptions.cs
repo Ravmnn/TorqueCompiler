@@ -1,5 +1,5 @@
+using Torque.Compiler.CodeGen;
 using Torque.CommandLine.Commands;
-using Torque.Compiler;
 
 
 namespace Torque.CommandLine.Toolchain;
@@ -25,7 +25,7 @@ public record struct CompilerProgramOptions()
         };
 
 
-    public static CompilerProgramOptions FromCompilerOptions(CompilerOptions options)
+    public static CompilerProgramOptions FromCompilerOptions(IRGenerationOptions options)
         => new CompilerProgramOptions
         {
             Debug = options.Debug,

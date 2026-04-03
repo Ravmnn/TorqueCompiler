@@ -12,8 +12,9 @@ using Spectre.Console.Cli;
 
 using Torque.CommandLine.Exceptions;
 using Torque.CommandLine.Toolchain;
-using Torque.Compiler;
 using Torque.Compiler.AST.Statements;
+using Torque.Compiler.CodeGen;
+using Torque.Compiler.Parsing;
 using Torque.Compiler.Target;
 
 
@@ -187,8 +188,8 @@ public class CompileCommand : Command<CompileCommandSettings>
 
 public static class CompileCommandSettingsExtensions
 {
-    public static CompilerOptions ToLowLevelOptions(this CompileCommandSettings settings)
-        => new CompilerOptions
+    public static IRGenerationOptions ToLowLevelOptions(this CompileCommandSettings settings)
+        => new IRGenerationOptions
         {
             Debug = settings.Debug,
             PIC = settings.PIC
