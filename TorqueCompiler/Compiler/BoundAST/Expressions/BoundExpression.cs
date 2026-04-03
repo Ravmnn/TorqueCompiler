@@ -13,7 +13,7 @@ public abstract class BoundExpression(Expression syntax)
     public Expression Syntax { get; } = syntax;
     public Span Location => Syntax.Location;
 
-    public virtual Type? Type { get; set; }
+    public virtual Type Type { get; set; } = Type.Unknown;
 
 
 

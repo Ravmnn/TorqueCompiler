@@ -175,7 +175,7 @@ public partial class TorqueParser
         AddModifiersToModificableDeclaration(function);
 
         if (!Match(TokenType.SemiColon))
-            function.Body = (Block() as BlockStatement)!;
+            function.Body = (Block() as BlockStatement);
 
         return function;
     }

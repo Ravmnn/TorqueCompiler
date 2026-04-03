@@ -13,8 +13,6 @@ public class BoundUnaryExpression(UnaryExpression syntax, BoundExpression expres
 
     public BoundExpression Expression { get; set; } = expression;
 
-    public override Type? Type => Expression.Type;
-
 
 
 

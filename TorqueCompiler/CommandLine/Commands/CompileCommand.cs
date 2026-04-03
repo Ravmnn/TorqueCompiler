@@ -10,6 +10,7 @@ using System.Threading;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
+using Torque.CommandLine.Exceptions;
 using Torque.CommandLine.Toolchain;
 using Torque.Compiler;
 using Torque.Compiler.AST.Statements;
@@ -103,19 +104,35 @@ public class CompileCommand : Command<CompileCommandSettings>
     {
         Torque.Initialize(settings);
 
-        if (settings.PrintLLVM || settings.PrintASM || settings.PrintAST)
-            PrintRequestedModuleFormats(settings);
-        else
-            Torque.Compile(settings);
+        try
+        {
+            ExecuteBasedOnSettings(settings);
+        }
+        catch (InterruptCompileException) {}
+        catch (Exception exception)
+        {
+            // Spectre.Console hides the stack trace when displaying exceptions,
+            // so we catch it here and print it ourselves to avoid that.
+            DiagnosticLogger.LogInternalError(exception);
+        }
 
         return 0;
     }
 
 
+    private static void ExecuteBasedOnSettings(CompileCommandSettings settings)
+    {
+        if (settings.PrintLLVM || settings.PrintASM || settings.PrintAST)
+            PrintRequestedModuleFormats(settings);
+        else
+            Torque.Compile(settings);
+    }
 
 
-    public static void PrintRequestedModuleFormats(CompileCommandSettings settings)
-    {;
+
+
+    private static void PrintRequestedModuleFormats(CompileCommandSettings settings)
+    {
         var statements = CompilerSteps.BuildFinalAST(SourceCode.Source!);
 
         if (settings.PrintAST)
@@ -136,19 +153,19 @@ public class CompileCommand : Command<CompileCommandSettings>
     }
 
 
-    public static void PrintAST(IReadOnlyList<Statement> statements)
+    private static void PrintAST(IReadOnlyList<Statement> statements)
     {
         Console.WriteLine(new ASTPrinter().Print(statements));
     }
 
 
-    public static void PrintLLVM(string bitCode)
+    private static void PrintLLVM(string bitCode)
     {
         Console.WriteLine(bitCode);
     }
 
 
-    public static void PrintASM(CompileCommandSettings settings, string bitCode)
+    private static void PrintASM(CompileCommandSettings settings, string bitCode)
     {
         var assembly = CompileBitCodeToAssembly(settings, bitCode);
         Console.WriteLine(assembly);

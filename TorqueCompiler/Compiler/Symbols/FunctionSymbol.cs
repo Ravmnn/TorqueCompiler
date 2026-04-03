@@ -9,12 +9,12 @@ namespace Torque.Compiler.Symbols;
 
 
 
-public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbol> parameters, Span location, Scope declarationScope)
+public class FunctionSymbol(string name, Type type, IReadOnlyList<VariableSymbol> parameters, Span location, Scope declarationScope)
     : VariableSymbol(name, type, location, declarationScope), ICompiledImportable
 {
-    public new FunctionType? Type
+    public new FunctionType Type
     {
-        get => base.Type as FunctionType;
+        get => (base.Type as FunctionType)!;
         set => base.Type = value;
     }
 
@@ -29,7 +29,7 @@ public class FunctionSymbol(string name, Type? type, IReadOnlyList<VariableSymbo
 
 
     public FunctionSymbol(SymbolSyntax symbol, Scope declarationScope)
-        : this(symbol.Name, null, [], symbol.Location, declarationScope)
+        : this(symbol.Name, Types.Type.Unknown, [], symbol.Location, declarationScope)
     {}
 
 

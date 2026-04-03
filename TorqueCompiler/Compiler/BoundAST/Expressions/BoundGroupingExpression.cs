@@ -13,7 +13,7 @@ public class BoundGroupingExpression(GroupingExpression syntax, BoundExpression 
 
     public BoundExpression Expression { get; set; } = expression;
 
-    public override Type? Type => Expression.Type;
+    public override Type Type => Expression.Type;
 
 
 

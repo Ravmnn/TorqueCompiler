@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Types;
 using Torque.Compiler.BoundAST.Expressions;
@@ -7,6 +10,7 @@ using Torque.Compiler.Diagnostics.Catalogs;
 
 
 using Type = Torque.Compiler.Types.Type;
+using Torque.Compiler.AST.Expressions;
 
 
 namespace Torque.Compiler;
@@ -112,7 +116,10 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public void Process(BoundExpression expression)
     {
-        ReportIfVoidExpression(expression.Type!, expression.Location);
+        if (AnyOperandsOfBinaryHasErrorType(expression) || UnaryInnerExpressionHasErrorType(expression))
+            return;
+
+        ReportIfVoidExpression(expression.Type, expression.Location);
         expression.Process(this);
     }
 
@@ -127,8 +134,7 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public void ProcessBinary(BoundBinaryExpression expression)
     {
-        ReportStructIncompatibleIfExpressionIsStruct(expression.Left);
-        ReportStructIncompatibleIfExpressionIsStruct(expression.Right);
+        ReportExpressionMustHaveNumericOperandsIfError(expression);
     }
 
 
@@ -136,7 +142,8 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public void ProcessUnary(BoundUnaryExpression expression)
     {
-        ReportStructIncompatibleIfExpressionIsStruct(expression.Expression);
+        if (expression.Syntax.Operator == TokenType.Minus)
+            ReportExpressionMustHaveNumericOperandsIfError(expression);
     }
 
 
@@ -150,8 +157,7 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public void ProcessComparison(BoundComparisonExpression expression)
     {
-        ReportStructIncompatibleIfExpressionIsStruct(expression.Left);
-        ReportStructIncompatibleIfExpressionIsStruct(expression.Right);
+        ReportExpressionMustHaveNumericOperandsIfError(expression);
     }
 
 
@@ -159,49 +165,39 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public void ProcessEquality(BoundEqualityExpression expression)
     {
-        ReportStructIncompatibleIfExpressionIsStruct(expression.Left);
-        ReportStructIncompatibleIfExpressionIsStruct(expression.Right);
+        ReportIfTypeDiffers(expression.Left.Type, expression.Right.Type, expression.Location);
     }
 
 
 
 
     public void ProcessLogic(BoundLogicExpression expression)
-    {
-        ReportStructIncompatibleIfExpressionIsStruct(expression.Left);
-        ReportStructIncompatibleIfExpressionIsStruct(expression.Right);
-    }
+    { }
 
 
 
 
     public void ProcessSymbol(BoundSymbolExpression expression)
-    {
-
-    }
+    { }
 
 
 
 
     public void ProcessAddress(BoundAddressExpression expression)
-    {
-
-    }
+    { }
 
 
 
 
     public void ProcessAssignment(BoundAssignmentExpression expression)
-    {
-
-    }
+    { }
 
 
 
 
     public void ProcessPointerAccess(BoundPointerAccessExpression expression)
     {
-        ReportIfNotAPointer(expression.Pointer.Type!, expression.Pointer.Location);
+        ReportIfNotAPointer(expression.Pointer.Type, expression.Pointer.Location);
     }
 
 
@@ -223,15 +219,13 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public void ProcessCast(BoundCastExpression expression)
     {
-        if (expression.Value.Type!.IsStruct || expression.Type!.IsStruct)
+        if (expression.Value.Type.IsStruct || expression.Type.IsStruct)
             Report(TypeCheckerCatalog.CannotCastBetweenStructs, location: expression.Location);
     }
 
 
     public void ProcessImplicitCast(BoundImplicitCastExpression expression)
-    {
-
-    }
+    { }
 
 
 
@@ -255,9 +249,7 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
 
     public void ProcessDefault(BoundDefaultExpression expression)
-    {
-
-    }
+    { }
 
 
 
@@ -274,20 +266,22 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
     {
         var structType = (expression.Compound.Type as StructType)!;
 
-        if (!expression.Compound.Type!.IsStruct)
-        {
-            Report(TypeCheckerCatalog.StructExpected, location: expression.Location);
+        if (ReportIfNotAStruct(structType, expression.Compound.Location))
             return;
-        }
 
         ReportIfStructHasNotField(structType, expression.Member.Name, expression.Location);
     }
 
 
-    public void ReportIfStructHasNotField(StructType structType, string field, Span location)
+
+
+    public bool ReportIfStructHasNotField(StructType structType, string field, Span location)
     {
-        if (structType.GetField(field) is null)
-            Report(TypeCheckerCatalog.UndeclaredStructMember, [field, structType.Name.Name], location);
+        if (structType.GetField(field) is not null)
+            return false;
+
+        Report(TypeCheckerCatalog.UndeclaredStructMember, [field, structType.Name.Name], location);
+        return true;
     }
 
 
@@ -354,7 +348,7 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
 
     public bool ReportStructIncompatibleIfExpressionIsStruct(BoundExpression expression)
     {
-        if (!expression.Type!.IsStruct)
+        if (!expression.Type.IsStruct)
             return false;
 
         Report(TypeCheckerCatalog.ExpressionIncompatibleWithStructs, location: expression.Location);
@@ -362,8 +356,63 @@ public sealed class TorqueTypeCheckerReporter(TorqueTypeChecker typeChecker) : D
     }
 
 
+    public bool ReportExpressionMustHaveNumericOperandsIfError(BoundExpression expression)
+    {
+        if (!expression.Type.IsError)
+            return false;
+
+        Report(TypeCheckerCatalog.ExpressionMustHaveNumericOperands, location: expression.Location);
+        return true;
+    }
+
+
+    public bool ReportIfTypeDiffers(Type expected, Type got, Span location)
+    {
+        if (expected == got)
+            return false;
+
+        ReportTypeDiffers(expected, got, location);
+        return true;
+    }
+
+
+    public bool ReportIfNotAStruct(Type type, Span location)
+    {
+        if (type.IsStruct)
+            return false;
+
+        Report(TypeCheckerCatalog.StructExpected, location: location);
+        return true;
+    }
+
+
+
 
 
     public void ReportTypeDiffers(Type expected, Type got, Span location)
         => Report(TypeCheckerCatalog.TypeDiffers, [expected.ToString(), got.ToString()], location);
+
+
+
+
+    private bool UnaryInnerExpressionHasErrorType(BoundExpression expression)
+    {
+        if (expression is BoundUnaryExpression unary)
+            return AnyExpressionHasErrorType(unary.Expression);
+
+        return false;
+    }
+
+
+    private bool AnyOperandsOfBinaryHasErrorType(BoundExpression expression)
+    {
+        if (expression is IBoundBinaryLayoutExpression binary)
+            return AnyExpressionHasErrorType(binary.Left, binary.Right);
+
+        return false;
+    }
+
+
+    private bool AnyExpressionHasErrorType(params IReadOnlyList<BoundExpression> expressions)
+        => expressions.Any(expression => expression.Type.IsError);
 }

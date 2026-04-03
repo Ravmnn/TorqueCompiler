@@ -8,7 +8,6 @@ public enum TypeCheckerCatalog
     [Item(DiagnosticScope.TypeChecker)] TypeDiffers,
     [Item(DiagnosticScope.TypeChecker)] PointerExpected,
     [Item(DiagnosticScope.TypeChecker)] CannotUseVoidHere,
-    [Item(DiagnosticScope.TypeChecker)] CannotUseLetHere,
     [Item(DiagnosticScope.TypeChecker)] ExpressionDoesNotReturnAnyValue,
     [Item(DiagnosticScope.TypeChecker)] CannotCallNonFunction,
     [Item(DiagnosticScope.TypeChecker)] ArityDiffers,
@@ -19,4 +18,5 @@ public enum TypeCheckerCatalog
     [Item(DiagnosticScope.TypeChecker)] CannotCastBetweenStructs,
     [Item(DiagnosticScope.TypeChecker)] InfiniteTypeRecursionChain,
     [Item(DiagnosticScope.TypeChecker)] ExpressionIncompatibleWithStructs,
+    [Item(DiagnosticScope.TypeChecker)] ExpressionMustHaveNumericOperands,
 }

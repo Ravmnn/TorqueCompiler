@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-using LLVMSharp.Interop;
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Types;
 
@@ -9,10 +7,10 @@ namespace Torque.Compiler.Symbols;
 
 
 
-public class VariableSymbol(string name, Type? type, Span location, Scope declarationScope)
+public class VariableSymbol(string name, Type type, Span location, Scope declarationScope)
     : Symbol(name, location, declarationScope)
 {
-    public Type? Type { get; set; } = type;
+    public Type Type { get; set; } = type;
 
     public bool IsParameter { get; init; }
 
@@ -20,7 +18,7 @@ public class VariableSymbol(string name, Type? type, Span location, Scope declar
 
 
     public VariableSymbol(SymbolSyntax symbol, Scope declarationScope)
-        : this(symbol.Name, null, symbol.Location, declarationScope)
+        : this(symbol.Name, Type.Unknown, symbol.Location, declarationScope)
     {}
 
 

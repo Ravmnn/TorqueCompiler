@@ -91,7 +91,7 @@ public class TorqueDesugarizer(IReadOnlyList<Statement> statements)
     public Statement ProcessFunctionDefinition(FunctionDeclarationStatement statement)
     {
         var desugarizedBody = statement.Body is not null ? SugarProcess(statement.Body) : null;
-        statement.Body = (desugarizedBody as BlockStatement)!;
+        statement.Body = (desugarizedBody as BlockStatement);
 
         return statement;
     }

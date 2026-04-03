@@ -252,14 +252,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
     public Type Process(BoundExpression expression)
     {
         var type = expression.Process(this);
-
-        var lastDiagnosticsCount = Reporter.Diagnostics.Count;
         Reporter.Process(expression);
-
-        var reported = Reporter.Diagnostics.Count > lastDiagnosticsCount;
-
-        if (reported)
-            throw new TypeCheckerDiagnosticReportedException();
 
         return type;
     }
@@ -305,11 +298,12 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
     public Type ProcessBinary(BoundBinaryExpression expression)
     {
         var leftType = Process(expression.Left);
-        Process(expression.Right);
+        var rightType = Process(expression.Right);
 
-        expression.Right = MatchTypeOrImplicitCast(leftType, expression.Right);
+        expression.Type = TypePromotion.Promote(leftType, rightType);
+        ImplicitCastBinaryOperandToPromotedType(expression);
 
-        return expression.Type!;
+        return expression.Type;
     }
 
 
@@ -317,19 +311,24 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
     public Type ProcessUnary(BoundUnaryExpression expression)
     {
-        Process(expression.Expression);
+        var innerExpression = expression.Expression;
+        Process(innerExpression);
 
         switch (expression.Syntax.Operator)
         {
-            case TokenType.Minus: break;
+            case TokenType.Minus:
+                expression.Type = ValidateTypeOrError(innerExpression.Type, type => type.IsNumber);
+                break;
+
             case TokenType.Exclamation:
-                expression.Expression = MatchTypeOrImplicitCast(PrimitiveType.Bool, expression.Expression);
+                expression.Expression = MatchTypeOrImplicitCast(PrimitiveType.Bool, innerExpression);
+                expression.Type = PrimitiveType.Bool;
                 break;
 
             default: throw new UnreachableException();
         }
 
-        return expression.Type!;
+        return expression.Type;
     }
 
 
@@ -341,12 +340,17 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
 
 
+    // TODO: some pointer aritmetic operations should be allowed, but for now, just report an error if the operands are not numbers
     public Type ProcessComparison(BoundComparisonExpression expression)
     {
         var leftType = Process(expression.Left);
-        Process(expression.Right);
+        var rightType = Process(expression.Right);
 
-        expression.Right = MatchTypeOrImplicitCast(leftType, expression.Right);
+        var promotedType = TypePromotion.Promote(leftType, rightType, result => result.IsNumber);
+        ImplicitCastBinaryOperandToPromotedType(expression, promotedType);
+
+        expression.Type = PrimitiveType.Bool;
+
         return expression.Type;
     }
 
@@ -354,9 +358,10 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
     public Type ProcessEquality(BoundEqualityExpression expression)
     {
         var leftType = Process(expression.Left);
-        Process(expression.Right);
+        var rightType = Process(expression.Right);
 
-        expression.Right = MatchTypeOrImplicitCast(leftType, expression.Right);
+        var promotedType = TypePromotion.Promote(leftType, rightType);
+        ImplicitCastBinaryOperandToPromotedType(expression, promotedType);
 
         return expression.Type;
     }
@@ -377,7 +382,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
 
     public Type ProcessSymbol(BoundSymbolExpression expression)
-        => expression.Type!;
+        => expression.Type;
 
 
 
@@ -398,7 +403,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
         expression.Value = MatchTypeOrImplicitCast(referenceType, expression.Value);
 
-        return expression.Type!;
+        return expression.Type;
     }
 
 
@@ -407,7 +412,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
     public Type ProcessPointerAccess(BoundPointerAccessExpression expression)
     {
         Process(expression.Pointer);
-        return expression.Type!;
+        return expression.Type;
     }
 
 
@@ -453,7 +458,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
         Process(expression.Value);
         expression.Type = Converter.TypeFromNonVoidTypeSyntax(expression.Syntax.Type);
 
-        return expression.Type!;
+        return expression.Type;
     }
 
 
@@ -506,7 +511,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
 
         expression.Index = MatchTypeOrImplicitCast(PrimitiveType.Int64, expression.Index);
 
-        return expression.Type!;
+        return expression.Type;
     }
 
 
@@ -559,7 +564,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
             if (structType.GetField(expression.Member.Name) is var (field, _))
                 expression.Type = field.Type;
 
-        return expression.Type!;
+        return expression.Type;
     }
 
     #endregion
@@ -576,7 +581,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
         if (TryMatchTypeOrImplicitCast(expected, expression) is { } result)
             return result;
 
-        Reporter.ReportTypeDiffers(expected, expression.Type!, expression.Location);
+        Reporter.ReportTypeDiffers(expected, expression.Type, expression.Location);
         return expression;
     }
 
@@ -585,7 +590,7 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
     {
         // here, "expression" should already have been processed (typed)
 
-        var got = expression.Type!;
+        var got = expression.Type;
 
         if (expected == got)
             return expression;
@@ -596,5 +601,34 @@ public class TorqueTypeChecker : IBoundStatementProcessor, IBoundExpressionProce
             return new BoundImplicitCastExpression(expression, expected);
 
         return null;
+    }
+
+
+
+
+    private static Type ValidateTypeOrError(Type type, Func<Type, bool> validator)
+    {
+        if (!validator(type))
+            return Type.Error;
+
+        return type;
+    }
+
+
+
+
+    private void ImplicitCastBinaryOperandToPromotedType(IBoundBinaryLayoutExpression binary)
+        => ImplicitCastBinaryOperandToPromotedType(binary, binary.Type);
+
+
+    private void ImplicitCastBinaryOperandToPromotedType(IBoundBinaryLayoutExpression binary, Type type)
+    {
+        if (!binary.Type.IsValid)
+            return;
+
+        if (type == binary.Left.Type)
+            binary.Right = MatchTypeOrImplicitCast(type, binary.Right);
+        else
+            binary.Left = MatchTypeOrImplicitCast(type, binary.Left);
     }
 }

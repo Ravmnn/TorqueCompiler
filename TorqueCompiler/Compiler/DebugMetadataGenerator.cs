@@ -91,7 +91,7 @@ public class DebugMetadataGenerator
     private void InitializeDebugBuilder()
     {
         ThrowIfInvalidFileInfo();
-        InitializeLLVMDebugProperties(Compiler.File!);
+        InitializeLLVMDebugProperties(Compiler.File);
     }
 
 
@@ -156,7 +156,7 @@ public class DebugMetadataGenerator
 
     private LLVMMetadataRef CreateFunction(FunctionSymbol function)
     {
-        var debugFunctionType = TypeGenerator.CreateFunctionTypeMetadata(function.Type!);
+        var debugFunctionType = TypeGenerator.CreateFunctionTypeMetadata(function.Type);
         return CreateFunction(function.Name, function.Location.Line, debugFunctionType, !function.IsExternal);
     }
 

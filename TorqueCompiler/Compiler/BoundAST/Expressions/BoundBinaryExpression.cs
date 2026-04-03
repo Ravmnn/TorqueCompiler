@@ -1,4 +1,3 @@
-using Torque.Compiler.Types;
 using Torque.Compiler.AST.Expressions;
 
 
@@ -7,14 +6,13 @@ namespace Torque.Compiler.BoundAST.Expressions;
 
 
 
-public class BoundBinaryExpression(BinaryExpression syntax, BoundExpression left, BoundExpression right) : BoundExpression(syntax)
+public class BoundBinaryExpression(BinaryExpression syntax, BoundExpression left, BoundExpression right)
+    : BoundExpression(syntax), IBoundBinaryLayoutExpression
 {
     public new BinaryExpression Syntax => (base.Syntax as BinaryExpression)!;
 
     public BoundExpression Left { get; set; } = left;
     public BoundExpression Right { get; set; } = right;
-
-    public override Type? Type => Left.Type;
 
 
 

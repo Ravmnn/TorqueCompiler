@@ -96,6 +96,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         // TODO: add options that control the importing system to the command line
         // TODO: CFA is not working properly
 
+        // TODO: try to remove the prefix "Torque" from the pipeline tools (TorqueCompiler, TorqueTypeChecker...)
+
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
         _llvmModule.Target = TargetMachine.Triple;
@@ -113,23 +115,6 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         if (Options.Debug)
             Debug = new DebugMetadataGenerator(this);
     }
-
-
-/*     public TorqueCompiler(TorqueCompiler compiler, Module module)
-    {
-        _llvmModule = compiler._llvmModule;
-        _intrinsics = compiler._intrinsics;
-        Builder = compiler.Builder;
-        Debug = compiler.Debug;
-        TypeBuilder = compiler.TypeBuilder;
-        TargetMachine = compiler.TargetMachine;
-
-        Module = module;
-        Scope = GlobalScope;
-
-        if (compiler.Debug is not null)
-            Debug = new DebugMetadataGenerator(compiler.Debug, this);
-    } */
 
 
 
@@ -227,7 +212,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public (LLVMTypeRef type, LLVMValueRef reference) DeclareFunctionFromSymbol(FunctionSymbol symbol)
     {
-        var llvmFunctionType = TypeBuilder.ProcessRawFunction(symbol.Type!);
+        var llvmFunctionType = TypeBuilder.ProcessRawFunction(symbol.Type);
         var llvmReference = LLVMModule.AddFunction(symbol.Name, llvmFunctionType);
 
         return (llvmFunctionType, llvmReference);
@@ -429,7 +414,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
             ProcessBasicBlock(statement.ThenStatement, thenBlock, joinBlock);
 
             if (hasElse)
-                ProcessBasicBlock(statement.ElseStatement!, elseBlock, joinBlock);
+                ProcessBasicBlock(statement.ElseStatement, elseBlock, joinBlock);
         });
     }
 
@@ -556,7 +541,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var left = EnsureValue(Process(expression.Left)).Value;
         var right = EnsureValue(Process(expression.Right)).Value;
 
-        var leftType = expression.Left.Type!;
+        var leftType = expression.Left.Type;
         var llvmLeftType = TypeBuilder.Process(leftType);
 
         return Value(ProcessBinaryOperation(expression, leftType, left, right), llvmLeftType);
@@ -600,7 +585,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public ExpressionResult ProcessUnary(BoundUnaryExpression expression)
     {
         var value = EnsureValue(Process(expression.Expression)).Value;
-        var type = expression.Type!;
+        var type = expression.Type;
         var llvmType = TypeBuilder.Process(type);
 
         var operation = expression.Syntax.Operator;
@@ -654,7 +639,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var left = EnsureValue(Process(expression.Left)).Value;
         var right = EnsureValue(Process(expression.Right)).Value;
 
-        var leftType = expression.Left.Type!;
+        var leftType = expression.Left.Type;
         var llvmLeftType = TypeBuilder.Process(leftType);
 
         var @operator = expression.Syntax.Operator;
@@ -713,7 +698,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
         var left = EnsureValue(Process(expression.Left)).Value;
         var right = EnsureValue(Process(expression.Right)).Value;
 
-        var leftType = expression.Left.Type!;
+        var leftType = expression.Left.Type;
         var llvmLeftType = TypeBuilder.Process(leftType);
 
         var operationValue = ProcessEqualityOperation(expression, leftType, left, right);
@@ -856,7 +841,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
         Builder.BuildStore(value, reference);
 
-        var llvmType = TypeBuilder.Process(expression.Type!);
+        var llvmType = TypeBuilder.Process(expression.Type);
         return Value(value, llvmType);
     }
 
@@ -866,8 +851,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     public ExpressionResult ProcessPointerAccess(BoundPointerAccessExpression expression)
     {
         var address = EnsureAddress(Process(expression.Pointer)).Value;
-        var llvmPointerType = TypeBuilder.Process(expression.Pointer.Type!);
-        var llvmType = TypeBuilder.Process(expression.Type!);
+        var llvmPointerType = TypeBuilder.Process(expression.Pointer.Type);
+        var llvmType = TypeBuilder.Process(expression.Type);
 
         var value = Builder.BuildLoad2(llvmPointerType, address, "access.ptr");
         return Address(value, llvmType);
@@ -903,8 +888,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         var value = EnsureValue(Process(expression.Value)).Value;
 
-        var from = expression.Value.Type!;
-        var to = expression.Type!;
+        var from = expression.Value.Type;
+        var to = expression.Type;
         var llvmToType = TypeBuilder.Process(to);
 
         var cast = Cast(from, to, value);
@@ -918,8 +903,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
     {
         var value = EnsureValue(Process(expression.Value)).Value;
 
-        var from = expression.Value.Type!;
-        var to = expression.Type!;
+        var from = expression.Value.Type;
+        var to = expression.Type;
         var llvmToType = TypeBuilder.Process(to);
 
         var cast = Cast(from, to, value);
@@ -1006,8 +991,8 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     public ExpressionResult ProcessDefault(BoundDefaultExpression expression)
     {
-        var llvmType = TypeBuilder.Process(expression.Type!);
-        return Value(GetDefaultValueForType(expression.Type!), llvmType);
+        var llvmType = TypeBuilder.Process(expression.Type);
+        return Value(GetDefaultValueForType(expression.Type), llvmType);
     }
 
 
@@ -1047,7 +1032,7 @@ public class TorqueCompiler : IBoundStatementProcessor, IBoundExpressionProcesso
 
     private LLVMValueRef CreateVariableAlloca(VariableSymbol symbol, string allocaName)
     {
-        var llvmType = TypeBuilder.Process(symbol.Type!);
+        var llvmType = TypeBuilder.Process(symbol.Type);
 
         var reference = CreateAlloca(llvmType, allocaName);
         symbol.SetLLVMProperties(reference, llvmType, null);

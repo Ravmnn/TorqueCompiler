@@ -325,8 +325,8 @@ public class TorqueBinder :
 
     public BoundStatement ProcessImport(ImportStatement statement)
     {
-        var modulePath = Path.Combine(ModuleImporter.GetCurrentImportReference(), statement.GetModuleRelativePath());
-        var (module, state) = ModuleImporter.GetModule(modulePath);
+        var modulePath = Path.Combine(ModuleLoader.GetCurrentImportReference(), statement.GetModuleRelativePath());
+        var (module, state) = ModuleLoader.LoadModule(modulePath);
 
         if (module is not null)
             ImportModule(module.Value);

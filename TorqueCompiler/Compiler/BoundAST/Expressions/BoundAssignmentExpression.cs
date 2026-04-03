@@ -8,14 +8,26 @@ namespace Torque.Compiler.BoundAST.Expressions;
 
 
 public class BoundAssignmentExpression(AssignmentExpression syntax, BoundExpression reference, BoundExpression value)
-    : BoundExpression(syntax)
+    : BoundExpression(syntax), IBoundBinaryLayoutExpression
 {
     public new AssignmentExpression Syntax => (base.Syntax as AssignmentExpression)!;
 
     public BoundExpression Reference { get; set; } = reference;
     public BoundExpression Value { get; set; } = value;
 
-    public override Type? Type => Reference.Type;
+    public BoundExpression Left
+    {
+        get => Reference;
+        set => Reference = value;
+    }
+
+    public BoundExpression Right
+    {
+        get => Value;
+        set => Value = value;
+    }
+
+    public override Type Type => Reference.Type;
 
 
 

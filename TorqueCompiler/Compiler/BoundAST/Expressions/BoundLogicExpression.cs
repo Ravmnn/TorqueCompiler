@@ -7,7 +7,8 @@ namespace Torque.Compiler.BoundAST.Expressions;
 
 
 
-public class BoundLogicExpression(LogicExpression syntax, BoundExpression left, BoundExpression right) : BoundExpression(syntax)
+public class BoundLogicExpression(LogicExpression syntax, BoundExpression left, BoundExpression right)
+    : BoundExpression(syntax), IBoundBinaryLayoutExpression
 {
     public new LogicExpression Syntax => (base.Syntax as LogicExpression)!;
 

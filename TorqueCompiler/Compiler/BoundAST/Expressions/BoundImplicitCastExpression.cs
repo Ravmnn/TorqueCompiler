@@ -9,7 +9,7 @@ namespace Torque.Compiler.BoundAST.Expressions;
 public class BoundImplicitCastExpression(BoundExpression value, Type type) : BoundExpression(value.Syntax)
 {
     public BoundExpression Value { get; } = value;
-    public override Type? Type { get; set; } = type;
+    public override Type Type { get; set; } = type;
 
 
 

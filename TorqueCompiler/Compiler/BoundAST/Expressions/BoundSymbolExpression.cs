@@ -12,7 +12,7 @@ public class BoundSymbolExpression(SymbolExpression syntax, VariableSymbol symbo
 {
     public new SymbolExpression Syntax => (base.Syntax as SymbolExpression)!;
 
-    public override Type? Type => Symbol.Type;
+    public override Type Type => Symbol.Type;
     public VariableSymbol Symbol { get; } = symbol;
 
 

@@ -1,6 +1,5 @@
 using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.Symbols;
-using Torque.Compiler.Types;
 
 
 namespace Torque.Compiler.BoundAST.Expressions;

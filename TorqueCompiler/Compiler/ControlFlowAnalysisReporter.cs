@@ -22,7 +22,7 @@ public sealed class ControlFlowAnalysisReporter(IReadOnlyList<ControlFlowGraph> 
         foreach (var graph in Graphs)
         {
             var functionDeclaration = graph.FunctionDeclaration;
-            var functionType = functionDeclaration.FunctionSymbol.Type!;
+            var functionType = functionDeclaration.FunctionSymbol.Type;
 
             ReportIfNonVoidAndDoesNotReturn(functionType, graph);
             ReportIfVoidAndReturn(functionType, graph);

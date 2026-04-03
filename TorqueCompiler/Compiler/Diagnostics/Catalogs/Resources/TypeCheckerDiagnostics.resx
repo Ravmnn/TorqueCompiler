@@ -40,9 +40,6 @@
     <data name="ArityDiffers" xml:space="preserve">
         <value>Expected "{0}" arguments, but got "{1}"</value>
     </data>
-    <data name="CannotUseLetHere" xml:space="preserve">
-        <value>Cannot use "let" here</value>
-    </data>
     <data name="CannotHaveAZeroSizedArray" xml:space="preserve">
         <value>Arrays cannot have size of "0"</value>
     </data>
@@ -63,5 +60,8 @@
     </data>
     <data name="ExpressionIncompatibleWithStructs" xml:space="preserve">
         <value>Expression cannot be executed with a struct</value>
+    </data>
+    <data name="ExpressionMustHaveNumericOperands" xml:space="preserve">
+        <value>Expression must have numeric operands</value>
     </data>
 </root>

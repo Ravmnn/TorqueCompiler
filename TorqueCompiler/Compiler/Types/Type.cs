@@ -8,6 +8,9 @@ namespace Torque.Compiler.Types;
 
 public enum PrimitiveType
 {
+    Unknown,
+    Error,
+
     Void,
     PtrSize,
     Bool,
@@ -32,6 +35,8 @@ public enum PrimitiveType
 
 public abstract class Type
 {
+    public static Type Unknown => PrimitiveType.Unknown;
+    public static Type Error => PrimitiveType.Error;
     public static Type Void => PrimitiveType.Void;
 
 
@@ -41,17 +46,23 @@ public abstract class Type
     public virtual Type InnerType => this;
 
 
+    public bool IsUnknown => IsBase && BasePrimitive.Type == PrimitiveType.Unknown;
+    public bool IsError => IsBase && BasePrimitive.Type == PrimitiveType.Error;
+
+    public bool IsValid => !IsUnknown && !IsError;
+
     public bool IsVoid => IsBase && BasePrimitive.Type == PrimitiveType.Void;
 
     public bool IsSigned => IsBase && BasePrimitive.Type is PrimitiveType.Int8 or PrimitiveType.Int16 or PrimitiveType.Int32 or PrimitiveType.Int64 || IsFloat;
     public bool IsUnsigned => IsBase && IsInteger && !IsSigned;
 
     public bool IsFloat => IsBase && BasePrimitive.Type is PrimitiveType.Float16 or PrimitiveType.Float32 or PrimitiveType.Float64;
-    public bool IsInteger => (IsBase || IsPointer) && !IsFloat && !IsStruct;
+    public bool IsInteger => IsBase && IsValid && !IsFloat && !IsStruct;
     public bool IsChar => IsBase && BasePrimitive.Type == PrimitiveType.Char;
     public bool IsBool => IsBase && BasePrimitive.Type == PrimitiveType.Bool;
 
     public bool IsString => this is PointerType { InnerType.IsChar: true };
+    public bool IsNumber => IsInteger || IsFloat;
 
     public bool IsBase => this is BasePrimitiveType && !IsStruct;
     public bool IsPointer => this is PointerType;

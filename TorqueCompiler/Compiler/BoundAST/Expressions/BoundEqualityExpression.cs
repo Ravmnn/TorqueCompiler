@@ -7,7 +7,8 @@ namespace Torque.Compiler.BoundAST.Expressions;
 
 
 
-public class BoundEqualityExpression(EqualityExpression syntax, BoundExpression left, BoundExpression right) : BoundExpression(syntax)
+public class BoundEqualityExpression(EqualityExpression syntax, BoundExpression left, BoundExpression right)
+    : BoundExpression(syntax), IBoundBinaryLayoutExpression
 {
     public new EqualityExpression Syntax => (base.Syntax as EqualityExpression)!;
 

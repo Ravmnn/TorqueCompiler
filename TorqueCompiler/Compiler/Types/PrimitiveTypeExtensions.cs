@@ -64,5 +64,5 @@ public static class PrimitiveTypeExtensions
 
 
     public static int SizeOfThisInMemory(this PrimitiveType type, LLVMTargetDataRef? targetData = null)
-        => type.PrimitiveTypeToLLVMType().SizeOfThisInMemory();
+        => type.PrimitiveTypeToLLVMType(targetData).SizeOfThisInMemory(targetData);
 }

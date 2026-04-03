@@ -7,7 +7,8 @@ namespace Torque.Compiler.BoundAST.Expressions;
 
 
 
-public class BoundComparisonExpression(ComparisonExpression syntax, BoundExpression left, BoundExpression right) : BoundExpression(syntax)
+public class BoundComparisonExpression(ComparisonExpression syntax, BoundExpression left, BoundExpression right)
+    : BoundExpression(syntax), IBoundBinaryLayoutExpression
 {
     public new ComparisonExpression Syntax => (base.Syntax as ComparisonExpression)!;
 

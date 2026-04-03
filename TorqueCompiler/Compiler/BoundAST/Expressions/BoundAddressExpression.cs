@@ -12,7 +12,7 @@ public class BoundAddressExpression(AddressExpression syntax, BoundExpression ex
     public new AddressExpression Syntax => (base.Syntax as AddressExpression)!;
 
     public BoundExpression Expression { get; } = expression;
-    public override Type Type => new PointerType(Expression.Type!);
+    public override Type Type => new PointerType(Expression.Type);
 
 
 

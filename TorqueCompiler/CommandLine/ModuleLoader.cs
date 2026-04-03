@@ -11,37 +11,37 @@ namespace Torque.CommandLine;
 
 public enum ModuleImportState
 {
-    Importing,
-    Imported
+    Loading,
+    Loaded
 }
 
 
-public static class ModuleImporter
+public static class ModuleLoader
 {
-    public static Dictionary<string, (Module? module, ModuleImportState state)> ImportedModules { get; } = [];
+    public static Dictionary<string, (Module? module, ModuleImportState state)> LoadedModules { get; } = [];
 
 
 
 
-    public static (Module? module, ModuleImportState state) GetModule(string file)
+    public static (Module? module, ModuleImportState state) LoadModule(string file)
     {
         file = Path.GetFullPath(file);
 
-        if (ImportedModules.TryGetValue(file, out var moduleInfo))
+        if (LoadedModules.TryGetValue(file, out var moduleInfo))
             return moduleInfo;
 
         StartImportingState(file);
         var module = GetModuleFromFile(file);
         FinishImportingState(file, module);
 
-        return ImportedModules[file];
+        return LoadedModules[file];
     }
 
     private static void StartImportingState(string file)
-        => ImportedModules.Add(file, (null, ModuleImportState.Importing));
+        => LoadedModules.Add(file, (null, ModuleImportState.Loading));
 
     private static void FinishImportingState(string file, Module module)
-        => ImportedModules[file] = (module, ModuleImportState.Imported);
+        => LoadedModules[file] = (module, ModuleImportState.Loaded);
 
 
 

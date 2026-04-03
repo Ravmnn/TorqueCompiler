@@ -2,14 +2,12 @@
 // ReSharper disable LocalizableElement
 
 
-using System;
 using System.Linq;
 
 using Torque.Compiler;
 using Torque.Compiler.Target;
 using Torque.CommandLine.Toolchain;
 using Torque.CommandLine.Commands;
-using Torque.CommandLine.Exceptions;
 
 
 namespace Torque.CommandLine;
@@ -56,15 +54,7 @@ public static class Torque
 
     public static void Compile(CompileCommandSettings settings)
     {
-        try
-        {
-            CompileFileToObject(settings);
-        }
-        catch (InterruptCompileException) {}
-        catch (Exception exception)
-        {
-            DiagnosticLogger.LogInternalError(exception);
-        }
+        CompileFileToObject(settings);
     }
 
 
@@ -92,7 +82,7 @@ public static class Torque
 
     public static (Module module, string bitCode) CompileModule(string file, CompilerOptions options)
     {
-        var (module, _) = ModuleImporter.GetModule(file);
+        var (module, _) = ModuleLoader.LoadModule(file);
         var bitCode = CompilerSteps.Compile(module!.Value, options);
 
         return (module.Value, bitCode);
