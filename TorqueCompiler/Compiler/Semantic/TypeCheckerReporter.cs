@@ -78,6 +78,8 @@ public sealed class TypeCheckerReporter(TypeChecker typeChecker) : DiagnosticRep
     {
         if (statement.Expression is null)
             ReportIfExpectedTypeIsNotVoidAndDoesNotReturn(statement.Location);
+        else
+            ReportIfExpectedTypeIsVoidAndDoesReturn(statement.Location);
     }
 
 
@@ -341,6 +343,16 @@ public sealed class TypeCheckerReporter(TypeChecker typeChecker) : DiagnosticRep
             return false;
 
         Report(TypeCheckerCatalog.ExpectedAReturnValue, location: location);
+        return true;
+    }
+
+
+    public bool ReportIfExpectedTypeIsVoidAndDoesReturn(Span location)
+    {
+        if (!TypeChecker.ExpectedReturnType!.IsVoid)
+            return false;
+
+        Report(TypeCheckerCatalog.FunctionCannotReturnAValue, location: location);
         return true;
     }
 

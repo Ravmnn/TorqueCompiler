@@ -1,12 +1,4 @@
 int main(int argc, char** argv)
 {
-    let numbers = int array[] { 58, 42, 99, 17, 63 };
-    let first = numbers;
-
-    let firstAsNumber = first as psize;
-    firstAsNumber = firstAsNumber + 4;
-
-    first = firstAsNumber as int*;
-
     return 0;
 }

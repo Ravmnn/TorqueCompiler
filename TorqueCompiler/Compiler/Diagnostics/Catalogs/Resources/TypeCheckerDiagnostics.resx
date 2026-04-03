@@ -64,4 +64,7 @@
     <data name="ExpressionMustHaveNumericOperands" xml:space="preserve">
         <value>Expression must have numeric operands</value>
     </data>
+    <data name="FunctionCannotReturnAValue" xml:space="preserve">
+        <value>Function cannot return a value</value>
+    </data>
 </root>

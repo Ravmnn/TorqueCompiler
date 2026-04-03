@@ -7,6 +7,7 @@ using Torque.Compiler.BoundAST.Statements;
 using Torque.Compiler.CodeGen;
 using Torque.Compiler.Parsing;
 using Torque.Compiler.Semantic;
+using Torque.Compiler.Semantic.CFA;
 using Torque.Compiler.Tokens;
 
 
@@ -52,27 +53,22 @@ public static class CompilerSteps
     public static void AnalyzeControlFlow(IReadOnlyList<BoundStatement> boundStatements)
     {
         var functionDeclarations = boundStatements.Cast<BoundFunctionDeclarationStatement>().ToArray();
-        var graphs = new ControlFlowGraphBuilder(functionDeclarations).Build();
+        var graphs = ControlFlowGraphBuilder.BuildFromFunctionDeclarations(functionDeclarations);
+        ControlFlowAnalysis.ExecuteAllAnalysis(graphs);
 
-        var controlFlowReporter = new ControlFlowAnalysisReporter(graphs);
-        controlFlowReporter.Report();
+        var reporter = new ControlFlowGraphReporter();
+        reporter.ReportAll(graphs);
 
-        Torque.Logger.LogDiagnosticsAndInterruptIfAny(controlFlowReporter.Diagnostics);
+        Torque.Logger.LogDiagnosticsAndInterruptIfAny(reporter.Diagnostics);
     }
 
 
     public static void TypeCheck(Module module)
     {
         var typeChecker = new TypeChecker(module.Statements, module.DeclaredTypes);
+        typeChecker.Check();
 
-        try
-        {
-            typeChecker.Check();
-        }
-        finally
-        {
-            Torque.Logger.LogDiagnosticsAndInterruptIfAny(typeChecker.Reporter.Diagnostics);
-        }
+        Torque.Logger.LogDiagnosticsAndInterruptIfAny(typeChecker.Reporter.Diagnostics);
     }
 
 
@@ -92,7 +88,7 @@ public static class CompilerSteps
         var desugarizer = new Desugarizer(statements);
         statements = desugarizer.Desugarize();
 
-        // desugarizer cannot have report diagnostics
+        // desugarizer cannot report diagnostics
 
         return statements;
     }

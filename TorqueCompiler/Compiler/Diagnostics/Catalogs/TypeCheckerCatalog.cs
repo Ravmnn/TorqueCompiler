@@ -19,4 +19,5 @@ public enum TypeCheckerCatalog
     [Item(DiagnosticScope.TypeChecker)] InfiniteTypeRecursionChain,
     [Item(DiagnosticScope.TypeChecker)] ExpressionIncompatibleWithStructs,
     [Item(DiagnosticScope.TypeChecker)] ExpressionMustHaveNumericOperands,
+    [Item(DiagnosticScope.TypeChecker)] FunctionCannotReturnAValue,
 }

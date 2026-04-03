@@ -19,10 +19,7 @@
         <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
     </resheader>
     <data name="FunctionMustReturnFromAllPaths" xml:space="preserve">
-        <value>Function is not "void" and must return from all code paths</value>
-    </data>
-    <data name="FunctionCannotReturnAValue" xml:space="preserve">
-        <value>Function is "void" and cannot return a value</value>
+        <value>Function must return from all code paths</value>
     </data>
     <data name="UnreachableCode" xml:space="preserve">
         <value>Code from this point is unreachable</value>

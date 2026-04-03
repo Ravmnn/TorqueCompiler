@@ -93,8 +93,9 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         // TODO: add expr += ... (and others)
         // TODO: add expr++ and expr--
 
+        // TODO: IEnumerable<T> when only iteration (foreach) is required, IReadOnlyList<T> if indexing or length is needed
+
         // TODO: add options that control the importing system to the command line
-        // TODO: CFA is not working properly
 
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
