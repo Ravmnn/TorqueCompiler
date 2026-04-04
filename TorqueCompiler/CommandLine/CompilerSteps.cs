@@ -43,10 +43,10 @@ public static class CompilerSteps
 
     public static string Compile(Module module, IRGenerationOptions options)
     {
-        var compiler = new Compiler.CodeGen.IRGenerator(module, options);
-        var bitCode = compiler.Compile();
+        var compiler = new IRGenerator(module, options);
+        var llvmModule = compiler.GenerateModule();
 
-        return bitCode;
+        return llvmModule.PrintToString();
     }
 
 

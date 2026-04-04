@@ -30,7 +30,7 @@ public readonly struct Module(
 
 
 
-    public void Deconstruct(
+    public readonly void Deconstruct(
         out string path,
         out IReadOnlyList<BoundStatement> statements,
         out IReadOnlyList<Statement> syntaxStatements,

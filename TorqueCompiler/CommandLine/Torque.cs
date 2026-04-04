@@ -34,6 +34,8 @@ public static class Torque
     {
         s_compileSettings = settings;
         InitializeGlobals(settings);
+
+        LLVMInitalize.InitializeAll();
     }
 
 

@@ -35,7 +35,6 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
     public LLVMBuilderRef Builder { get; } = LLVMBuilderRef.Create(LLVMContextRef.Global);
 
     public TargetMachine TargetMachine { get; }
-    public LLVMTargetDataRef DataLayout => TargetMachine.DataLayout;
 
     public DebugMetadataGenerator? Debug { get; }
     public IRTypeBuilder TypeBuilder { get; }
@@ -118,7 +117,7 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
 
 
 
-    public string Compile()
+    public LLVMModuleRef GenerateModule()
     {
         // Many parts of the code in this file assumes that there are values in some nullables
         // as "BoundExpression.Type", and that "BoundExpression.Syntax" (or "BoundStatement.Syntax")
@@ -135,7 +134,7 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
 
         Debug?.FinalizeGenerator();
 
-        return LLVMModule.PrintToString();
+        return LLVMModule;
     }
 
 

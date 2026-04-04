@@ -11,9 +11,6 @@ namespace Torque.Compiler.Target;
 
 public class TargetMachine
 {
-    private static bool s_initialized;
-
-
     public static TargetMachine? Global { get; private set; }
 
 
@@ -27,10 +24,8 @@ public class TargetMachine
 
 
 
-    public unsafe TargetMachine(string triple)
+    public TargetMachine(string triple)
     {
-        InitLLVM();
-
         var target = TargetFromTripleOrThrow(triple);
 
         Triple = triple;
@@ -39,26 +34,6 @@ public class TargetMachine
         DataLayout = Machine.CreateTargetDataLayout();
         StringDataLayout = DataLayoutToStringOrThrow(DataLayout);
     }
-
-
-    private static unsafe string DataLayoutToStringOrThrow(LLVMTargetDataRef dataLayout)
-    {
-        var ptr = LLVM.CopyStringRepOfTargetData(dataLayout);
-        return Marshal.PtrToStringAnsi((IntPtr)ptr) ?? throw new InvalidOperationException("Couldn't create data layout");
-    }
-
-
-    private static LLVMTargetMachineRef CreateDefaultTargetMachine(string triple, LLVMTargetRef target)
-        => target.CreateTargetMachine(
-            triple,
-            "generic",
-            "",
-            LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault,
-            LLVMRelocMode.LLVMRelocPIC,
-            // TODO: looks like the LLVM API can generate the final native code without the use of LLC:
-            // use the LLVM API or continue with the current approach (LLC)?
-            LLVMCodeModel.LLVMCodeModelDefault
-        );
 
 
     private static LLVMTargetRef TargetFromTripleOrThrow(string triple)
@@ -70,15 +45,21 @@ public class TargetMachine
     }
 
 
-    private static void InitLLVM()
+    private static LLVMTargetMachineRef CreateDefaultTargetMachine(string triple, LLVMTargetRef target)
+        => target.CreateTargetMachine(
+            triple,
+            "generic",
+            "",
+            LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault,
+            LLVMRelocMode.LLVMRelocDefault,
+            LLVMCodeModel.LLVMCodeModelDefault
+        );
+
+
+    private static unsafe string DataLayoutToStringOrThrow(LLVMTargetDataRef dataLayout)
     {
-        if (s_initialized)
-            return;
-
-        LLVM.InitializeNativeTarget();
-        LLVM.InitializeNativeAsmPrinter();
-
-        s_initialized = true;
+        var ptr = LLVM.CopyStringRepOfTargetData(dataLayout);
+        return Marshal.PtrToStringAnsi((IntPtr)ptr) ?? throw new InvalidOperationException("Couldn't create data layout");
     }
 
 

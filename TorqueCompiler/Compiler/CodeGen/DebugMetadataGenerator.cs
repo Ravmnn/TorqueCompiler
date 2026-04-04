@@ -36,16 +36,15 @@ public class DebugMetadataGenerator
     public LLVMMetadataRef CompileUnit { get; private set; }
 
 
-    public IRGenerator Compiler { get; }
+    public IRGenerator IRGenerator { get; }
 
-    public LLVMModuleRef Module => Compiler.LLVMModule;
-    public LLVMBuilderRef Builder => Compiler.Builder;
-    public LLVMTargetDataRef TargetData => Compiler.DataLayout;
+    public LLVMModuleRef Module => IRGenerator.LLVMModule;
+    public LLVMBuilderRef Builder => IRGenerator.Builder;
 
-    public Scope GlobalScope => Compiler.GlobalScope;
-    public Scope Scope => Compiler.Scope;
+    public Scope GlobalScope => IRGenerator.GlobalScope;
+    public Scope Scope => IRGenerator.Scope;
 
-    public IRTypeBuilder TypeBuilder => Compiler.TypeBuilder;
+    public IRTypeBuilder TypeBuilder => IRGenerator.TypeBuilder;
 
 
     public DebugTypeMetadataGenerator TypeGenerator { get; }
@@ -53,32 +52,32 @@ public class DebugMetadataGenerator
 
 
 
-    public DebugMetadataGenerator(IRGenerator compiler)
+    public DebugMetadataGenerator(IRGenerator irGenerator)
     {
-        Compiler = compiler;
+        IRGenerator = irGenerator;
         AddDebugInfoVersion();
 
         InitializeDebugBuilder();
 
-        Compiler.GlobalScope.DebugMetadata = File;
+        IRGenerator.GlobalScope.DebugMetadata = File;
 
-        TypeGenerator = new DebugTypeMetadataGenerator(Compiler, DebugBuilder, File, CompileUnit);
+        TypeGenerator = new DebugTypeMetadataGenerator(IRGenerator, DebugBuilder, File, CompileUnit);
     }
 
 
-    public DebugMetadataGenerator(DebugMetadataGenerator generator, IRGenerator compiler)
+    public DebugMetadataGenerator(DebugMetadataGenerator generator, IRGenerator irGenerator)
     {
         DebugBuilder = generator.DebugBuilder;
         File = generator.File;
         CompileUnit = generator.CompileUnit;
 
-        var fileInfo = new FileInfo(compiler.Module.Path);
+        var fileInfo = new FileInfo(irGenerator.Module.Path);
         InitializeFileAndCompileUnit(fileInfo);
 
-        Compiler = compiler;
-        Compiler.GlobalScope.DebugMetadata = File;
+        IRGenerator = irGenerator;
+        IRGenerator.GlobalScope.DebugMetadata = File;
 
-        TypeGenerator = new DebugTypeMetadataGenerator(this, generator.TypeGenerator, compiler);
+        TypeGenerator = new DebugTypeMetadataGenerator(this, generator.TypeGenerator, irGenerator);
     }
 
 
@@ -89,13 +88,13 @@ public class DebugMetadataGenerator
     private void InitializeDebugBuilder()
     {
         ThrowIfInvalidFileInfo();
-        InitializeLLVMDebugProperties(Compiler.File);
+        InitializeLLVMDebugProperties(IRGenerator.File);
     }
 
 
     private void ThrowIfInvalidFileInfo()
     {
-        if (Compiler.File is null || !Compiler.File.Exists)
+        if (IRGenerator.File is null || !IRGenerator.File.Exists)
             throw new InvalidOperationException("Debug metadata generator requires a valid compiler file info");
     }
 
@@ -180,7 +179,7 @@ public class DebugMetadataGenerator
     public unsafe LLVMMetadataRef GenerateLocalVariable(VariableSymbol variable)
     {
         var typeMetadata = TypeGenerator.TypeToMetadata(variable.Type!);
-        var sizeInBits = (uint)TypeBuilder.SizeOfTypeInMemoryAsBits(variable.Type!, TargetData);
+        var sizeInBits = (uint)TypeBuilder.SizeOfTypeInMemoryAsBits(variable.Type!, IRGenerator.TargetMachine.DataLayout);
         var llvmLocation = CreateDebugLocation(variable.Location);
 
         var debugReference = CreateLocalVariable(variable.Name, variable.Location.Line, typeMetadata, sizeInBits);
