@@ -16,7 +16,7 @@ class Program
 {
     const string TestFile = "general/main.tor";
     const string TestFileFullPath = $"/home/ravmn/Documentos/programming/csharp/TorqueCompiler/examples/{TestFile}";
-    const string TestOptions = "--debug";
+    const string TestOptions = "-O /home/ravmn/Documentos/programming/csharp/TorqueCompiler/examples/build --debug";
 
 
 

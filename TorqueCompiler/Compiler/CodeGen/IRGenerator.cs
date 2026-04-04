@@ -153,6 +153,7 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         {
             CompileImportedModulesRecursively(importedModule);
 
+            // TODO: IRGenerator compiling files?
             CommandLine.Torque.CompileModuleToObject(importedModule, Options);
             ProcessAllImportablesInModule(importedModule);
         }
@@ -350,7 +351,7 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         {
             DebugGenerateScope(Scope, statement.Location, function.LLVMDebugMetadata);
             DeclareFunctionParameters(function.LLVMReference!.Value, function.Parameters);
-            ProcessBlockWithControl(statement, function.Type!.ReturnType);
+            ProcessBlockWithControl(statement, function.Type!.ReturnType.IsVoid);
         });
 
 
@@ -371,7 +372,7 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
     }
 
 
-    private void ProcessBlockWithControl(BoundBlockStatement statement, Type? returnType = null)
+    private void ProcessBlockWithControl(BoundBlockStatement statement, bool addVoidReturnAtEnd = false)
     {
         // If a return statement is reached, the subsequent code after the return that is inside the same scope
         // will never be reached, so everything after it can be safely ignored. Also, LLVM doesn't compile
@@ -382,8 +383,8 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
             foreach (var subStatement in statement.Statements)
                 Process(subStatement);
 
-            if (returnType is not null)
-                Builder.BuildRet(GetDefaultValueForType(returnType));
+            if (addVoidReturnAtEnd)
+                Builder.BuildRetVoid();
         });
     }
 

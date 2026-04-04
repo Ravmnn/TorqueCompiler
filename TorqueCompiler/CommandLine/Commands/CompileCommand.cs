@@ -31,6 +31,13 @@ public class CompileCommandSettings : CommandSettings
 
 
 
+    [CommandOption("-O|--output-directory")]
+    [Description("The output folder to create the object files")]
+    public DirectoryInfo? OutputDirectory { get; init; }
+
+
+
+
     [CommandOption("--target-arch")]
     [Description("The CPU architecture to generate instructions")]
     [DefaultValue(ArchitectureType.X86_64)]
@@ -92,6 +99,9 @@ public class CompileCommandSettings : CommandSettings
         if (!File.Exists)
             return ValidationResult.Error($"Could not open source file \"{File.Name}\"");
 
+        if (OutputDirectory is not null && !OutputDirectory!.Exists)
+            Directory.CreateDirectory(OutputDirectory.FullName);
+
         return ValidationResult.Success();
     }
 }
@@ -143,7 +153,7 @@ public class CompileCommand : Command<CompileCommandSettings>
         }
 
         var module = CompilerSteps.SemanticAnalysis(statements, SourceCode.FilePath!);
-        var options = settings.ToLowLevelOptions() with { CompileImportedModules = false };
+        var options = settings.ToIRGenerationOptions() with { CompileImportedModules = false };
         var bitCode = CompilerSteps.Compile(module, options);
 
         if (settings.PrintLLVM)
@@ -188,9 +198,10 @@ public class CompileCommand : Command<CompileCommandSettings>
 
 public static class CompileCommandSettingsExtensions
 {
-    public static IRGenerationOptions ToLowLevelOptions(this CompileCommandSettings settings)
+    public static IRGenerationOptions ToIRGenerationOptions(this CompileCommandSettings settings)
         => new IRGenerationOptions
         {
+            OutputDirectory = settings.OutputDirectory,
             Debug = settings.Debug,
             PIC = settings.PIC
         };

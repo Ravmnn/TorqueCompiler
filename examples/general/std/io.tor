@@ -1,6 +1,6 @@
 external byte* fdopen(int fileDescriptor, char* mode);
 
-external int64 getline(char** buffer, usize* bufferSize, byte* fileDescriptor);
+external int64 getline(char** buffer, psize* bufferSize, byte* fileDescriptor);
 
 external int printf(char* content);
 external int sprintf(char* buffer, char* format, int value);
@@ -20,7 +20,7 @@ void int2str(char* buffer, int value)
 char* readln(char* prompt)
 {
     char* buffer;
-    usize bufferSize;
+    psize bufferSize;
 
     if (prompt != default(char*))
         printf(prompt);

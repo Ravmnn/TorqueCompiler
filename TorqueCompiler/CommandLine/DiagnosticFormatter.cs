@@ -31,9 +31,9 @@ public static class DiagnosticFormatter
     }
 
 
-    public static string GenerateCodePeek(string file, Span location)
+    public static string GenerateCodePeek(FileInfo file, Span location)
     {
-        var contentAsLines = File.ReadAllLines(file);
+        var contentAsLines = File.ReadAllLines(file.FullName);
         var codeLine = contentAsLines[location.Line - 1];
         var indicator = GenerateCodePeekIndicator(location);
 

@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace Torque.Compiler.CodeGen;
 
 
@@ -5,6 +7,8 @@ namespace Torque.Compiler.CodeGen;
 
 public record struct IRGenerationOptions()
 {
+    public DirectoryInfo? OutputDirectory { get; set; }
+
     public bool Debug { get; set; }
     public bool PIC { get; set; }
 

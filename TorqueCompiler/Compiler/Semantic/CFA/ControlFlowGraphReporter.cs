@@ -41,7 +41,7 @@ public class ControlFlowGraphReporter : DiagnosticReporter<ControlFlowAnalyzerCa
 
     private void ReportIfGraphDoesNotReturn(ControlFlowGraph graph)
     {
-        if (!graph.Entry.State.Returns)
+        if (!graph.IgnoreAllPathReturnsAnalysis && !graph.Entry.State.Returns)
             Report(ControlFlowAnalyzerCatalog.FunctionMustReturnFromAllPaths, location: graph.Location);
     }
 }

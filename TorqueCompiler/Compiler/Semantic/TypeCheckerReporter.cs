@@ -166,7 +166,7 @@ public sealed class TypeCheckerReporter(TypeChecker typeChecker) : DiagnosticRep
 
     public void ProcessEquality(BoundEqualityExpression expression)
     {
-        ReportIfTypeDiffers(expression.Left.Type, expression.Right.Type, expression.Location);
+        ReportExpressionMustHaveNumericOperandsIfError(expression);
     }
 
 

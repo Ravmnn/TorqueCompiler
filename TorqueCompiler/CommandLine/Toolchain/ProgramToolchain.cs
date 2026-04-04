@@ -23,10 +23,20 @@ public static class ProgramToolchain
         TempFiles.ForTempFileDo(file =>
         {
             File.WriteAllText(file, bitCode);
+            CreateDirectoriesOfFile(outputFile);
 
             var compiler = NewCompilerProgram(file, outputFile, options);
             compiler.Run();
         });
+    }
+
+
+    private static void CreateDirectoriesOfFile(string file)
+    {
+        var directory = Path.GetDirectoryName(file);
+
+        if (directory is not null)
+            Directory.CreateDirectory(directory);
     }
 
 

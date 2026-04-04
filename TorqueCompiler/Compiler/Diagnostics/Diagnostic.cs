@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -36,7 +37,7 @@ public enum DiagnosticScope
 
 public readonly struct Diagnostic()
 {
-    public string File { get; } = SourceCode.FilePath!;
+    public FileInfo File { get; } = SourceCode.File!;
 
     public required int Code { get; init; }
     public required DiagnosticScope Scope { get; init; }

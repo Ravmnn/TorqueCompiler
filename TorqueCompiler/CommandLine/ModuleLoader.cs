@@ -18,6 +18,9 @@ public enum ModuleImportState
 
 public static class ModuleLoader
 {
+    public static string ImportReference => SourceCode.EntryDirectory!.FullName;
+
+
     public static Dictionary<string, (Module? module, ModuleImportState state)> LoadedModules { get; } = [];
 
 
@@ -48,23 +51,17 @@ public static class ModuleLoader
 
     private static Module GetModuleFromFile(string file)
     {
-        var oldFile = SourceCode.FilePath;
+        var oldFile = SourceCode.File;
+        var newFile = new FileInfo(file);
 
-        SourceCode.SetCurrentWorkingFileTo(file);
+        SourceCode.SetCurrentWorkingFileTo(newFile);
 
-        var source = File.ReadAllText(file);
-        var statements = CompilerSteps.BuildFinalAST(source);
-        var module = CompilerSteps.SemanticAnalysis(statements, file);
+        var statements = CompilerSteps.BuildFinalAST(SourceCode.Source!);
+        var module = CompilerSteps.SemanticAnalysis(statements, SourceCode.FilePath!);
 
         if (oldFile is not null)
             SourceCode.SetCurrentWorkingFileTo(oldFile);
 
         return module;
     }
-
-
-
-
-    public static string GetCurrentImportReference()
-        => new FileInfo(SourceCode.FirstFilePath!).DirectoryName!;
 }

@@ -1,2 +1,2 @@
-external byte* malloc(usize size);
+external byte* malloc(psize size);
 external void free(byte* ptr);

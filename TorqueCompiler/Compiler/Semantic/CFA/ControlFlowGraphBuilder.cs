@@ -12,7 +12,7 @@ namespace Torque.Compiler.Semantic.CFA;
 
 public sealed class ControlFlowGraphBuilder : IBoundStatementProcessor<BasicBlock>
 {
-    private readonly List<BasicBlock> _blocks = [];
+    private List<BasicBlock> _blocks = [];
     private BasicBlock _current = null!;
 
 
@@ -25,9 +25,21 @@ public sealed class ControlFlowGraphBuilder : IBoundStatementProcessor<BasicBloc
 
         foreach (var function in functions)
             if (function.Body is not null)
-                graphs.Add(builder.Build(function.Body, function.Location));
+                graphs.Add(BuildFromFunctionDeclaration(builder, function));
 
         return graphs;
+    }
+
+
+    private static ControlFlowGraph BuildFromFunctionDeclaration(ControlFlowGraphBuilder builder, BoundFunctionDeclarationStatement function)
+    {
+        var graph = builder.Build(function.Body!, function.Location);
+        graph.Id = function.Symbol.Name;
+
+        if (function.FunctionSymbol.Type.ReturnType.IsVoid)
+            graph.IgnoreAllPathReturnsAnalysis = true;
+
+        return graph;
     }
 
 
@@ -35,7 +47,7 @@ public sealed class ControlFlowGraphBuilder : IBoundStatementProcessor<BasicBloc
 
     public ControlFlowGraph Build(BoundStatement root, Span? location = null)
     {
-        _blocks.Clear();
+        _blocks = [];
 
         var entry = _current = NewBlock("entry");
         Process(root);

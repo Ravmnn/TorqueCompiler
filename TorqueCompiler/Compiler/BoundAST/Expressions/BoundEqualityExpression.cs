@@ -15,8 +15,6 @@ public class BoundEqualityExpression(EqualityExpression syntax, BoundExpression 
     public BoundExpression Left { get; set; } = left;
     public BoundExpression Right { get; set; } = right;
 
-    public override Type Type => PrimitiveType.Bool;
-
 
 
 

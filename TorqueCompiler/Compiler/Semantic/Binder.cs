@@ -325,7 +325,7 @@ public class Binder :
 
     public BoundStatement ProcessImport(ImportStatement statement)
     {
-        var modulePath = Path.Combine(ModuleLoader.GetCurrentImportReference(), statement.GetModuleRelativePath());
+        var modulePath = Path.Combine(ModuleLoader.ImportReference, statement.GetModuleRelativePath());
         var (module, state) = ModuleLoader.LoadModule(modulePath);
 
         if (module is not null)

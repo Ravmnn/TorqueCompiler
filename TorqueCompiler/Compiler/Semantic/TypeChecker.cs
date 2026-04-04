@@ -362,6 +362,8 @@ public class TypeChecker : IBoundStatementProcessor, IBoundExpressionProcessor<T
         var promotedType = TypePromotion.Promote(leftType, rightType);
         ImplicitCastBinaryOperandToPromotedType(expression, promotedType);
 
+        expression.Type = PrimitiveType.Bool;
+
         return expression.Type;
     }
 

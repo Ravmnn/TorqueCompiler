@@ -2,6 +2,7 @@
 // ReSharper disable LocalizableElement
 
 
+using System.IO;
 using System.Linq;
 
 using Torque.Compiler;
@@ -32,16 +33,16 @@ public static class Torque
 
     public static void Initialize(CompileCommandSettings settings)
     {
+        LLVMInitalize.InitializeAll();
+
         s_compileSettings = settings;
         InitializeGlobals(settings);
-
-        LLVMInitalize.InitializeAll();
     }
 
 
     private static void InitializeGlobals(CompileCommandSettings settings)
     {
-        SourceCode.SetCurrentWorkingFileTo(settings.File.FullName);
+        SourceCode.SetCurrentWorkingFileTo(settings.File);
         InitializeGlobalTargetMachine(settings);
     }
 
@@ -62,28 +63,39 @@ public static class Torque
 
 
     public static void CompileFileToObject(CompileCommandSettings settings)
-        => CompileFileToObject(settings.File.FullName, settings.ToLowLevelOptions());
+        => CompileFileToObject(settings.File.FullName, settings.ToIRGenerationOptions());
 
 
     public static void CompileFileToObject(string file, IRGenerationOptions options)
     {
-        // TODO: add command line options to modify the output folder
+        var (_, bitCode) = GenerateModuleIR(file, options);
+        var outputFile = GetOutputFile(file, options.OutputDirectory);
 
-        var (_, bitCode) = CompileModule(file, options);
-        ProgramToolchain.Compile(bitCode, file + ".o", options);
+        ProgramToolchain.Compile(bitCode, outputFile, options);
     }
 
 
     public static void CompileModuleToObject(Module module, IRGenerationOptions options)
     {
         var bitCode = CompilerSteps.Compile(module, options);
-        ProgramToolchain.Compile(bitCode, module.FileInfo.FullName + ".o", options);
+        var outputFile = GetOutputFile(module.FileInfo.FullName, options.OutputDirectory);
+
+        ProgramToolchain.Compile(bitCode, outputFile, options);
+    }
+
+
+    private static string GetOutputFile(string file, DirectoryInfo? outputDirectory)
+    {
+        var root = SourceCode.EntryDirectory!.Parent!.FullName;
+        var relativePath = Path.GetRelativePath(root, file);
+
+        return Path.Combine(outputDirectory?.FullName ?? root, relativePath + ".o");
     }
 
 
 
 
-    public static (Module module, string bitCode) CompileModule(string file, IRGenerationOptions options)
+    public static (Module module, string bitCode) GenerateModuleIR(string file, IRGenerationOptions options)
     {
         var (module, _) = ModuleLoader.LoadModule(file);
         var bitCode = CompilerSteps.Compile(module!.Value, options);

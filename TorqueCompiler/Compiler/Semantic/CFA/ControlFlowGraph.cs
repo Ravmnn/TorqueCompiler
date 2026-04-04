@@ -14,4 +14,13 @@ public sealed class ControlFlowGraph(BasicBlock entry, List<BasicBlock> blocks, 
     public List<BasicBlock> Blocks { get; } = blocks;
 
     public Span Location { get; set; } = location;
+
+    public string? Id { get; set; }
+    public bool IgnoreAllPathReturnsAnalysis { get; set; }
+
+
+
+
+    public override string ToString()
+        => (Id ?? base.ToString())!;
 }
