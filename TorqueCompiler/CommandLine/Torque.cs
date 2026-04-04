@@ -23,9 +23,6 @@ public static class Torque
     private static LinkCommandSettings s_linkSettings = null!;
 
 
-    public static DiagnosticLogger Logger { get; set; } = new DiagnosticLogger();
-
-
     public const string FileExtension = ".tor";
 
 
@@ -36,13 +33,6 @@ public static class Torque
         LLVMInitalize.InitializeAll();
 
         s_compileSettings = settings;
-        InitializeGlobals(settings);
-    }
-
-
-    private static void InitializeGlobals(CompileCommandSettings settings)
-    {
-        SourceCode.SetCurrentWorkingFileTo(settings.File);
         InitializeGlobalTargetMachine(settings);
     }
 
@@ -58,35 +48,40 @@ public static class Torque
 
     public static void Compile(CompileCommandSettings settings)
     {
-        CompileFileToObject(settings);
+        CompileFileAndImportsToObject(settings);
     }
 
 
-    public static void CompileFileToObject(CompileCommandSettings settings)
-        => CompileFileToObject(settings.File.FullName, settings.ToIRGenerationOptions());
+    public static void CompileFileAndImportsToObject(CompileCommandSettings settings)
+        => CompileFileAndImportsToObject(settings.File.FullName, settings.ToIRGenerationOptions());
 
 
-    public static void CompileFileToObject(string file, IRGenerationOptions options)
+    public static void CompileFileAndImportsToObject(string file, IRGenerationOptions options)
     {
-        var (_, bitCode) = GenerateModuleIR(file, options);
-        var outputFile = GetOutputFile(file, options.OutputDirectory);
+        var fileInfo = new FileInfo(file);
+        var fileSystem = new FileSystem(fileInfo);
+
+        var (_, bitCode) = GenerateModuleIR(file, options, fileSystem);
+        var outputFile = GetOutputFile(file, fileSystem.EntryDirectory, options.OutputDirectory);
 
         ProgramToolchain.Compile(bitCode, outputFile, options);
     }
 
 
-    public static void CompileModuleToObject(Module module, IRGenerationOptions options)
+    public static void CompileSingleModuleToObject(Module module, IRGenerationOptions options, FileSystem fileSystem)
     {
-        var bitCode = CompilerSteps.Compile(module, options);
-        var outputFile = GetOutputFile(module.FileInfo.FullName, options.OutputDirectory);
+        var bitCode = CompilerSteps.Compile(module, options, fileSystem);
+
+        var modulePath = module.FileInfo.FullName;
+        var outputFile = GetOutputFile(modulePath, fileSystem.EntryDirectory, options.OutputDirectory);
 
         ProgramToolchain.Compile(bitCode, outputFile, options);
     }
 
 
-    private static string GetOutputFile(string file, DirectoryInfo? outputDirectory)
+    private static string GetOutputFile(string file, DirectoryInfo entryDirectory, DirectoryInfo? outputDirectory)
     {
-        var root = SourceCode.EntryDirectory!.Parent!.FullName;
+        var root = entryDirectory.Parent!.FullName;
         var relativePath = Path.GetRelativePath(root, file);
 
         return Path.Combine(outputDirectory?.FullName ?? root, relativePath + ".o");
@@ -95,10 +90,12 @@ public static class Torque
 
 
 
-    public static (Module module, string bitCode) GenerateModuleIR(string file, IRGenerationOptions options)
+    public static (Module module, string bitCode) GenerateModuleIR(string file, IRGenerationOptions options, FileSystem fileSystem)
     {
-        var (module, _) = ModuleLoader.LoadModule(file);
-        var bitCode = CompilerSteps.Compile(module!.Value, options);
+        var moduleLoader = new ModuleLoader(fileSystem);
+
+        var (module, _) = moduleLoader.LoadModuleByPath(file);
+        var bitCode = CompilerSteps.Compile(module!.Value, options, fileSystem);
 
         return (module.Value, bitCode);
     }

@@ -12,8 +12,10 @@ using Spectre.Console.Cli;
 
 using Torque.CommandLine.Exceptions;
 using Torque.CommandLine.Toolchain;
+using Torque.Compiler;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.CodeGen;
+using Torque.Compiler.Diagnostics;
 using Torque.Compiler.Parsing;
 using Torque.Compiler.Target;
 
@@ -144,7 +146,11 @@ public class CompileCommand : Command<CompileCommandSettings>
 
     private static void PrintRequestedModuleFormats(CompileCommandSettings settings)
     {
-        var statements = CompilerSteps.BuildFinalAST(SourceCode.Source!);
+        var sourceCode = new SourceCode(settings.File);
+        var fileSystem = new FileSystem(settings.File);
+        var moduleLoader = new ModuleLoader(fileSystem);
+
+        var statements = CompilerSteps.BuildFinalAST(sourceCode);
 
         if (settings.PrintAST)
         {
@@ -152,9 +158,9 @@ public class CompileCommand : Command<CompileCommandSettings>
             return;
         }
 
-        var module = CompilerSteps.SemanticAnalysis(statements, SourceCode.FilePath!);
+        var module = CompilerSteps.SemanticAnalysis(statements, sourceCode, moduleLoader);
         var options = settings.ToIRGenerationOptions() with { CompileImportedModules = false };
-        var bitCode = CompilerSteps.Compile(module, options);
+        var bitCode = CompilerSteps.Compile(module, options, fileSystem);
 
         if (settings.PrintLLVM)
             PrintLLVM(bitCode);

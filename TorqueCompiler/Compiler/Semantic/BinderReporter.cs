@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 
 using Torque.Compiler.Tokens;
@@ -9,7 +8,6 @@ using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.Diagnostics;
 using Torque.Compiler.Diagnostics.Catalogs;
-using Torque.CommandLine;
 
 
 namespace Torque.Compiler.Semantic;
@@ -17,7 +15,7 @@ namespace Torque.Compiler.Semantic;
 
 
 
-public sealed class BinderReporter(Binder binder) : DiagnosticReporter<BinderCatalog>,
+public sealed class BinderReporter(Binder binder) : DiagnosticReporter<BinderCatalog>(binder.SourceCode),
     IExpressionProcessor, IStatementProcessor,
     IDeclarationProcessor
 {
@@ -155,12 +153,12 @@ public sealed class BinderReporter(Binder binder) : DiagnosticReporter<BinderCat
 
     public void ProcessImport(ImportStatement statement)
     {
-        var (_, state) = ModuleLoader.LoadModuleById(statement.GetModuleId());
+        var (_, state) = Binder.ModuleProvider.LoadModuleById(statement.GetModuleId());
 
-        if (state == ModuleImportState.NonExistent)
+        if (state == ModuleLoadState.NonExistent)
             Report(BinderCatalog.UnknownModule, location: statement.Location);
 
-        if (state == ModuleImportState.Loading)
+        if (state == ModuleLoadState.Loading)
             Report(BinderCatalog.CircularImport, location: statement.Location);
     }
 

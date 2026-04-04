@@ -31,17 +31,20 @@ public class Lexer : IIterator<char>
     }
 
 
+    public SourceCode SourceCode { get; }
+
     public IReadOnlyList<char> Source => StringSource.ToList();
     public string StringSource { get; }
 
 
 
 
-    public Lexer(string source)
+    public Lexer(SourceCode sourceCode)
     {
-        Reporter = new LexerReporter(this);
+        SourceCode = sourceCode;
+        StringSource = SourceCode.Source;
 
-        StringSource = source;
+        Reporter = new LexerReporter(this);
     }
 
 
@@ -199,17 +202,16 @@ public class Lexer : IIterator<char>
 
     private IReadOnlyList<byte> EncodeStringToASCII(string text, Span quoteLocation)
     {
-        var encoder = new StringTokenEncoder(text);
+        var encoder = new StringTokenEncoder(text, quoteLocation, Reporter);
         var data = encoder.ToASCII();
-        AddStringEncoderDiagnosticsToThis(encoder, quoteLocation);
 
         return data;
     }
 
 
-    private void AddStringEncoderDiagnosticsToThis(StringTokenEncoder encoder, Span stringStartQuoteLocation)
+    /* private void AddStringEncoderDiagnosticsToThis(StringTokenEncoder encoder, Span stringStartQuoteLocation)
     {
-        var diagnostics = encoder.Diagnostics;
+        var diagnostics = encoder.Reporter.Diagnostics;
 
         for (var i = 0; i < diagnostics.Count; i++)
             diagnostics[i] = ConvertStringEncoderDiagnosticsToThis(diagnostics[i], stringStartQuoteLocation);
@@ -230,7 +232,7 @@ public class Lexer : IIterator<char>
                 stringStartQuoteLocation.Line
             )
         };
-    }
+    } */
 
 
 

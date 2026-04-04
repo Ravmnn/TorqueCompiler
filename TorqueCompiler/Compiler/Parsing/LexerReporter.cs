@@ -10,7 +10,7 @@ namespace Torque.Compiler.Parsing;
 
 
 
-public sealed class LexerReporter(Lexer lexer) : DiagnosticReporter<LexerCatalog>
+public sealed class LexerReporter(Lexer lexer) : DiagnosticReporter<LexerCatalog>(lexer.SourceCode)
 {
     public Lexer Lexer { get; } = lexer;
 

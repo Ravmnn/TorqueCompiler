@@ -35,8 +35,9 @@ public class TypeChecker : IBoundStatementProcessor, IBoundExpressionProcessor<T
     public Type? ExpectedReturnType { get; private set; }
 
 
-    public DeclaredTypeManager DeclaredTypes { get; }
     public IReadOnlyList<BoundStatement> Statements { get; }
+    public DeclaredTypeManager DeclaredTypes { get; }
+    public SourceCode SourceCode { get; }
 
     public TypeCheckerReporter Reporter { get; private set; }
     public TypeSyntaxConverter Converter { get; private set; }
@@ -44,10 +45,11 @@ public class TypeChecker : IBoundStatementProcessor, IBoundExpressionProcessor<T
 
 
 
-    public TypeChecker(IReadOnlyList<BoundStatement> statements, DeclaredTypeManager declaredTypes)
+    public TypeChecker(IReadOnlyList<BoundStatement> statements, DeclaredTypeManager declaredTypes, SourceCode sourceCode)
     {
-        DeclaredTypes = declaredTypes;
         Statements = statements;
+        DeclaredTypes = declaredTypes;
+        SourceCode = sourceCode;
 
         Reporter = new TypeCheckerReporter(this);
         Converter = new TypeSyntaxConverter(this);

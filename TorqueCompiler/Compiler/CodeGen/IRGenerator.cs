@@ -52,6 +52,8 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
 
 
     public Module Module { get; }
+    public IRGenerationOptions Options { get; }
+    public FileSystem FileSystem { get; }
 
     public FileInfo File => Module.FileInfo;
     public IReadOnlyList<BoundStatement> Statements => Module.Statements;
@@ -66,12 +68,9 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
     }
 
 
-    public IRGenerationOptions Options { get; }
 
 
-
-
-    public IRGenerator(Module module, IRGenerationOptions options)
+    public IRGenerator(Module module, IRGenerationOptions options, FileSystem fileSystem)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add support to generic code
@@ -95,8 +94,11 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         // TODO: IEnumerable<T> when only iteration (foreach) is required, IReadOnlyList<T> if indexing or length is needed
 
         // TODO: add options that control the importing system to the command line
-        // TODO: try to remove global static state and dependency to the front-end
 
+
+        Module = module;
+        Options = options;
+        FileSystem = fileSystem;
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
         _llvmModule.Target = TargetMachine.Triple;
@@ -104,12 +106,8 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
 
         _intrinsics = new IntrinsicCaller(LLVMModule, Builder);
 
-        Module = module;
         Scope = GlobalScope;
-
         TypeBuilder = new IRTypeBuilder();
-
-        Options = options;
 
         if (Options.Debug)
             Debug = new DebugMetadataGenerator(this);
@@ -154,8 +152,8 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         {
             CompileImportedModulesRecursively(importedModule);
 
-            // TODO: IRGenerator compiling files?
-            CommandLine.Torque.CompileModuleToObject(importedModule, Options);
+            // TODO: create abstraction ICompiler
+            CommandLine.Torque.CompileSingleModuleToObject(importedModule, Options, FileSystem);
             ProcessAllImportablesInModule(importedModule);
         }
     }

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.IO;
 
 using Torque.Compiler.Symbols;
 using Torque.Compiler.Types;
@@ -8,7 +7,6 @@ using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.BoundAST.Expressions;
 using Torque.Compiler.BoundAST.Statements;
-using Torque.CommandLine;
 
 
 namespace Torque.Compiler.Semantic;
@@ -30,6 +28,11 @@ public class Binder :
     public bool IsInFunctionScope => IsInsideAFunction;
 
 
+    public SourceCode SourceCode { get; }
+    public List<Module> ImportedModules { get; }
+
+    public IModuleProvider ModuleProvider { get; }
+
     private Scope _scope = new Scope();
     public Scope Scope
     {
@@ -44,23 +47,20 @@ public class Binder :
 
     public BinderReporter Reporter { get; }
 
-    public string ModulePath { get; }
-    public List<Module> ImportedModules { get; }
 
 
 
-
-    public Binder(IReadOnlyList<Statement> statements, string modulePath)
+    public Binder(IReadOnlyList<Statement> statements, SourceCode sourceCode, IModuleProvider moduleProvider)
     {
-        Statements = statements.ToList();
+        Statements = [.. statements];
+        SourceCode = sourceCode;
+        ImportedModules = [];
+        ModuleProvider = moduleProvider;
 
         DeclaredTypes = new DeclaredTypeManager();
         NamedTypeSyntaxBinder = new NamedTypeSyntaxBinder(DeclaredTypes);
         Scope = new Scope();
         Reporter = new BinderReporter(this);
-
-        ModulePath = modulePath;
-        ImportedModules = [];
     }
 
 
@@ -77,7 +77,7 @@ public class Binder :
             if (Process(statement) is {} boundStatement)
                 boundStatements.Add(boundStatement);
 
-        return new Module(ModulePath, boundStatements, Statements, Scope, DeclaredTypes, ImportedModules);
+        return new Module(SourceCode.FilePath, boundStatements, Statements, Scope, DeclaredTypes, ImportedModules);
     }
 
 
@@ -325,7 +325,7 @@ public class Binder :
 
     public BoundStatement ProcessImport(ImportStatement statement)
     {
-        var (module, _) = ModuleLoader.LoadModuleById(statement.GetModuleId());
+        var (module, _) = ModuleProvider.LoadModuleById(statement.GetModuleId());
 
         if (module is not null)
             ImportModule(module.Value);

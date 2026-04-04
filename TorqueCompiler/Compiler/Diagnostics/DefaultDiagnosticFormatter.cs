@@ -1,18 +1,38 @@
 using System.IO;
+using System.Linq;
 using System.Text;
 
 using Torque.Compiler.Tokens;
-using Torque.Compiler.Diagnostics;
 
 
-namespace Torque.CommandLine;
+namespace Torque.Compiler.Diagnostics;
 
 
 
 
-public static class DiagnosticFormatter
+internal readonly struct DiagnosticHeaderMessage(Diagnostic diagnostic)
 {
-    public static string Format(Diagnostic diagnostic)
+    public Diagnostic Diagnostic { get; } = diagnostic;
+
+    public string Severity => Diagnostic.Severity.ToString().ToLower();
+    public string Scope => new string(Diagnostic.Scope.ToString().Where(char.IsUpper).ToArray());
+    public string FileName => Diagnostic.SourceCode.File.Name;
+    public string Location => Diagnostic.Location is { } location ? $", {FileName}::{location}" : "unknown";
+
+
+
+
+    public override string ToString()
+        => $"T{Scope}{Diagnostic.Code:D3} {Severity}{Location}";
+}
+
+
+
+
+
+public class DefaultDiagnosticFormatter : IDiagnosticFormatter
+{
+    public string Format(Diagnostic diagnostic)
     {
         var diagnosticHeader = new DiagnosticHeaderMessage(diagnostic);
         var codePeek = GenerateCodePeekOrEmpty(diagnostic);
@@ -24,7 +44,7 @@ public static class DiagnosticFormatter
     private static string GenerateCodePeekOrEmpty(Diagnostic diagnostic)
     {
         var shouldGenerateCodePeek = diagnostic.Location is not null;
-        var codePeek = shouldGenerateCodePeek ? GenerateCodePeek(diagnostic.File, diagnostic.Location!.Value) : null;
+        var codePeek = shouldGenerateCodePeek ? GenerateCodePeek(diagnostic.SourceCode.File, diagnostic.Location!.Value) : null;
         codePeek = $"{(shouldGenerateCodePeek ? "\n" : "")}{codePeek}";
 
         return codePeek;

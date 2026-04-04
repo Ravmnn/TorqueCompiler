@@ -9,7 +9,7 @@ namespace Torque.Compiler.Semantic.CFA;
 
 
 
-public class ControlFlowGraphReporter : DiagnosticReporter<ControlFlowAnalyzerCatalog>
+public class ControlFlowGraphReporter(SourceCode sourceCode) : DiagnosticReporter<ControlFlowAnalyzerCatalog>(sourceCode)
 {
     public void ReportAll(IEnumerable<ControlFlowGraph> graphs)
     {

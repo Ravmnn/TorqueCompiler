@@ -43,7 +43,7 @@ class Program
 
     private static void Test()
     {
-        Torque.Initialize(new CompileCommandSettings {
+        /* Torque.Initialize(new CompileCommandSettings {
             File = new FileInfo(TestFileFullPath), Debug = true,
             Architecture = Compiler.Target.ArchitectureType.X86_64,
             Environment = Compiler.Target.EnvironmentType.GNU,
@@ -56,6 +56,6 @@ class Program
         var mainFunction = (from boundStatement in boundStatements.Statements
             let function = boundStatement as BoundFunctionDeclarationStatement
             where function is not null && function.Symbol.Name == "main"
-            select function).First();
+            select function).First(); */
     }
 }

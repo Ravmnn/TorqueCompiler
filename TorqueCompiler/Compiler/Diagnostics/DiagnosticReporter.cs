@@ -11,8 +11,10 @@ namespace Torque.Compiler.Diagnostics;
 
 
 
-public abstract class DiagnosticReporter<T> where T : Enum
+public abstract class DiagnosticReporter<T>(SourceCode source) where T : Enum
 {
+    public SourceCode Source { get; } = source;
+
     public List<Diagnostic> Diagnostics { get; } = [];
 
     public bool HasReports => Diagnostics.Count > 0;
@@ -22,7 +24,7 @@ public abstract class DiagnosticReporter<T> where T : Enum
 
     public virtual Diagnostic Report(T item, IReadOnlyList<object>? arguments = null, Span? location = null)
     {
-        var diagnostic = Diagnostic.FromCatalog<T>(Convert.ToInt32(item), arguments, location);
+        var diagnostic = Diagnostic.FromCatalog<T>(Source, Convert.ToInt32(item), arguments, location);
         Diagnostics.Add(diagnostic);
 
         return diagnostic;

@@ -17,7 +17,7 @@ namespace Torque.Compiler.Semantic;
 
 
 
-public sealed class TypeCheckerReporter(TypeChecker typeChecker) : DiagnosticReporter<TypeCheckerCatalog>,
+public sealed class TypeCheckerReporter(TypeChecker typeChecker) : DiagnosticReporter<TypeCheckerCatalog>(typeChecker.SourceCode),
     IBoundExpressionProcessor, IBoundStatementProcessor,
     IBoundDeclarationProcessor
 {

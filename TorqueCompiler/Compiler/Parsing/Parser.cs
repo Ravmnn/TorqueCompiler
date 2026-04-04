@@ -21,15 +21,17 @@ public partial class Parser : IIterator<Token>
 
     public int Current { get; set; }
     public IReadOnlyList<Token> Source { get; }
+    public SourceCode SourceCode { get; }
 
 
 
 
-    public Parser(IReadOnlyList<Token> source)
+    public Parser(IReadOnlyList<Token> source, SourceCode sourceCode)
     {
-        Reporter = new ParserReporter(this);
-
         Source = source;
+        SourceCode = sourceCode;
+
+        Reporter = new ParserReporter(this);
     }
 
 

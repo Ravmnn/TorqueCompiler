@@ -13,7 +13,7 @@ namespace Torque.Compiler.Parsing;
 
 
 
-public sealed class ParserReporter(Parser parser) : DiagnosticReporter<ParserCatalog>
+public sealed class ParserReporter(Parser parser) : DiagnosticReporter<ParserCatalog>(parser.SourceCode)
 {
     public Parser Parser { get; } = parser;
 

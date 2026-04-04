@@ -10,7 +10,7 @@ namespace Torque.Compiler.Tokens;
 
 
 
-public class StringTokenEncoder(string text) : DiagnosticReporter<LexerCatalog>
+public class StringTokenEncoder(string text, Span startQuoteLocation, DiagnosticReporter<LexerCatalog> reporter)
 {
     public static IReadOnlyList<IEscapeSequence> DefaultEscapeProcessors { get; } =
     [
@@ -33,6 +33,8 @@ public class StringTokenEncoder(string text) : DiagnosticReporter<LexerCatalog>
 
 
     public string Text { get; } = text;
+    public Span StartQuoteLocation { get; } = startQuoteLocation;
+    public DiagnosticReporter<LexerCatalog> Reporter { get; } = reporter;
 
 
 
@@ -122,7 +124,7 @@ public class StringTokenEncoder(string text) : DiagnosticReporter<LexerCatalog>
         var processor = GetEscapeSequenceByName(name);
 
         if (processor is null)
-            Report(LexerCatalog.UnknownEscapeSequence, location: GetCurrentLocation());
+            Reporter.Report(LexerCatalog.UnknownEscapeSequence, location: GetCurrentLocation());
 
         return processor;
     }
@@ -133,7 +135,11 @@ public class StringTokenEncoder(string text) : DiagnosticReporter<LexerCatalog>
 
 
     private Span GetCurrentLocation()
-        => new Span(_start, _end, 0);
+        => new Span(
+                StartQuoteLocation.Start + _start + 1,
+                StartQuoteLocation.End + _end,
+                StartQuoteLocation.Line
+            );
 
 
 

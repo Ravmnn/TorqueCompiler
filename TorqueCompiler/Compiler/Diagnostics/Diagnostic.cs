@@ -37,7 +37,7 @@ public enum DiagnosticScope
 
 public readonly struct Diagnostic()
 {
-    public FileInfo File { get; } = SourceCode.File!;
+    public required SourceCode SourceCode { get; init; }
 
     public required int Code { get; init; }
     public required DiagnosticScope Scope { get; init; }
@@ -52,13 +52,14 @@ public readonly struct Diagnostic()
 
 
 
-    public static Diagnostic FromCatalog<T>(int code, IReadOnlyList<object>? arguments = null, Span? location = null)
+    public static Diagnostic FromCatalog<T>(SourceCode source, int code, IReadOnlyList<object>? arguments = null, Span? location = null)
         where T : Enum
     {
         var (item, scope, severity) = GetFromCatalog<T>(code);
 
         return new Diagnostic
         {
+            SourceCode = source,
             Code = code,
             Scope = scope,
             Severity = severity,
