@@ -95,6 +95,7 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         // TODO: IEnumerable<T> when only iteration (foreach) is required, IReadOnlyList<T> if indexing or length is needed
 
         // TODO: add options that control the importing system to the command line
+        // TODO: try to remove global static state and dependency to the front-end
 
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");

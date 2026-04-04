@@ -27,11 +27,6 @@ public class ImportStatement(IReadOnlyList<SymbolSyntax> path, Span location) : 
 
 
 
-    public string GetModuleRelativePath()
-    {
-        var stringPath = string.Join('/', Path);
-        var fullPath = stringPath + CommandLine.Torque.FileExtension;
-
-        return fullPath;
-    }
+    public string GetModuleId()
+        => string.Join('.', Path);
 }

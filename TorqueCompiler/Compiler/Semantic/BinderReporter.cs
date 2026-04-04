@@ -155,12 +155,10 @@ public sealed class BinderReporter(Binder binder) : DiagnosticReporter<BinderCat
 
     public void ProcessImport(ImportStatement statement)
     {
-        var modulePath = Path.Combine(ModuleLoader.ImportReference, statement.GetModuleRelativePath());
+        var (_, state) = ModuleLoader.LoadModuleById(statement.GetModuleId());
 
-        if (!File.Exists(modulePath))
+        if (state == ModuleImportState.NonExistent)
             Report(BinderCatalog.UnknownModule, location: statement.Location);
-
-        var (_, state) = ModuleLoader.LoadModule(modulePath);
 
         if (state == ModuleImportState.Loading)
             Report(BinderCatalog.CircularImport, location: statement.Location);

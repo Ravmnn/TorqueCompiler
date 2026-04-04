@@ -11,6 +11,7 @@ namespace Torque.CommandLine;
 
 public enum ModuleImportState
 {
+    NonExistent,
     Loading,
     Loaded
 }
@@ -26,9 +27,21 @@ public static class ModuleLoader
 
 
 
+    public static (Module? module, ModuleImportState state) LoadModuleById(string id)
+    {
+        var relativePath = id.Replace('.', '/');
+        var modulePath = Path.Combine(ImportReference, relativePath);
+
+        return LoadModule(modulePath);
+    }
+
+
     public static (Module? module, ModuleImportState state) LoadModule(string file)
     {
         file = Path.GetFullPath(file);
+
+        if (!File.Exists(file))
+            return (null, ModuleImportState.NonExistent);
 
         if (LoadedModules.TryGetValue(file, out var moduleInfo))
             return moduleInfo;
