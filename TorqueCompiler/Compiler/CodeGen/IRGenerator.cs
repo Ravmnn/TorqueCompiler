@@ -36,7 +36,7 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
 
     public TargetMachine TargetMachine { get; }
 
-    public DebugMetadataGenerator? Debug { get; }
+    public DebugMetadataGenerator? DebugGenerator { get; }
     public IRTypeBuilder TypeBuilder { get; }
 
 
@@ -51,11 +51,10 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
     private readonly IntrinsicCaller _intrinsics;
 
 
-    public Module Module { get; }
-    public IRGenerationOptions Options { get; }
-    public FileSystem FileSystem { get; }
+    public Module Module { get; private set; }
+    public bool Debug => DebugGenerator is not null;
 
-    public FileInfo File => Module.FileInfo;
+    public FileInfo File => Module.SourceCode.File;
     public IReadOnlyList<BoundStatement> Statements => Module.Statements;
 
     public Scope GlobalScope => Module.Scope;
@@ -70,7 +69,7 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
 
 
 
-    public IRGenerator(Module module, IRGenerationOptions options, FileSystem fileSystem)
+    public IRGenerator(Module module, bool debug = false)
     {
         // TODO: add optimization command line options (later... this is more useful after this language is able to do more stuff)
         // TODO: add support to generic code
@@ -97,8 +96,6 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
 
 
         Module = module;
-        Options = options;
-        FileSystem = fileSystem;
 
         TargetMachine = TargetMachine.Global ?? throw new InvalidOperationException("The global target machine instance must be initialized");
         _llvmModule.Target = TargetMachine.Triple;
@@ -109,8 +106,8 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         Scope = GlobalScope;
         TypeBuilder = new IRTypeBuilder();
 
-        if (Options.Debug)
-            Debug = new DebugMetadataGenerator(this);
+        if (debug)
+            DebugGenerator = new DebugMetadataGenerator(this);
     }
 
 
@@ -125,53 +122,52 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         // due to null access or bad type conversion, or it is a bug, or the caller of the compiler API
         // didn't set up (binding, type checking...) the statements correctly.
 
-        CompileAllImports();
+        GenerateIRForImports();
         DeclareAllDeclarations();
 
         foreach (var statement in Statements)
             Process(statement);
 
-        Debug?.FinalizeGenerator();
+        DebugGenerator?.FinalizeGenerator();
 
+        Module.LLVMModule = LLVMModule;
         return LLVMModule;
     }
 
 
-    private void CompileAllImports()
+    private void GenerateIRForImports()
     {
-        if (!Options.CompileImportedModules)
-            return;
-
-        CompileImportedModulesRecursively(Module);
+        GenerateIRForImportsRecursively(Module);
     }
 
 
-    private void CompileImportedModulesRecursively(Module module)
+    private void GenerateIRForImportsRecursively(Module module)
     {
         foreach (var importedModule in module.ImportedModules)
         {
-            CompileImportedModulesRecursively(importedModule);
+            GenerateIRForImportsRecursively(importedModule);
 
-            // TODO: create abstraction ICompiler
-            CommandLine.Torque.CompileSingleModuleToObject(importedModule, Options, FileSystem);
-            ProcessAllImportablesInModule(importedModule);
+            new IRGenerator(importedModule, Debug).GenerateModule();
+            DeclareAllImportablesInModule(importedModule);
         }
     }
 
 
-    private void ProcessAllImportablesInModule(Module importedModule)
+    private void DeclareAllImportablesInModule(Module module)
     {
-        ProcessAllImportablesIn(importedModule.Scope.Items);
-        ProcessAllImportablesIn(importedModule.DeclaredTypes.Items);
+        DeclareAllImportablesIn(module.Scope.Items);
+        DeclareAllImportablesIn(module.DeclaredTypes.Items);
     }
 
 
-    private void ProcessAllImportablesIn<T>(IReadOnlyList<T> collection)
+    private void DeclareAllImportablesIn<T>(IReadOnlyList<T> collection)
     {
         foreach (var symbol in collection)
             if (symbol is ICompiledImportable importable)
                 ProcessImportable(importable);
     }
+
+
 
 
     private void DeclareAllDeclarations()
@@ -1264,34 +1260,34 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
     {
         if (location is null)
         {
-            Debug?.SetCurrentLocation();
+            DebugGenerator?.SetCurrentLocation();
             return;
         }
 
-        Debug?.SetCurrentLocation(location.Value.Line, location.Value.Start);
+        DebugGenerator?.SetCurrentLocation(location.Value.Line, location.Value.Start);
     }
 
 
     private LLVMMetadataRef? DebugCreateLocation(Span location)
-        => Debug?.CreateDebugLocation(location.Line, location.Start);
+        => DebugGenerator?.CreateDebugLocation(location.Line, location.Start);
 
 
     private LLVMMetadataRef? DebugCreateLexicalScope(Span location)
-        => Debug?.CreateLexicalScope(location.Line, location.Start);
+        => DebugGenerator?.CreateLexicalScope(location.Line, location.Start);
 
 
 
 
     private LLVMMetadataRef? DebugGenerateFunction(FunctionSymbol function)
-        => Debug?.GenerateFunction(function);
+        => DebugGenerator?.GenerateFunction(function);
 
 
     private LLVMMetadataRef? DebugGenerateLocalVariable(VariableSymbol variable)
-        => Debug?.GenerateLocalVariable(variable);
+        => DebugGenerator?.GenerateLocalVariable(variable);
 
 
     private LLVMMetadataRef? DebugGenerateParameter(VariableSymbol parameter, int index)
-        => Debug?.GenerateParameter(parameter, index);
+        => DebugGenerator?.GenerateParameter(parameter, index);
 
 
 

@@ -1,2 +1,5 @@
+import std.io;
+
+
 external byte* malloc(psize size);
 external void free(byte* ptr);

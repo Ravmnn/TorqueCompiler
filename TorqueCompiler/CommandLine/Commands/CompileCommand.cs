@@ -11,13 +11,13 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 
 using Torque.CommandLine.Exceptions;
-using Torque.CommandLine.Toolchain;
 using Torque.Compiler;
 using Torque.Compiler.AST.Statements;
 using Torque.Compiler.CodeGen;
 using Torque.Compiler.Diagnostics;
 using Torque.Compiler.Parsing;
 using Torque.Compiler.Target;
+using Torque.Compiler.Toolchain;
 
 
 namespace Torque.CommandLine.Commands;
@@ -147,7 +147,7 @@ public class CompileCommand : Command<CompileCommandSettings>
     private static void PrintRequestedModuleFormats(CompileCommandSettings settings)
     {
         var sourceCode = new SourceCode(settings.File);
-        var fileSystem = new FileSystem(settings.File);
+        var fileSystem = new EntryInfo(settings.File);
         var moduleLoader = new ModuleLoader(fileSystem);
 
         var statements = CompilerSteps.BuildFinalAST(sourceCode);
@@ -160,7 +160,7 @@ public class CompileCommand : Command<CompileCommandSettings>
 
         var module = CompilerSteps.SemanticAnalysis(statements, sourceCode, moduleLoader);
         var options = settings.ToIRGenerationOptions() with { CompileImportedModules = false };
-        var bitCode = CompilerSteps.Compile(module, options, fileSystem);
+        var bitCode = CompilerSteps.GenerateIR(module, options, fileSystem);
 
         if (settings.PrintLLVM)
             PrintLLVM(bitCode);
@@ -191,7 +191,7 @@ public class CompileCommand : Command<CompileCommandSettings>
 
     private static string CompileBitCodeToAssembly(CompileCommandSettings settings, string bitCode) => TempFiles.ForTempFileDo(file =>
     {
-        var options = CompilerProgramOptions.FromCompileCommandSettings(settings)
+        var options = settings.FromCompileCommandSettings()
             with { OutputType = OutputType.Assembly };
 
         ProgramToolchain.Compile(bitCode, file, options);

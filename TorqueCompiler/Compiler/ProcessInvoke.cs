@@ -1,7 +1,7 @@
 using System.Diagnostics;
 
 
-namespace Torque.CommandLine;
+namespace Torque.Compiler;
 
 
 

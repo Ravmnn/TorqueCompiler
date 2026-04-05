@@ -1,4 +1,5 @@
 import std.io;
+import std.memory;
 
 
 int main(int argc, char** argv)

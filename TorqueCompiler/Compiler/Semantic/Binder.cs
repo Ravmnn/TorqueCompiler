@@ -328,7 +328,7 @@ public class Binder :
         var (module, _) = ModuleProvider.LoadModuleById(statement.GetModuleId());
 
         if (module is not null)
-            ImportModule(module.Value);
+            ImportModule(module);
 
         return null!;
     }

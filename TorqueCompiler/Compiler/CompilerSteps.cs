@@ -18,6 +18,13 @@ namespace Torque.Compiler;
 
 public static class CompilerSteps
 {
+    public static void Compile(Module module, IRGenerationOptions options, EntryInfo entry)
+    {
+        GenerateIR(module, options, entry);
+        EmitIR(module, options, entry);
+    }
+
+
     public static Module SemanticAnalysis(IReadOnlyList<Statement> statements, SourceCode sourceCode, IModuleProvider moduleProvider)
     {
         var moduleContext = Bind(statements, sourceCode, moduleProvider);
@@ -41,9 +48,17 @@ public static class CompilerSteps
 
 
 
-    public static string Compile(Module module, IRGenerationOptions options, FileSystem fileSystem)
+    public static void EmitIR(Module module, IRGenerationOptions options, EntryInfo entry)
     {
-        var compiler = new IRGenerator(module, options, fileSystem);
+        var emitter = new DefaultEmitter(entry);
+
+        emitter.EmitModuleAndImports(module, options);
+    }
+
+
+    public static string GenerateIR(Module module, IRGenerationOptions options, EntryInfo entry)
+    {
+        var compiler = new IRGenerator(module, options.Debug);
         var llvmModule = compiler.GenerateModule();
 
         return llvmModule.PrintToString();

@@ -1,8 +1,7 @@
 using Torque.Compiler.CodeGen;
-using Torque.CommandLine.Commands;
 
 
-namespace Torque.CommandLine.Toolchain;
+namespace Torque.Compiler.Toolchain;
 
 
 
@@ -15,14 +14,6 @@ public record struct CompilerProgramOptions()
     public bool PIC { get; set; }
 
 
-
-
-    public static CompilerProgramOptions FromCompileCommandSettings(CompileCommandSettings settings)
-        => new CompilerProgramOptions
-        {
-            Debug = settings.Debug,
-            PIC = settings.PIC
-        };
 
 
     public static CompilerProgramOptions FromCompilerOptions(IRGenerationOptions options)

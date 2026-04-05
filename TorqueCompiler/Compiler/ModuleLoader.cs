@@ -7,13 +7,13 @@ namespace Torque.Compiler;
 
 
 
-public class ModuleLoader(FileSystem fileSystem) : IModuleProvider
+public class ModuleLoader(EntryInfo entry) : IModuleProvider
 {
     public const string TorqueExtension = ".tor";
 
 
-    public FileSystem FileSystem { get; } = fileSystem;
-    public string ImportReference => FileSystem.EntryDirectory.FullName;
+    public EntryInfo Entry { get; } = entry;
+    public string ImportReference => Entry.EntryDirectory.FullName;
 
     public Dictionary<string, ModuleInfo> LoadedModules { get; } = [];
 

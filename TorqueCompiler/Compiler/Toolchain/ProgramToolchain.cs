@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Torque.Compiler.CodeGen;
 
 
-namespace Torque.CommandLine.Toolchain;
+namespace Torque.Compiler.Toolchain;
 
 
 

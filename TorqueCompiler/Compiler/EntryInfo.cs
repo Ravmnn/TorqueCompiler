@@ -6,7 +6,7 @@ namespace Torque.Compiler;
 
 
 
-public class FileSystem(FileInfo entryFile)
+public class EntryInfo(FileInfo entryFile)
 {
     public FileInfo EntryFile { get; } = entryFile;
     public DirectoryInfo EntryDirectory => EntryFile.Directory!;

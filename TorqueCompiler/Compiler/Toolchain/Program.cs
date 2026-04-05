@@ -1,4 +1,4 @@
-namespace Torque.CommandLine.Toolchain;
+namespace Torque.Compiler.Toolchain;
 
 
 

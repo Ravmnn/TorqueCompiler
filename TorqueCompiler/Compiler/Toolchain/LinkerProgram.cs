@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
 
-namespace Torque.CommandLine.Toolchain;
+namespace Torque.Compiler.Toolchain;
 
 
 
