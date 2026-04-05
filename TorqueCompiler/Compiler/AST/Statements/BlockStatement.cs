@@ -8,9 +8,9 @@ namespace Torque.Compiler.AST.Statements;
 
 
 
-public class BlockStatement(IReadOnlyList<Statement> statements, Span location) : Statement(location)
+public class BlockStatement(IReadOnlyCollection<Statement> statements, Span location) : Statement(location)
 {
-    public IReadOnlyList<Statement> Statements { get; set; } = statements;
+    public IReadOnlyCollection<Statement> Statements { get; set; } = statements;
 
 
 

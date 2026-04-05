@@ -11,7 +11,7 @@ public class LinkerProgram : Program
     // we use clang because it's convenient
     public override string ProgramPath => "/bin/clang";
 
-    public required IReadOnlyList<string> InputFiles { get; set; }
+    public required IReadOnlyCollection<string> InputFiles { get; set; }
     public required string OutputFile { get; set; }
     public LinkerProgramOptions Options { get; set; }
 

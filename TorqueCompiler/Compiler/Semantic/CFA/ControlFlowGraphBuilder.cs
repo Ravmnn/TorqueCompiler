@@ -18,7 +18,7 @@ public sealed class ControlFlowGraphBuilder : IBoundStatementProcessor<BasicBloc
 
 
 
-    public static IReadOnlyList<ControlFlowGraph> BuildFromFunctionDeclarations(IReadOnlyList<BoundFunctionDeclarationStatement> functions)
+    public static IReadOnlyCollection<ControlFlowGraph> BuildFromFunctionDeclarations(IReadOnlyCollection<BoundFunctionDeclarationStatement> functions)
     {
         var builder = new ControlFlowGraphBuilder();
         var graphs = new List<ControlFlowGraph>();

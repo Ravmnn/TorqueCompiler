@@ -72,7 +72,7 @@ public partial class Parser : IIterator<Token>
             list.Add(func());
         while (Match(token));
 
-        return list.ToArray();
+        return list;
     }
 
 
@@ -124,7 +124,7 @@ public partial class Parser : IIterator<Token>
     }
 
 
-    public bool Match(params IReadOnlyList<TokenType> tokens)
+    public bool Match(params IReadOnlyCollection<TokenType> tokens)
     {
         foreach (var token in tokens)
         {

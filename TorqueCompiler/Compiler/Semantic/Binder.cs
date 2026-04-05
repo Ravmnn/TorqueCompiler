@@ -43,16 +43,16 @@ public class Binder :
     public NamedTypeSyntaxBinder NamedTypeSyntaxBinder { get; }
     public DeclaredTypeManager DeclaredTypes { get; }
 
-    public List<Statement> Statements { get; }
+    public IList<Statement> Statements { get; }
 
     public BinderReporter Reporter { get; }
 
 
 
 
-    public Binder(IReadOnlyList<Statement> statements, SourceCode sourceCode, IModuleProvider moduleProvider)
+    public Binder(IReadOnlyCollection<Statement> statements, SourceCode sourceCode, IModuleProvider moduleProvider)
     {
-        Statements = [.. statements];
+        Statements = statements.ToList();
         SourceCode = sourceCode;
         ImportedModules = [];
         ModuleProvider = moduleProvider;
@@ -77,7 +77,7 @@ public class Binder :
             if (Process(statement) is {} boundStatement)
                 boundStatements.Add(boundStatement);
 
-        return new Module(SourceCode.FilePath, boundStatements, Statements, Scope, DeclaredTypes, ImportedModules);
+        return new Module(SourceCode.FilePath, boundStatements, Statements.ToArray(), Scope, DeclaredTypes, ImportedModules);
     }
 
 
@@ -259,7 +259,7 @@ public class Binder :
         => Scope.ForInnerScopeDo(ref _scope, () => ProcessBlockToBound(statement));
 
 
-    private BoundStatement ProcessFunctionBlockAndDeclareParameters(BlockStatement statement, IReadOnlyList<GenericDeclaration> parameters)
+    private BoundStatement ProcessFunctionBlockAndDeclareParameters(BlockStatement statement, IReadOnlyCollection<GenericDeclaration> parameters)
         => Scope.ForInnerScopeDo(ref _scope, () =>
         {
             DeclareFunctionParameters(parameters);
@@ -267,7 +267,7 @@ public class Binder :
         });
 
 
-    private void DeclareFunctionParameters(IReadOnlyList<GenericDeclaration> parameters)
+    private void DeclareFunctionParameters(IReadOnlyCollection<GenericDeclaration> parameters)
     {
         foreach (var parameter in parameters)
             Scope.Items.Add(new VariableSymbol(parameter.Name, Scope) { IsParameter = true });

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-
+using System.Linq;
 using Torque.Compiler.AST.Expressions;
 using Torque.Compiler.Diagnostics.Catalogs;
 using Torque.Compiler.Symbols;
@@ -342,12 +342,12 @@ public partial class Parser
 
 
 
-    private Expression ParseLeftAssociativeBinaryLayoutExpression<T>(Func<Expression> predecessor, params IReadOnlyList<TokenType> operators)
+    private Expression ParseLeftAssociativeBinaryLayoutExpression<T>(Func<Expression> predecessor, params IReadOnlyCollection<TokenType> operators)
         where T : BinaryLayoutExpression, IBinaryLayoutExpressionFactory
         => ParseAssociativeBinaryLayoutExpression<T>(predecessor, false, operators);
 
 
-    private Expression ParseRightAssociativeBinaryLayoutExpression<T>(Func<Expression> predecessor, params IReadOnlyList<TokenType> operators)
+    private Expression ParseRightAssociativeBinaryLayoutExpression<T>(Func<Expression> predecessor, params IReadOnlyCollection<TokenType> operators)
         where T : BinaryLayoutExpression, IBinaryLayoutExpressionFactory
         => ParseAssociativeBinaryLayoutExpression<T>(predecessor, true, operators);
 
@@ -355,7 +355,7 @@ public partial class Parser
 
 
     private Expression ParseAssociativeBinaryLayoutExpression<T>(Func<Expression> predecessor, bool rightAssociative = false,
-        params IReadOnlyList<TokenType> operators) where T : BinaryLayoutExpression, IBinaryLayoutExpressionFactory
+        params IReadOnlyCollection<TokenType> operators) where T : BinaryLayoutExpression, IBinaryLayoutExpressionFactory
     {
         var expression = predecessor();
 
@@ -372,7 +372,7 @@ public partial class Parser
 
 
 
-    private Expression ParseRightAssociativeUnaryLayoutExpression<T>(Func<Expression> predecessor, params IReadOnlyList<TokenType> operators)
+    private Expression ParseRightAssociativeUnaryLayoutExpression<T>(Func<Expression> predecessor, params IReadOnlyCollection<TokenType> operators)
         where T : UnaryLayoutExpression, IUnaryLayoutExpressionFactory
     {
         if (Match(operators))

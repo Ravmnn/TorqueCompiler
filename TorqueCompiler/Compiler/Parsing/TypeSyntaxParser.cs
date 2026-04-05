@@ -82,7 +82,7 @@ public partial class Parser
     }
 
 
-    private IReadOnlyList<TypeSyntax> ParseFunctionTypeNameParameters()
+    private IReadOnlyCollection<TypeSyntax> ParseFunctionTypeNameParameters()
     {
         if (Check(TokenType.RightParen))
             return [];

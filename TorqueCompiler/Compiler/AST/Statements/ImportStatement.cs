@@ -9,9 +9,9 @@ namespace Torque.Compiler.AST.Statements;
 
 
 
-public class ImportStatement(IReadOnlyList<SymbolSyntax> path, Span location) : Statement(location)
+public class ImportStatement(IReadOnlyCollection<SymbolSyntax> path, Span location) : Statement(location)
 {
-    public IReadOnlyList<SymbolSyntax> Path { get; } = path;
+    public IReadOnlyCollection<SymbolSyntax> Path { get; } = path;
 
     public override bool CanBeInFileScope => true;
     public override bool CanBeInFunctionScope => false;

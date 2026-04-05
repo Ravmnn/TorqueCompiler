@@ -14,7 +14,7 @@ namespace Torque.Compiler.AST.Statements;
 public abstract class GlobalTypeDeclarationStatement(SymbolSyntax symbol, Span location)
     : Statement(location), IDeclaration
 {
-    public IReadOnlyList<Modifier> Modifiers { get; set; } = [];
+    public IList<Modifier> Modifiers { get; set; } = [];
     public abstract ModifierTarget ThisTargetIdentity { get; }
     public SymbolSyntax Symbol { get; } = symbol;
 

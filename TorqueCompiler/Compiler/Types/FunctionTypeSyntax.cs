@@ -7,7 +7,7 @@ namespace Torque.Compiler.Types;
 
 
 
-public class FunctionTypeSyntax(TypeSyntax returnType, IReadOnlyList<TypeSyntax> parametersType) : PointerTypeSyntax(returnType)
+public class FunctionTypeSyntax(TypeSyntax returnType, IReadOnlyCollection<TypeSyntax> parametersType) : PointerTypeSyntax(returnType)
 {
     public TypeSyntax ReturnType => InnerType;
     public IList<TypeSyntax> ParametersType { get; } = parametersType.ToList();

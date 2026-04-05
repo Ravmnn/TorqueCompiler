@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+
 using Torque.Compiler.Types;
 using Torque.Compiler.Symbols;
 using Torque.Compiler.Tokens;
@@ -15,7 +16,7 @@ public class SugarDefaultDeclarationStatement(TypeSyntax type, SymbolSyntax name
     public TypeSyntax Type { get; } = type;
     public SymbolSyntax Name { get; } = name;
 
-    public IReadOnlyList<Modifier> Modifiers { get; set; } = [];
+    public IList<Modifier> Modifiers { get; set; } = [];
     public ModifierTarget ThisTargetIdentity => ModifierTarget.LocalVariable;
 
 

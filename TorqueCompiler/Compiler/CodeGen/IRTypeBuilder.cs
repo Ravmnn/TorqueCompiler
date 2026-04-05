@@ -22,7 +22,7 @@ public class IRTypeBuilder : ITypeProcessor<LLVMTypeRef>
         => type.Process(this);
 
 
-    public IReadOnlyList<LLVMTypeRef> ProcessAll(IReadOnlyList<Type> types)
+    public IReadOnlyCollection<LLVMTypeRef> ProcessAll(IReadOnlyCollection<Type> types)
         => types.Select(Process).ToArray();
 
 

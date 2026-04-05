@@ -28,7 +28,7 @@ public enum ModifierTarget
 
 public static class ModifiersTarget
 {
-    private static readonly IReadOnlyDictionary<TokenType, IReadOnlyList<ModifierTarget>> _targets = new Dictionary<TokenType, IReadOnlyList<ModifierTarget>>
+    private static readonly IReadOnlyDictionary<TokenType, IReadOnlyCollection<ModifierTarget>> _targets = new Dictionary<TokenType, IReadOnlyCollection<ModifierTarget>>
     {
         { TokenType.KwExternal, [ModifierTarget.Function] }
     };
@@ -36,6 +36,6 @@ public static class ModifiersTarget
 
 
 
-    public static IReadOnlyList<ModifierTarget> GetFor(TokenType modifier)
+    public static IReadOnlyCollection<ModifierTarget> GetFor(TokenType modifier)
         => _targets[modifier];
 }

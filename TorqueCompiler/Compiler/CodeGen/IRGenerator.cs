@@ -90,8 +90,6 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         // TODO: add expr += ... (and others)
         // TODO: add expr++ and expr--
 
-        // TODO: IEnumerable<T> when only iteration (foreach) is required, IReadOnlyList<T> if indexing or length is needed
-
 
         Module = module;
 
@@ -158,7 +156,7 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
     }
 
 
-    private void DeclareAllImportablesIn<T>(IReadOnlyList<T> collection)
+    private void DeclareAllImportablesIn<T>(IReadOnlyCollection<T> collection)
     {
         foreach (var symbol in collection)
             if (symbol is ICompiledImportable importable)

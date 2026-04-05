@@ -51,14 +51,14 @@ public static class ProgramToolchain
 
 
 
-    public static void Link(IReadOnlyList<string> inputFiles, string outputFile, LinkerProgramOptions options)
+    public static void Link(IReadOnlyCollection<string> inputFiles, string outputFile, LinkerProgramOptions options)
     {
         var linker = NewLinkerProgram(inputFiles, outputFile, options);
         linker.Run();
     }
 
 
-    private static LinkerProgram NewLinkerProgram(IReadOnlyList<string> inputFiles, string outputFile, LinkerProgramOptions options)
+    private static LinkerProgram NewLinkerProgram(IReadOnlyCollection<string> inputFiles, string outputFile, LinkerProgramOptions options)
         => new LinkerProgram
         {
             InputFiles = inputFiles,

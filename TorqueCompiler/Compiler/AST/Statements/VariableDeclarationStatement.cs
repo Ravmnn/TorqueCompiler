@@ -19,7 +19,7 @@ public class VariableDeclarationStatement(TypeSyntax type, SymbolSyntax name, Ex
     public Expression Value { get; set; } = value;
     public bool InferType { get; set; }
 
-    public IReadOnlyList<Modifier> Modifiers { get; set; } = [];
+    public IList<Modifier> Modifiers { get; set; } = [];
     public ModifierTarget ThisTargetIdentity => ModifierTarget.LocalVariable;
     public SymbolSyntax Symbol => Name;
 

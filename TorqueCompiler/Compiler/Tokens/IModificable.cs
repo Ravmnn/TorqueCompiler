@@ -8,6 +8,6 @@ namespace Torque.Compiler.Tokens;
 
 public interface IModificable
 {
-    IReadOnlyList<Modifier> Modifiers { get; set; }
+    IList<Modifier> Modifiers { get; set; }
     ModifierTarget ThisTargetIdentity { get; }
 }

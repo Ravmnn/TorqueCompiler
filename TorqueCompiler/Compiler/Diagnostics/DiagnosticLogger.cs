@@ -19,7 +19,7 @@ public static class DiagnosticLogger
 
 
 
-    public static void LogDiagnosticsAndInterruptIfAny(IReadOnlyList<Diagnostic> diagnostics)
+    public static void LogDiagnosticsAndInterruptIfAny(IEnumerable<Diagnostic> diagnostics)
     {
         LogDiagnosticsIfAny(diagnostics);
         InterruptIfAnyDiagnosticIsError(diagnostics);
@@ -33,7 +33,7 @@ public static class DiagnosticLogger
     }
 
 
-    public static void LogDiagnosticsIfAny(IReadOnlyList<Diagnostic> diagnostics)
+    public static void LogDiagnosticsIfAny(IEnumerable<Diagnostic> diagnostics)
     {
         if (!diagnostics.Any())
             return;

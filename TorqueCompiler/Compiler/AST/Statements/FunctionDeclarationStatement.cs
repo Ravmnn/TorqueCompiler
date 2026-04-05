@@ -19,7 +19,7 @@ public class FunctionDeclarationStatement(TypeSyntax returnType, SymbolSyntax na
     public IReadOnlyList<GenericDeclaration> Parameters { get; } = parameters;
     public BlockStatement? Body { get; set; } = body;
 
-    public IReadOnlyList<Modifier> Modifiers { get; set; } = [];
+    public IList<Modifier> Modifiers { get; set; } = [];
     public ModifierTarget ThisTargetIdentity => ModifierTarget.Function;
     public SymbolSyntax Symbol => Name;
 

@@ -12,7 +12,7 @@ namespace Torque.Compiler.Tokens;
 
 public class StringTokenEncoder(string text, Span startQuoteLocation, DiagnosticReporter<LexerCatalog> reporter)
 {
-    public static IReadOnlyList<IEscapeSequence> DefaultEscapeProcessors { get; } =
+    public static IReadOnlyCollection<IEscapeSequence> DefaultEscapeProcessors { get; } =
     [
         new SingleEscapeSequence('0', (byte)'\0'),
         new SingleEscapeSequence('t', (byte)'\t'),

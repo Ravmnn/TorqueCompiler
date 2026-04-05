@@ -12,11 +12,11 @@ public static class CollectionExtensions
 {
     extension<T>(IEnumerable<T> collection) where T : notnull
     {
-        public IReadOnlyList<string> ItemsToString(Func<T, string>? processor = null)
+        public IReadOnlyCollection<string> ItemsToString(Func<T, string>? processor = null)
         {
             processor ??= item => item.ToString() ?? string.Empty;
 
-            return collection.Select(processor).ToArray();
+            return [.. collection.Select(processor)];
         }
 
 
