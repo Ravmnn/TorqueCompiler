@@ -92,8 +92,6 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
 
         // TODO: IEnumerable<T> when only iteration (foreach) is required, IReadOnlyList<T> if indexing or length is needed
 
-        // TODO: add options that control the importing system to the command line
-
 
         Module = module;
 

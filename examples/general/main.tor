@@ -1,10 +1,14 @@
 import std.io;
 import std.memory;
 
+import extra.utils;
+
 
 int main(int argc, char** argv)
 {
     println("hello, world!");
+
+    let value = random();
 
     return 0;
 }

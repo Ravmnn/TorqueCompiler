@@ -9,13 +9,8 @@ namespace Torque.Compiler.CodeGen;
 
 
 
-public class DefaultEmitter(EntryInfo entry) : IIREmitter
+public class DefaultEmitter() : IIREmitter
 {
-    public EntryInfo Entry { get; } = entry;
-
-
-
-
     public void EmitModuleAndImports(Module module, IRGenerationOptions options)
     {
         ThrowIfNoIR(module);
@@ -31,19 +26,20 @@ public class DefaultEmitter(EntryInfo entry) : IIREmitter
     {
         ThrowIfNoIR(module);
 
-        var outputFile = GetOutputFile(module.SourceCode.FilePath, options.OutputDirectory);
+        var outputFile = GetOutputFileForModule(module, options.OutputDirectory);
         var bitCode = module.LLVMModule!.Value.PrintToString();
 
         ProgramToolchain.Compile(bitCode, outputFile, options);
     }
 
 
-    private string GetOutputFile(string file, DirectoryInfo? outputDirectory)
+    private static string GetOutputFileForModule(Module module, DirectoryInfo? outputDirectory)
     {
-        var root = Entry.EntryDirectory.Parent!.FullName;
+        var file = module.SourceCode.FilePath;
+        var root = module.EntryDirectory!.FullName;
         var relativePath = Path.GetRelativePath(root, file);
 
-        return Path.Combine(outputDirectory?.FullName ?? root, relativePath + ".o");
+        return Path.Combine(outputDirectory?.FullName ?? root, relativePath + TorqueFile.ObjectExtension);
     }
 
 

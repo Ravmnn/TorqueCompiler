@@ -22,6 +22,8 @@ public class Module(
 {
     public string Path { get; } = path;
     public SourceCode SourceCode { get; } = new SourceCode(new FileInfo(path));
+    public DirectoryInfo? EntryDirectory { get; set; }
+
     public IReadOnlyList<BoundStatement> Statements { get; init; } = statements;
     public IReadOnlyList<Statement> SyntaxStatements { get; init; } = syntaxStatements;
     public Scope Scope { get; init; } = scope;

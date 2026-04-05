@@ -3,6 +3,8 @@
 
 
 using System.Linq;
+using System.Collections.Generic;
+using System.IO;
 
 using Torque.Compiler;
 using Torque.Compiler.Target;
@@ -41,12 +43,10 @@ public static class Torque
 
     public static void Compile(CompileCommandSettings settings)
     {
-        var entry = new EntryInfo(settings.File);
-        var moduleLoader = new ModuleLoader(entry);
-
+        var moduleLoader = new ModuleLoader() { ImportPaths = settings.GetImportPathsFromSettings() };
         var (module, _) = moduleLoader.LoadModuleByPath(settings.File.FullName);
 
-        CompilerSteps.Compile(module!, settings.ToIRGenerationOptions(), entry);
+        CompilerSteps.Compile(module!, settings.ToIRGenerationOptions());
     }
 
 

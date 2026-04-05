@@ -1,10 +1,8 @@
-﻿using System.IO;
-using System.Linq;
+﻿using System;
 
 using Spectre.Console.Cli;
 
 using Torque.CommandLine.Commands;
-using Torque.Compiler.BoundAST.Statements;
 
 
 namespace Torque.CommandLine;
@@ -15,15 +13,15 @@ namespace Torque.CommandLine;
 class Program
 {
     const string TestFile = "general/main.tor";
-    const string TestFileFullPath = $"/home/ravmn/Documentos/programming/csharp/TorqueCompiler/examples/{TestFile}";
-    const string TestOptions = "-O /home/ravmn/Documentos/programming/csharp/TorqueCompiler/examples/build --debug";
+    const string TestOptions = "-I imports -O build --debug";
 
 
 
 
     private static int Main(string[] args)
     {
-        //args = $"compile {TestFileFullPath} {TestOptions}".Split(' ');
+        /* Environment.CurrentDirectory = "/home/ravmn/Documentos/programming/csharp/TorqueCompiler/examples/";
+        args = $"compile {TestFile} {TestOptions}".Split(' '); */
 
         var root = new CommandApp();
         root.Configure(config =>

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 using Torque.Compiler.AST.Statements;
@@ -18,10 +19,10 @@ namespace Torque.Compiler;
 
 public static class CompilerSteps
 {
-    public static void Compile(Module module, IRGenerationOptions options, EntryInfo entry)
+    public static void Compile(Module module, IRGenerationOptions options)
     {
-        GenerateIR(module, options, entry);
-        EmitIR(module, options, entry);
+        GenerateIR(module, options);
+        EmitIR(module, options);
     }
 
 
@@ -48,15 +49,15 @@ public static class CompilerSteps
 
 
 
-    public static void EmitIR(Module module, IRGenerationOptions options, EntryInfo entry)
+    public static void EmitIR(Module module, IRGenerationOptions options)
     {
-        var emitter = new DefaultEmitter(entry);
+        var emitter = new DefaultEmitter();
 
         emitter.EmitModuleAndImports(module, options);
     }
 
 
-    public static string GenerateIR(Module module, IRGenerationOptions options, EntryInfo entry)
+    public static string GenerateIR(Module module, IRGenerationOptions options)
     {
         var compiler = new IRGenerator(module, options.Debug);
         var llvmModule = compiler.GenerateModule();

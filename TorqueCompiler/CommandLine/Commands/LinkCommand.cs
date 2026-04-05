@@ -2,7 +2,6 @@
 
 
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
 
@@ -15,7 +14,6 @@ namespace Torque.CommandLine.Commands;
 
 
 
-[SuppressMessage("ReSharper", "UnassignedGetOnlyAutoProperty")]
 public class LinkCommandSettings : CommandSettings
 {
     [CommandArgument(0, "<files>")]

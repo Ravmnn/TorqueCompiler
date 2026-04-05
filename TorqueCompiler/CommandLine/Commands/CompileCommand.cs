@@ -33,6 +33,13 @@ public class CompileCommandSettings : CommandSettings
 
 
 
+    [CommandOption("-I|--import-path")]
+    [Description("Adds a new location to search for modules when importing")]
+    public DirectoryInfo[] ImportPaths { get; init; } = [];
+
+
+
+
     [CommandOption("-O|--output-directory")]
     [Description("The output folder to create the object files")]
     public DirectoryInfo? OutputDirectory { get; init; }
@@ -99,10 +106,14 @@ public class CompileCommandSettings : CommandSettings
     public override ValidationResult Validate()
     {
         if (!File.Exists)
-            return ValidationResult.Error($"Could not open source file \"{File.Name}\"");
+            return ValidationResult.Error($"Could not open source file \"{File.FullName}\"");
 
         if (OutputDirectory is not null && !OutputDirectory!.Exists)
             Directory.CreateDirectory(OutputDirectory.FullName);
+
+        foreach (var importPath in ImportPaths)
+            if (!importPath.Exists)
+                return ValidationResult.Error($"Could not open import path \"{importPath.FullName}\"");
 
         return ValidationResult.Success();
     }
@@ -147,8 +158,7 @@ public class CompileCommand : Command<CompileCommandSettings>
     private static void PrintRequestedModuleFormats(CompileCommandSettings settings)
     {
         var sourceCode = new SourceCode(settings.File);
-        var fileSystem = new EntryInfo(settings.File);
-        var moduleLoader = new ModuleLoader(fileSystem);
+        var moduleLoader = new ModuleLoader();
 
         var statements = CompilerSteps.BuildFinalAST(sourceCode);
 
@@ -160,7 +170,7 @@ public class CompileCommand : Command<CompileCommandSettings>
 
         var module = CompilerSteps.SemanticAnalysis(statements, sourceCode, moduleLoader);
         var options = settings.ToIRGenerationOptions() with { CompileImportedModules = false };
-        var bitCode = CompilerSteps.GenerateIR(module, options, fileSystem);
+        var bitCode = CompilerSteps.GenerateIR(module, options);
 
         if (settings.PrintLLVM)
             PrintLLVM(bitCode);
@@ -204,6 +214,10 @@ public class CompileCommand : Command<CompileCommandSettings>
 
 public static class CompileCommandSettingsExtensions
 {
+    public static IEnumerable<DirectoryInfo> GetImportPathsFromSettings(this CompileCommandSettings settings)
+        => [settings.File.Directory!, ..settings.ImportPaths];
+
+
     public static IRGenerationOptions ToIRGenerationOptions(this CompileCommandSettings settings)
         => new IRGenerationOptions
         {
