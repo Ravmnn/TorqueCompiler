@@ -570,6 +570,28 @@ public class TypeChecker : IBoundStatementProcessor, IBoundExpressionProcessor<T
         return expression.Type;
     }
 
+
+
+
+    public Type ProcessPostFix(BoundPostFixExpression expression)
+    {
+        var type = Process(expression.Expression);
+        expression.Type = ValidateTypeOrError(type, t => t.IsInteger);
+
+        return expression.Type;
+    }
+
+
+
+
+    public Type ProcessPreFix(BoundPreFixExpression expression)
+    {
+        var type = Process(expression.Expression);
+        expression.Type = ValidateTypeOrError(type, t => t.IsInteger);
+
+        return expression.Type;
+    }
+
     #endregion
 
 

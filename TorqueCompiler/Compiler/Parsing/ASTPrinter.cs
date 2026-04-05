@@ -391,6 +391,18 @@ public class ASTPrinter
 
 
 
+    public string ProcessPostFix(PostFixExpression expression)
+        => $"({Process(expression.Expression)}{OperatorFromTokenType(expression.Operator)})";
+
+
+
+
+    public string ProcessPreFix(PreFixExpression expression)
+        => $"({OperatorFromTokenType(expression.Operator)}{Process(expression.Right)})";
+
+
+
+
     private string ForIndentDo(Statement statement)
     {
         var isBlock = statement is BlockStatement;
@@ -420,6 +432,8 @@ public class ASTPrinter
         TokenType.Star => "*",
         TokenType.Slash => "/",
         TokenType.Ampersand => "&",
+        TokenType.Increment => "++",
+        TokenType.Decrement => "--",
 
         TokenType.GreaterThan => ">",
         TokenType.GreaterThanOrEqual => ">=",

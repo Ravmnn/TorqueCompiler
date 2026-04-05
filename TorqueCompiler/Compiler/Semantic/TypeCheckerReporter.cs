@@ -263,6 +263,9 @@ public sealed class TypeCheckerReporter(TypeChecker typeChecker) : DiagnosticRep
             ReportIfStructHasNotField(structType, initialization.Member.Name, initialization.Member.Location);
     }
 
+
+
+
     public void ProcessMemberAccess(BoundMemberAccessExpression expression)
     {
         var structType = (expression.Compound.Type as StructType)!;
@@ -271,6 +274,22 @@ public sealed class TypeCheckerReporter(TypeChecker typeChecker) : DiagnosticRep
             return;
 
         ReportIfStructHasNotField(structType, expression.Member.Name, expression.Location);
+    }
+
+
+
+
+    public void ProcessPostFix(BoundPostFixExpression expression)
+    {
+        ReportExpressionMustHaveIntegerOperandsIfError(expression);
+    }
+
+
+
+
+    public void ProcessPreFix(BoundPreFixExpression expression)
+    {
+        ReportExpressionMustHaveIntegerOperandsIfError(expression);
     }
 
 
@@ -373,6 +392,16 @@ public sealed class TypeCheckerReporter(TypeChecker typeChecker) : DiagnosticRep
             return false;
 
         Report(TypeCheckerCatalog.ExpressionMustHaveNumericOperands, location: expression.Location);
+        return true;
+    }
+
+
+    public bool ReportExpressionMustHaveIntegerOperandsIfError(BoundExpression expression)
+    {
+        if (!expression.Type.IsError)
+            return false;
+
+        Report(TypeCheckerCatalog.ExpressionMustHaveIntegerOperands, location: expression.Location);
         return true;
     }
 

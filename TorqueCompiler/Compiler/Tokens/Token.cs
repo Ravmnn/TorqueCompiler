@@ -9,13 +9,12 @@ public enum TokenType
     Comma, Dot,
 
     Exclamation, Ampersand, Pipe,
-    Plus, Minus, Star, Slash, Equal,
+    Plus, Minus, Star, Slash, Equal, Increment, Decrement,
     LeftParen, RightParen, LeftCurlyBracket, RightCurlyBracket,
     LeftSquareBracket, RightSquareBracket,
-    GreaterThan, LessThan,
-
 
     // TODO: add bitwise operations &, | and ^ (XOR)
+    GreaterThan, LessThan,
     GreaterThanOrEqual, LessThanOrEqual,
     Equality, Inequality, LogicAnd, LogicOr,
 

@@ -25,6 +25,8 @@ public interface IExpressionProcessor
     void ProcessDefault(DefaultExpression expression);
     void ProcessStruct(StructExpression expression);
     void ProcessMemberAccess(MemberAccessExpression expression);
+    void ProcessPostFix(PostFixExpression expression);
+    void ProcessPreFix(PreFixExpression expression);
 }
 
 
@@ -50,4 +52,6 @@ public interface IExpressionProcessor<out T>
     T ProcessDefault(DefaultExpression expression);
     T ProcessStruct(StructExpression expression);
     T ProcessMemberAccess(MemberAccessExpression expression);
+    T ProcessPostFix(PostFixExpression expression);
+    T ProcessPreFix(PreFixExpression expression);
 }

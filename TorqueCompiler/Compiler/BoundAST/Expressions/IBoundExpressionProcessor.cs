@@ -26,6 +26,8 @@ public interface IBoundExpressionProcessor
     void ProcessDefault(BoundDefaultExpression expression);
     void ProcessStruct(BoundStructExpression expression);
     void ProcessMemberAccess(BoundMemberAccessExpression expression);
+    void ProcessPostFix(BoundPostFixExpression expression);
+    void ProcessPreFix(BoundPreFixExpression expression);
 }
 
 
@@ -52,4 +54,6 @@ public interface IBoundExpressionProcessor<out T>
     T ProcessDefault(BoundDefaultExpression expression);
     T ProcessStruct(BoundStructExpression expression);
     T ProcessMemberAccess(BoundMemberAccessExpression expression);
+    T ProcessPostFix(BoundPostFixExpression expression);
+    T ProcessPreFix(BoundPreFixExpression expression);
 }

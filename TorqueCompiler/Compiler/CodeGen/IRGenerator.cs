@@ -88,7 +88,6 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         // TODO: add number suffixes, for binary, hexadecimal, uints, floats...
         // TODO: "for" should accept "let" at the initializer
         // TODO: add expr += ... (and others)
-        // TODO: add expr++ and expr--
 
 
         Module = module;
@@ -534,14 +533,14 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         var leftType = expression.Left.Type;
         var llvmLeftType = TypeBuilder.Process(leftType);
 
-        return Value(ProcessBinaryOperation(expression, leftType, left, right), llvmLeftType);
+        return Value(ProcessBinaryOperation(expression.Syntax.Operator, leftType, left, right), llvmLeftType);
     }
 
 
-    private LLVMValueRef ProcessBinaryOperation(BoundBinaryExpression expression, Type leftType, LLVMValueRef left, LLVMValueRef right) => leftType switch
+    private LLVMValueRef ProcessBinaryOperation(TokenType @operator, Type type, LLVMValueRef left, LLVMValueRef right) => type switch
     {
-        _ when leftType.IsInteger => ProcessIntegerBinaryOperation(expression.Syntax.Operator, left, right, leftType.IsSigned),
-        _ when leftType.IsFloat => ProcessFloatBinaryOperation(expression.Syntax.Operator, left, right),
+        _ when type.IsInteger => ProcessIntegerBinaryOperation(@operator, left, right, type.IsSigned),
+        _ when type.IsFloat => ProcessFloatBinaryOperation(@operator, left, right),
 
         _ => throw new UnreachableException()
     };
@@ -997,6 +996,8 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
     }
 
 
+
+
     public IRExpressionResult ProcessMemberAccess(BoundMemberAccessExpression expression)
     {
         var structType = (expression.Compound.Type as StructType)!;
@@ -1005,6 +1006,41 @@ public class IRGenerator : IBoundStatementProcessor, IBoundExpressionProcessor<I
         var memberName = expression.Member.Name;
 
         return IndexStruct(@struct, structType, memberName);
+    }
+
+
+
+
+    public IRExpressionResult ProcessPostFix(BoundPostFixExpression expression)
+    {
+        var (oldValue, _, llvmType) = ProcessIncrDecr(expression.Expression, expression.Type, expression.Syntax.Operator);
+
+        return Value(oldValue, llvmType);
+    }
+
+
+
+
+    public IRExpressionResult ProcessPreFix(BoundPreFixExpression expression)
+    {
+        var (_, newValue, llvmType) = ProcessIncrDecr(expression.Expression, expression.Type, expression.Syntax.Operator);
+
+        return Value(newValue, llvmType);
+    }
+
+
+    private (LLVMValueRef oldValue, LLVMValueRef newValue, LLVMTypeRef type) ProcessIncrDecr(BoundExpression expression, Type type, TokenType @operator)
+    {
+        var llvmType = TypeBuilder.Process(type);
+        var address = EnsureAddress(Process(expression));
+        var oldValue = EnsureValue(address).Value;
+
+        var operation = @operator == TokenType.Increment ? TokenType.Plus : TokenType.Minus;
+        var one = Constant.Integer(1, llvmType);
+        var newValue = ProcessBinaryOperation(operation, expression.Type, oldValue, one);
+        Builder.BuildStore(newValue, address.Value);
+
+        return (oldValue, newValue, llvmType);
     }
 
     #endregion

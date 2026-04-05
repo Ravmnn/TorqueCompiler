@@ -308,6 +308,18 @@ public sealed class BinderReporter(Binder binder) : DiagnosticReporter<BinderCat
 
 
 
+    public void ProcessPostFix(PostFixExpression expression)
+    { }
+
+
+
+
+    public void ProcessPreFix(PreFixExpression expression)
+    { }
+
+
+
+
     private bool ReportIfMultipleDeclaration(SymbolSyntax symbol)
     {
         var (hasMultipleDeclarations, firstDeclaredAsType) = SymbolIsMultiDeclared(symbol);

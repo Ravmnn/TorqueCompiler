@@ -4,6 +4,7 @@ using System.Linq;
 using Torque.Compiler.Tokens;
 using Torque.Compiler.Diagnostics;
 using Torque.Compiler.Diagnostics.Catalogs;
+using System.Reflection.PortableExecutable;
 
 
 namespace Torque.Compiler.Parsing;
@@ -95,8 +96,15 @@ public class Lexer : IIterator<char>
             case ';': return TokenFromTokenType(TokenType.SemiColon);
             case ',': return TokenFromTokenType(TokenType.Comma);
             case '.': return TokenFromTokenType(TokenType.Dot);
-            case '-': return Match('>') ? TokenFromTokenType(TokenType.Arrow) : TokenFromTokenType(TokenType.Minus);
-            case '+': return TokenFromTokenType(TokenType.Plus);
+            case '-':
+                if (Match('>'))
+                    return TokenFromTokenType(TokenType.Arrow);
+                else if (Match('-'))
+                    return TokenFromTokenType(TokenType.Decrement);
+                else
+                    return TokenFromTokenType(TokenType.Minus);
+
+            case '+': return Match('+') ? TokenFromTokenType(TokenType.Increment) : TokenFromTokenType(TokenType.Plus);
             case '*': return TokenFromTokenType(TokenType.Star);
             case '/': return TokenFromTokenType(TokenType.Slash);
             case '>': return Match('=') ? TokenFromTokenType(TokenType.GreaterThanOrEqual) : TokenFromTokenType(TokenType.GreaterThan);

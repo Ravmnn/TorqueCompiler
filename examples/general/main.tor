@@ -1,14 +1,21 @@
-import std.io;
-import std.memory;
-
-import extra.utils;
-
-
 int main(int argc, char** argv)
 {
-    println("hello, world!");
+    let a = 5;
+    let b = a++;
+    let c = a++;
+    let d = a;
 
-    let value = random();
+    a--;
+    a--;
+
+    let final = a;
+
+    let x = 10;
+    let y = ++x;
+    let z = ++x;
+    let w = x--;
+
+    let final2 = x;
 
     return 0;
 }

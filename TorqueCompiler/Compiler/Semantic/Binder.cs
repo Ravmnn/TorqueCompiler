@@ -515,5 +515,23 @@ public class Binder :
     public BoundExpression ProcessMemberAccess(MemberAccessExpression expression)
         => new BoundMemberAccessExpression(expression, Process(expression.Compound), expression.Member);
 
+
+
+
+    public BoundExpression ProcessPostFix(PostFixExpression expression)
+    {
+        var boundExpression = Process(expression.Expression);
+        return new BoundPostFixExpression(expression, boundExpression);
+    }
+
+
+
+
+    public BoundExpression ProcessPreFix(PreFixExpression expression)
+    {
+        var boundExpression = Process(expression.Expression);
+        return new BoundPreFixExpression(expression, boundExpression);
+    }
+
     #endregion
 }

@@ -77,7 +77,13 @@ public partial class Parser
 
 
     private Expression PointerAccess()
-        => ParseRightAssociativeUnaryLayoutExpression<PointerAccessExpression>(Unary, TokenType.Star);
+        => ParseRightAssociativeUnaryLayoutExpression<PointerAccessExpression>(PreFix, TokenType.Star);
+
+
+
+
+    private Expression PreFix()
+        => ParseRightAssociativeUnaryLayoutExpression<PreFixExpression>(Unary, TokenType.Increment, TokenType.Decrement);
 
 
 
@@ -108,6 +114,9 @@ public partial class Parser
 
             else if (Match(TokenType.Dot, TokenType.Arrow))
                 expression = PostFixMemberAccess(expression);
+
+            else if (Match(TokenType.Decrement, TokenType.Increment))
+                expression = PostFixIncrDecr(expression);
 
             else
                 break;
@@ -154,6 +163,15 @@ public partial class Parser
 
         return isArrow ? new SugarArrowExpression(expression, member, location)
                                 : new MemberAccessExpression(expression, member, location);
+    }
+
+
+    private Expression PostFixIncrDecr(Expression expression)
+    {
+        var @operator = Iterator.Previous();
+        var location = new Span(expression.Location, @operator.Location);
+
+        return new PostFixExpression(expression, @operator.Type, location);
     }
 
 

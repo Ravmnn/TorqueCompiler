@@ -311,6 +311,24 @@ public class Desugarizer(IReadOnlyList<Statement> statements)
     }
 
 
+    public Expression ProcessPostFix(PostFixExpression expression)
+    {
+        expression.Expression = SugarProcess(expression.Expression);
+
+        return expression;
+    }
+
+
+    public Expression ProcessPreFix(PreFixExpression expression)
+    {
+        expression.Right = SugarProcess(expression.Right);
+
+        return expression;
+    }
+
+
+
+
     private BinaryLayoutExpression ProcessBinaryLayout(BinaryLayoutExpression expression)
     {
         expression.Left = SugarProcess(expression.Left);
